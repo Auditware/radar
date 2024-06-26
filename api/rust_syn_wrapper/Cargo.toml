@@ -1,0 +1,16 @@
+[package]
+name = "rust_syn"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+name = "rust_syn"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.16", features = ["extension-module"] }
+syn-serde = { version = "0.3", features = ["json"] }
+syn = { version = "2", features = ["full"] }
+
+[features]
+default = ["pyo3/extension-module"]
