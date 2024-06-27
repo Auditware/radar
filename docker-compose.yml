@@ -36,9 +36,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", 'bash -c "exec 6<> /dev/tcp/localhost/8000"']
       start_period: 15s
-      interval: 3s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 15
 
   postgres:
     image: postgres:16

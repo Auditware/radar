@@ -159,6 +159,16 @@ files = [
 django = ">=4.2"
 
 [[package]]
+name = "django-json-widget"
+version = "2.0.1"
+description = "Django json widget is an alternative widget that makes it easy to edit the jsonfield field of django."
+optional = false
+python-versions = "*"
+files = [
+    {file = "django-json-widget-2.0.1.tar.gz", hash = "sha256:adb4cab17fe5a04139037d7d84725369530ef35b912c3790d3a7b13f99351358"},
+]
+
+[[package]]
 name = "djangorestframework"
 version = "3.15.2"
 description = "Web APIs for Django, made easy."
@@ -377,4 +387,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "a9416c314bb4cfa390d7c1116426e7fd8b4ed6dfb9d68c1972b30a36c5aacde3"
+content-hash = "8b1f701e1c2a77ea03dcb440843197c2eecafa168c9249a3aa57aae74cf1e9fc"

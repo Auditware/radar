@@ -36,9 +36,9 @@ COPY --chown=radar:radar . /api/
 USER root
 RUN cd /api/rust_syn_wrapper && \
     cargo build --release && \
-    cp /api/rust_syn_wrapper/target/release/librust_syn.so /api/api/rust_syn.so && \
-    chown radar:radar /api/api/rust_syn.so && \
-    chmod 644 /api/api/rust_syn.so
+    cp /api/rust_syn_wrapper/target/release/librust_syn.so /api/utils/rust_syn.so && \
+    chown radar:radar /api/utils/rust_syn.so && \
+    chmod 644 /api/utils/rust_syn.so
 USER radar
 
 ARG DEBUG 

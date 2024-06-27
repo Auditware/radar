@@ -12,7 +12,10 @@ run:
 build:
 	$(MAKE) compose
 	$(MAKE) run
-	
+
+try:
+	$(MAKE) compose
+	docker compose run --rm -v ~/Desktop/anchor-test:/contract radar --path /contract/programs/anchor-test/src/lib.rs
 
 include .env
 export
