@@ -30,17 +30,19 @@ def check_path(path: Path) -> str:
     if path.is_file():
         return "file"
     if path.is_dir():
-        return "directory"
+        return "folder"
 
 
 def copy_to_docker_mount(src_path: Path, path_type: str) -> None:
     dst_path = Path("/radar_data") / src_path.relative_to("/")
+    if dst_path.exists() and dst_path.is_dir():
+        shutil.rmtree(dst_path)
 
     try:
         if path_type == "file":
             dst_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(src_path, dst_path)
-        elif path_type == "directory":
+        elif path_type == "folder":
             shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
         print(f"[i] Successfully copied {path_type} to {dst_path}")
     except Exception as e:

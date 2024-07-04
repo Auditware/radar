@@ -1,5 +1,5 @@
 import requests
-
+from pathlib import Path
 from helpers import get_env_variable
 
 
@@ -23,13 +23,12 @@ api_uri = resolve_django()
 print(f"[i] Found API URL at {api_uri}")
 
 
-def scan_file(path):
+def scan_file_or_folder(path: Path, path_type: str):
     try:
         response = requests.post(
             f"{api_uri}/generate_ast/",
-            json={"source_type": "file", "file_path": str(path)},
+            json={"source_type": path_type, f"{path_type}_path": str(path)},
         )
-
         if response.status_code == 201:
             # @todo implement success state handling
             print(f"[i] AST successfully generated for {path}")

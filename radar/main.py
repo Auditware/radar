@@ -1,6 +1,6 @@
 from pathlib import Path
 from helpers import check_path, copy_to_docker_mount, parse_arguments
-from api import scan_file
+from api import scan_file_or_folder
 
 
 def main():
@@ -10,8 +10,7 @@ def main():
     print(f"[i] Loading {path_type} '{path}'")
     copy_to_docker_mount(path, path_type)
 
-    if path_type == "file":
-        scan_file(path)
+    scan_file_or_folder(path, path_type)
 
 
 if __name__ == "__main__":

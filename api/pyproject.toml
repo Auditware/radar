@@ -16,6 +16,7 @@ django-jazzmin = "^3.0.0"
 djangorestframework = "^3.15.2"
 requests = "^2.32.3"
 django-json-widget = "^2.0.1"
+toml = "^0.10.2"
 
 
 [build-system]

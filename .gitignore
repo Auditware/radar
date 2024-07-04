@@ -3,3 +3,4 @@
 **/staticfiles
 **/.vscode
 **/target
+Makefile.local

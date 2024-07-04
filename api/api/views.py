@@ -2,7 +2,11 @@ from pathlib import Path
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from utils.ast import generateASTForAnchorFile
+from utils.ast import (
+    generate_anchor_project_ast,
+    generate_ast_for_anchor_file,
+    generate_anchor_program_ast,
+)
 
 from .serializers import GenerateASTSerializer
 
@@ -23,17 +27,21 @@ class GenerateASTView(APIView):
             )
 
         if source_type not in ["file", "folder"]:
+            logger.error(f"Unrecognized source_type {source_type}")
             return Response(
                 {"error": 'source_type must be either "file" or "folder"'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         ast_data = {}
+
+        source_file_path = Path("/radar_data") / Path(source_path.lstrip("/"))
         if source_type == "file":
-            source_file_path = Path("/radar_data") / Path(source_path.lstrip("/"))
             logger.info(f"Generating AST for {source_file_path}")
             try:
-                ast_data = generateASTForAnchorFile(source_file_path)
+                file_ast = generate_ast_for_anchor_file(source_file_path)
+                radar_ast = {"sources": {}, "metadata": {}}
+                ast_data = radar_ast["sources"][str(source_file_path)] = file_ast
             except Exception as e:
                 logger.error(e)
                 return Response(
@@ -41,9 +49,41 @@ class GenerateASTView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # @todo implement
         elif source_type == "folder":
-            raise NotImplementedError("Folder parsing is not implemented yet")
+            # User may provide a path to the root of the project, or to a specific prgoram,
+            # differentiated by the respective toml file present
+            anchor_file = source_file_path / "Anchor.toml"
+            xargo_file = source_file_path / "Xargo.toml"
+
+            if xargo_file.exists():
+                try:
+                    ast_data = generate_anchor_program_ast(source_file_path)
+                except Exception as e:
+                    logger.error(e)
+                    return Response(
+                        {
+                            "error": "Failed to parse AST from provided program source code"
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            elif anchor_file.exists():
+                try:
+                    ast_data = generate_anchor_project_ast(source_file_path)
+                except Exception as e:
+                    logger.error(e)
+                    return Response(
+                        {
+                            "error": "Failed to parse AST from provided program source code"
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            else:
+                return Response(
+                    {
+                        "error": "Failed to find Anchor.toml or Xargo.toml in the source path."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer_data = {
             "ast": ast_data,

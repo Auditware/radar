@@ -1,3 +1,5 @@
+-include Makefile.local
+
 compose:
 	docker compose up -d --build
 
@@ -11,12 +13,9 @@ run:
 
 build:
 	$(MAKE) compose
-	$(MAKE) run
-
-try:
-	$(MAKE) compose
-	docker compose run --rm -v ~/Desktop/anchor-test:/contract radar --path /contract/programs/anchor-test/src/lib.rs
-
+	$(MAKE) try
+	
+	
 include .env
 export
 api-local:
