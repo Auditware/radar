@@ -2,6 +2,7 @@ from pathlib import Path
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from api.tasks import run_scan_task
 from utils.ast import (
     generate_anchor_project_ast,
     generate_ast_for_anchor_file,
@@ -40,8 +41,8 @@ class GenerateASTView(APIView):
             logger.info(f"Generating AST for {source_file_path}")
             try:
                 file_ast = generate_ast_for_anchor_file(source_file_path)
-                radar_ast = {"sources": {}, "metadata": {}}
-                ast_data = radar_ast["sources"][str(source_file_path)] = file_ast
+                ast_data = {"sources": {}, "metadata": {}}
+                ast_data["sources"][str(source_file_path)] = file_ast
             except Exception as e:
                 logger.error(e)
                 return Response(
@@ -97,3 +98,14 @@ class GenerateASTView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class RunScanView(APIView):
+    def post(self, request, *args, **kwargs):
+        source_type = request.data.get("source_type")
+        source_path = request.data.get(f"{source_type}_path")
+
+        if not source_path or not source_type:
+            return Response({"error": "Missing source type or path"}, status=status.HTTP_400_BAD_REQUEST)
+
+        run_scan_task.delay(source_type=source_type, source_path=source_path)
+        return Response({"message": "Scan initiated"}, status=status.HTTP_201_CREATED)

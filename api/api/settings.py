@@ -27,6 +27,21 @@ def resolve_postgres():
         return container
 
 
+def resolve_rabbitmq():
+    container = get_env_variable("CELERY_BROKER_HOST")
+    local = get_env_variable("CELERY_BROKER_HOST_LOCAL")
+    port = int(get_env_variable("CELERY_BROKER_PORT"))
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(10)
+    try:
+        sock.connect((local, port))
+        sock.close()
+        return local
+    except:
+        return container
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -47,6 +62,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "django_json_widget",
+    "django_celery_results",
     "api",
 ]
 
@@ -116,6 +132,15 @@ REST_FRAMEWORK = {
     ],
 }
 
+CELERY_BROKER_URL = f'amqp://{get_env_variable("RABBITMQ_USER")}:{get_env_variable("RABBITMQ_PASSWORD")}@{resolve_rabbitmq()}:{get_env_variable("CELERY_BROKER_PORT")}//'
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_IMPORTS = "api.tasks"
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_CACHE_BACKEND = "django-cache"
+CELERY_RESULT_EXTENDED = True
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -125,11 +150,14 @@ LOGGING = {
         },
     },
     "loggers": {
-        "": {
+        "django": {
             "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": True,
-        }
+            "level": "INFO",
+        },
+        "celery": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
     },
 }
 

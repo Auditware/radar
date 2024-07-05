@@ -23,7 +23,7 @@ api_uri = resolve_django()
 print(f"[i] Found API URL at {api_uri}")
 
 
-def scan_file_or_folder(path: Path, path_type: str):
+def generate_ast_for_file_or_folder(path: Path, path_type: str):
     try:
         response = requests.post(
             f"{api_uri}/generate_ast/",
@@ -38,5 +38,23 @@ def scan_file_or_folder(path: Path, path_type: str):
             except requests.exceptions.JSONDecodeError:
                 error_response = response.text
             print(f"[e] Error parsing file: {response.status_code} - {error_response}")
+    except requests.exceptions.RequestException as e:
+        print(f"[e] Request failed: {e}")
+
+def run_scan(path: Path, path_type: str):
+    try:
+        response = requests.post(
+            f"{api_uri}/run_scan/",
+            json={"source_type": path_type, f"{path_type}_path": str(path)},
+        )
+        if response.status_code == 201:
+            # @todo implement success state handling
+            print(f"[i] Scan initiated for {path}")
+        else:
+            try:
+                error_response = response.json()
+            except requests.exceptions.JSONDecodeError:
+                error_response = response.text
+            print(f"[e] Error: {response.status_code} - {error_response}")
     except requests.exceptions.RequestException as e:
         print(f"[e] Request failed: {e}")
