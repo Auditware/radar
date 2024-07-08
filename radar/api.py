@@ -41,11 +41,16 @@ def generate_ast_for_file_or_folder(path: Path, path_type: str):
     except requests.exceptions.RequestException as e:
         print(f"[e] Request failed: {e}")
 
-def run_scan(path: Path, path_type: str):
+
+def run_scan(path: Path, path_type: str, templates_path: Path = None):
     try:
+        req_body = {"source_type": path_type, f"{path_type}_path": str(path)}
+        if templates_path is not None:
+            req_body["templates_path"] = str(templates_path)
+        
         response = requests.post(
             f"{api_uri}/run_scan/",
-            json={"source_type": path_type, f"{path_type}_path": str(path)},
+            json=req_body,
         )
         if response.status_code == 201:
             # @todo implement success state handling

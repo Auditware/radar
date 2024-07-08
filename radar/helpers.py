@@ -9,6 +9,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--path", type=str, required=True, help="Path to the contract source"
     )
+    parser.add_argument(
+        "--templates", type=str, required=False, help="Path to custom templates folder"
+    )
     return parser.parse_args()
 
 

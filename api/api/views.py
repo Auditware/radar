@@ -1,4 +1,5 @@
 from pathlib import Path
+import yaml
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -99,13 +100,48 @@ class GenerateASTView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class RunScanView(APIView):
     def post(self, request, *args, **kwargs):
         source_type = request.data.get("source_type")
         source_path = request.data.get(f"{source_type}_path")
+        templates_path = request.data.get("templates_path")
 
         if not source_path or not source_type:
-            return Response({"error": "Missing source type or path"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Missing source type or path"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        run_scan_task.delay(source_type=source_type, source_path=source_path)
+        if templates_path:
+            templates_path = Path("/radar_data") / Path(templates_path).relative_to("/")
+            if not templates_path.exists() or not templates_path.is_dir():
+                return Response(
+                    {"error": "Invalid templates path"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            yaml_files = list(templates_path.rglob("*.yaml"))
+        else:
+            templates_path = Path("builtin_templates").absolute()
+            yaml_files = list(templates_path.rglob("*.yaml"))
+                
+        if not yaml_files:
+            return Response(
+                {"error": "No YAML files found at the specified templates path"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        for yaml_file in yaml_files:
+            yaml_data = None
+            try:
+                with open(yaml_file, 'r') as f:
+                    yaml_data = yaml.safe_load(f)
+            except:
+                return Response(
+                    {"error": f"Invalid template provided: {yaml_file}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            if yaml_data is not None:
+                run_scan_task.delay(source_type=source_type, source_path=source_path, yaml_data=yaml_data) 
+
         return Response({"message": "Scan initiated"}, status=status.HTTP_201_CREATED)
