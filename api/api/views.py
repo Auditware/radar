@@ -3,12 +3,15 @@ import yaml
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from api.models import GeneratedAST
 from api.tasks import run_scan_task
 from utils.ast import (
     generate_anchor_project_ast,
     generate_ast_for_anchor_file,
     generate_anchor_program_ast,
 )
+from celery.result import AsyncResult
+
 
 from .serializers import GenerateASTSerializer
 
@@ -82,7 +85,7 @@ class GenerateASTView(APIView):
             else:
                 return Response(
                     {
-                        "error": "Failed to find Anchor.toml or Xargo.toml in the source path."
+                        "error": f"Failed to find Anchor.toml or Xargo.toml in the source path {source_file_path}."
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
@@ -117,31 +120,99 @@ class RunScanView(APIView):
             templates_path = Path("/radar_data") / Path(templates_path).relative_to("/")
             if not templates_path.exists() or not templates_path.is_dir():
                 return Response(
-                    {"error": "Invalid templates path"}, status=status.HTTP_400_BAD_REQUEST
+                    {"error": "Invalid templates path"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             yaml_files = list(templates_path.rglob("*.yaml"))
         else:
             templates_path = Path("builtin_templates").absolute()
             yaml_files = list(templates_path.rglob("*.yaml"))
-                
+
         if not yaml_files:
             return Response(
                 {"error": "No YAML files found at the specified templates path"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
+        task_ids = []
+        query = {"source_type": source_type, f"{source_type}_path": source_path}
+        generated_ast = (
+            GeneratedAST.objects.filter(**query).order_by("-created").first()
+        )
+
         for yaml_file in yaml_files:
             yaml_data = None
             try:
-                with open(yaml_file, 'r') as f:
+                with open(yaml_file, "r") as f:
                     yaml_data = yaml.safe_load(f)
             except:
                 return Response(
                     {"error": f"Invalid template provided: {yaml_file}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             if yaml_data is not None:
-                run_scan_task.delay(source_type=source_type, source_path=source_path, yaml_data=yaml_data) 
+                result = run_scan_task.delay(
+                        yaml_data=yaml_data,
+                        generated_ast_id=generated_ast.id,
+                    )
+                task_ids.append(result.id)
+
+
+        generated_ast.task_ids = task_ids
+        generated_ast.save()
 
         return Response({"message": "Scan initiated"}, status=status.HTTP_201_CREATED)
+
+
+class PollResultsView(APIView):
+    def get(self, request, *args, **kwargs):
+        source_type = request.GET.get("source_type")
+        source_path = request.GET.get(f"{source_type}_path")
+
+        # Validate the required parameters
+        if not source_type or not source_path:
+            return Response(
+                {"error": "Missing required fields: source_type and path"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        query = {"source_type": source_type, f"{source_type}_path": source_path}
+        generated_ast = GeneratedAST.objects.filter(**query).order_by("-created").first()
+
+        if not generated_ast:
+            return Response(
+                {"error": "GeneratedAST not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        results = []
+        all_done = True
+
+        for task_id in generated_ast.task_ids:
+            result = AsyncResult(task_id)
+            if result.ready():
+                if result.successful():
+                    task_result = result.get()
+                    task_result_results = task_result.get("results")
+                    if task_result_results and task_result_results.get("locations"):
+                        results.append(task_result_results)
+                else:
+                    return Response(
+                        {
+                            "error": f"Task {task_id} failed",
+                            "details": str(result.result),
+                            "traceback": result.traceback.split("\n "),
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            else:
+                all_done = False
+
+        if all_done:
+            return Response({"results": results}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"status": "Tasks are still running."},
+                status=status.HTTP_202_ACCEPTED
+            )

@@ -9,12 +9,12 @@ compose-dbg:
 # e.g. make run root=~/Desktop/anchor-test source=programs/anchor-test/src/lib.rs
 #      make build root=~/Desktop/anchor-test source=programs/anchor-test/src/lib.rs
 run:
-	docker compose run --rm -v $(root):/contract radar --path /contract/$(source)
+	docker compose run --rm -v $(root):/contract radar --path $(root) --container-path /contract/$(source)
+	docker cp radar-api:/radar_data/output.json .
 
 build:
 	$(MAKE) compose
-	$(MAKE) try
-	
+	$(MAKE) run
 	
 include .env
 export

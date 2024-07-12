@@ -1,4 +1,14 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
+from django.utils.translation import gettext_lazy as _
+
+
+class ScoreLevel(models.TextChoices):
+    INFO = "Info", _("Info")
+    LOW = "Low", _("Low")
+    MEDIUM = "Medium", _("Medium")
+    HIGH = "High", _("High")
+    CRITICAL = "Critical", _("Critical")
 
 
 class GeneratedAST(models.Model):
@@ -6,6 +16,7 @@ class GeneratedAST(models.Model):
     file_path = models.CharField(max_length=255, blank=True, null=True)
     folder_path = models.CharField(max_length=255, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True, null=True)
+    task_ids = ArrayField(models.CharField(max_length=255), blank=True, null=True)
 
     class SourceTypeOptions(models.TextChoices):
         FILE = "file"

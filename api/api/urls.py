@@ -19,11 +19,12 @@ from django.contrib import admin
 from django.urls import path
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
-from .views import GenerateASTView, RunScanView
+from .views import GenerateASTView, RunScanView, PollResultsView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("generate_ast/", GenerateASTView.as_view(), name="generate_ast"),
     path("run_scan/", RunScanView.as_view(), name="run_scan"),
+    path("poll_results/", PollResultsView.as_view(), name="poll_results"),
 ]
 urlpatterns += staticfiles_urlpatterns()

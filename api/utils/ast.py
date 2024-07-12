@@ -16,7 +16,7 @@ def parse_toml_keys(toml_path: Path, keys: list) -> list:
     toml_data = toml.load(toml_path)
     results = []
     for key in keys:
-        parts = key.split('.')
+        parts = key.split(".")
         value = toml_data
         try:
             for part in parts:
@@ -43,11 +43,16 @@ def generate_ast_for_anchor_file(
         ast_data = rust_syn.parse_rust_to_ast(rust_code)
         ast_data = json.loads(ast_data)
 
-        enriched_ast = enrich_ast_with_source_lines(ast_data.get("items"), rust_code)
-        
+        enriched_ast = enrich_ast_with_source_lines(
+            ast_data.get("items"), rust_code, source_file_path
+        )
+
         source_sepcific_metadata = {}
         if package_name or package_version:
-            source_sepcific_metadata['program_info'] = {"name": package_name, "version": package_version}
+            source_sepcific_metadata["program_info"] = {
+                "name": package_name,
+                "version": package_version,
+            }
 
     except Exception as e:
         raise e
@@ -55,7 +60,9 @@ def generate_ast_for_anchor_file(
     return {"ast": enriched_ast, "metadata": source_sepcific_metadata}
 
 
-def enrich_ast_with_source_lines(ast_items: dict, rust_code: str) -> dict:
+def enrich_ast_with_source_lines(
+    ast_items: dict, rust_code: str, source_file_path: Path
+) -> dict:
     def find_ident_positions(code: str, ident: str) -> list[dict]:
         positions = []
         pattern = re.compile(r"\b" + re.escape(ident) + r"\b")
@@ -67,7 +74,12 @@ def enrich_ast_with_source_lines(ast_items: dict, rust_code: str) -> dict:
             start_col = start_pos - line_start + 1
             end_col = end_pos - line_start + 1
             positions.append(
-                {"line": line_num, "start_col": start_col, "end_col": end_col}
+                {
+                    "file": str(source_file_path),
+                    "line": line_num,
+                    "start_col": start_col,
+                    "end_col": end_col,
+                }
             )
         return positions
 
@@ -106,19 +118,26 @@ def find_anchor_program_paths(source_file_path, workspace_members):
 
     for member in workspace_members:
         full_path = Path(source_file_path) / member
-        if '*' in member:
-            program_paths.extend([p for p in full_path.parent.glob(full_path.name) if p.is_dir()])
+        if "*" in member:
+            program_paths.extend(
+                [p for p in full_path.parent.glob(full_path.name) if p.is_dir()]
+            )
         else:
             if full_path.is_dir():
                 program_paths.append(full_path)
             else:
-                logger.warn(f"Program directory listed on Cargo.toml's workspace.members does not exist: {full_path}")
+                logger.warn(
+                    f"Program directory listed on Cargo.toml's workspace.members does not exist: {full_path}"
+                )
 
     return program_paths
 
+
 def generate_anchor_program_ast(source_file_path: Path):
     cargo_toml_path = source_file_path / "Cargo.toml"
-    package_name, package_version = parse_toml_keys(cargo_toml_path, ["package.name", "package.version"])
+    package_name, package_version = parse_toml_keys(
+        cargo_toml_path, ["package.name", "package.version"]
+    )
     directory = cargo_toml_path.parent
     rs_files = list(directory.rglob("*.rs"))
 
@@ -126,7 +145,7 @@ def generate_anchor_program_ast(source_file_path: Path):
     for rs_file in rs_files:
         file_ast = generate_ast_for_anchor_file(rs_file, package_name, package_version)
         radar_ast["sources"][str(rs_file)] = file_ast
-    
+
     sorted_sources = dict(sorted(radar_ast["sources"].items()))
     radar_ast["sources"] = sorted_sources
 
@@ -135,7 +154,9 @@ def generate_anchor_program_ast(source_file_path: Path):
 
 def generate_anchor_project_derived_program_ast(program_path: Path):
     cargo_toml_path = program_path / "Cargo.toml"
-    package_name, package_version = parse_toml_keys(cargo_toml_path, ["package.name", "package.version"])
+    package_name, package_version = parse_toml_keys(
+        cargo_toml_path, ["package.name", "package.version"]
+    )
     rs_files = list(program_path.rglob("*.rs"))
 
     program_ast = {"sources": {}, "metadata": {}}
@@ -146,14 +167,17 @@ def generate_anchor_project_derived_program_ast(program_path: Path):
         program_ast["metadata"][str(rs_file)] = {
             "package_name": package_name,
             "package_version": package_version,
-            "cargo_toml_path": str(cargo_toml_path)
+            "cargo_toml_path": str(cargo_toml_path),
         }
 
     return program_ast
 
+
 def generate_anchor_project_ast(source_path: Path):
     anchor_toml_path = source_path / "Anchor.toml"
-    anchor_version, solana_version = parse_toml_keys(anchor_toml_path, ["anchor_version", "solana_version"])
+    anchor_version, solana_version = parse_toml_keys(
+        anchor_toml_path, ["anchor_version", "solana_version"]
+    )
 
     cargo_toml_path = source_path / "Cargo.toml"
     workspace_members = parse_toml_keys(cargo_toml_path, ["workspace.members"])
@@ -166,15 +190,15 @@ def generate_anchor_project_ast(source_path: Path):
         "metadata": {
             "anchor_version": anchor_version,
             "solana_version": solana_version,
-            "anchor_toml_path": str(anchor_toml_path)
+            "anchor_toml_path": str(anchor_toml_path),
         },
-        "sources": {}
+        "sources": {},
     }
 
     for program_path in programs:
         program_ast = generate_anchor_project_derived_program_ast(program_path)
         project_ast["sources"].update(program_ast["sources"])
-    
+
     sorted_sources = dict(sorted(project_ast["sources"].items()))
     project_ast["sources"] = sorted_sources
 

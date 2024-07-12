@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 from pathlib import Path
 import shutil
@@ -7,7 +8,13 @@ import shutil
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="radar")
     parser.add_argument(
-        "--path", type=str, required=True, help="Path to the contract source"
+        "--path", type=str, required=False, help="Path to the contract source"
+    )
+    parser.add_argument(
+        "--container-path",
+        type=str,
+        required=True,
+        help="Path to the contract source on the docker container",
     )
     parser.add_argument(
         "--templates", type=str, required=False, help="Path to custom templates folder"
@@ -50,3 +57,32 @@ def copy_to_docker_mount(src_path: Path, path_type: str) -> None:
         print(f"[i] Successfully copied {path_type} to {dst_path}")
     except Exception as e:
         raise Exception(f"[e] Failed to copy contract {path_type} to volume: {str(e)}")
+
+
+def localize_results(results, local_path):
+    for index, result in enumerate(results):
+        result_locations = result.get("locations")
+        localized_results = []
+        for location in result_locations:
+            container_path, location_src = location.split(":", 1)
+            container_path_parts = Path(container_path).parts
+            localized_path = Path(local_path, *container_path_parts[3:])
+            localized_location = f"{localized_path}:{location_src}"
+            localized_results.append(localized_location)
+        results[index]["locations"] = localized_results
+    return results
+
+
+def print_write_outputs(results: list, container_output_path: Path):
+    if len(results) == 0:
+        print("[i] Radar completed successfully. No results found.")
+        return
+    print("[i] Radar completed successfully. Results (also saved to output.json):")
+    print(json.dumps(results, indent=4))
+
+    container_output_path.parent.mkdir(parents=True, exist_ok=True)
+    if container_output_path.exists():
+        container_output_path.unlink()
+
+    with open(container_output_path, "w") as f:
+        json.dump(results, f, indent=4)

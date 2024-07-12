@@ -1,6 +1,12 @@
-name: "Missing Owner Check"
+name: "Missing Owner Check 2 test"
 severity: "Low"
 certainty: "Low"
-description: "The Account struct includes an owner field indicating the key associated with that account's owner. This field should be used to ensure a caller of an owner-only intended functionality, is infact the owner."
-query: |
-  print("test")
+description: "test test."
+rule: |
+  # example only, hardcoded keys
+  first_source_key = list(ast['sources'].keys())[0]
+  ast_item = ast['sources'][first_source_key]['ast'][0]['mod']
+
+  # multiple prints, multiple vuln instances recorded (normally won't be the same node)
+  print(ast_item)
+  print(ast_item)
