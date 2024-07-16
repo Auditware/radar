@@ -5,10 +5,11 @@ from api import generate_ast_for_file_or_folder, run_scan, poll_results
 
 def main():
     args = parse_arguments()
-    contaner_path = Path(args.container_path)
-    path_type = check_path(contaner_path)
+    container_path = Path(args.container_path)
+
+    path_type = check_path(container_path)
     print(f"[i] Copying {path_type} to the docker volume")
-    copy_to_docker_mount(contaner_path, path_type)
+    copy_to_docker_mount(path_type)
 
     container_output_path = Path("/radar_data/output.json")
 
@@ -26,10 +27,10 @@ def main():
     local_path = None
     if args.path:
         local_path = Path(args.path)
-
-    generate_ast_for_file_or_folder(contaner_path, path_type)
-    run_scan(contaner_path, path_type, templates_path)
-    results = poll_results(contaner_path, path_type, local_path)
+    
+    generate_ast_for_file_or_folder(container_path, path_type)
+    run_scan(container_path, path_type, templates_path)
+    results = poll_results(container_path, path_type, local_path)
     print_write_outputs(results, container_output_path)
 
 

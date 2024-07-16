@@ -29,6 +29,21 @@ check_docker() {
     fi
 }
 
+adjust_source_path_for_docker() {
+    local base=$1
+    local target=$2
+
+    local resolved_base=$(cd "$base" && pwd)
+    local resolved_target=$(cd "$(dirname "$base/$target")" && pwd)/$(basename "$target")
+
+    if [[ "$resolved_target" == "$resolved_base"* ]]; then
+        local rel_path="${resolved_target#$resolved_base/}"
+        echo "$rel_path"
+    else
+        echo "$target"
+    fi
+}
+
 source_directory_or_file=""
 shutdown_containers=false
 path=""
@@ -36,7 +51,7 @@ path=""
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         -p|--path) path=$(realpath "$2"); shift ;;
-        -s|--source) source_directory_or_file="$2"; shift ;;
+        -s|--source) source_directory_or_file=$(adjust_source_path_for_docker "$path" "$2"); shift ;;
         -t|--templates) templates_directory=$(realpath "$2"); shift ;;
         -d|--down) shutdown_containers=true ;;
         -h|--help) usage ;;
@@ -81,7 +96,7 @@ if [ -n "$source_directory_or_file" ]; then
     container_path+="/${source_directory_or_file}"
 fi
 
-docker_command="docker compose run --rm -v ${path}:${container_path}"
+docker_command="docker compose run --rm -v ${path}:/contract"
 if [ -n "$templates_directory" ]; then
     docker_command+=" -v ${templates_directory}:/templates"
 fi

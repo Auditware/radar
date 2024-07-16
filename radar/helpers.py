@@ -33,7 +33,7 @@ def get_env_variable(var_name: str) -> str:
 def check_path(path: Path) -> str:
     if not path.exists():
         print(
-            "[e] Error: Contract path provided in argument was not found. Did you configure the volume mount correctly?"
+            f"[e] Error: Contract path provided in argument {path} was not found. Did you configure the volume mount correctly?"
         )
         raise FileNotFoundError
 
@@ -43,17 +43,14 @@ def check_path(path: Path) -> str:
         return "folder"
 
 
-def copy_to_docker_mount(src_path: Path, path_type: str) -> None:
+def copy_to_docker_mount(path_type: str) -> None:
+    src_path = Path("/contract") 
     dst_path = Path("/radar_data") / src_path.relative_to("/")
 
     if not src_path.exists():
         raise FileNotFoundError(f"No such {path_type}: {src_path}")
 
-    if dst_path.exists():
-        if dst_path.is_dir():
-            shutil.rmtree(dst_path)
-        else:
-            dst_path.unlink()
+    shutil.rmtree(Path("/radar_data") / "contract")
 
     try:
         if path_type == "file":
@@ -76,7 +73,7 @@ def copy_to_docker_mount(src_path: Path, path_type: str) -> None:
         else:
             raise ValueError("Invalid path_type: Must be 'file' or 'folder'")
 
-        print(f"[i] Successfully copied {path_type} to {dst_path}")
+        print(f"[i] Successfully copied {path_type}")
     except Exception as e:
         raise Exception(f"[e] Failed to copy {path_type} to volume: {str(e)}")
 

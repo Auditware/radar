@@ -4,9 +4,9 @@ certainty: Low
 description: Signer checks verify whether an account owner has authorized the requested transaction. Failing to perform these checks might result in unintended operations executable by any account.
 rule: |
   for source, nodes in ast["sources"].items():
-
     derive_account_nodes = get_all_derives(nodes, "Accounts")
-    if not derive_account_nodes or find_specific_member_access(nodes, "is_signer"):
+    if not derive_account_nodes:
         continue
-        
+    if find_compare_operations(nodes, "is_signer") or find_specific_member_access(nodes, "is_signer"):
+        continue
     print(get_first_node(derive_account_nodes))

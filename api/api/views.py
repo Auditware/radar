@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import yaml
 from rest_framework.views import APIView
@@ -6,6 +7,7 @@ from rest_framework import status
 from api.models import GeneratedAST
 from api.tasks import run_scan_task
 from utils.ast import (
+    generate_aggregate_program_ast,
     generate_anchor_project_ast,
     generate_ast_for_anchor_file,
     generate_anchor_program_ast,
@@ -71,6 +73,7 @@ class GenerateASTView(APIView):
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+
             elif anchor_file.exists():
                 try:
                     ast_data = generate_anchor_project_ast(source_file_path)
@@ -82,13 +85,23 @@ class GenerateASTView(APIView):
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+
+            # last check for multiple programs within a folder, or quit trying
             else:
-                return Response(
-                    {
-                        "error": f"Failed to find Anchor.toml or Xargo.toml in the source path {source_file_path}."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                try:
+                    ast_data = generate_aggregate_program_ast(source_file_path)
+                    if ast_data is None:
+                        raise ValueError(
+                            "No Cargo.toml files found in any subdirectories."
+                        )
+                except Exception as e:
+                    logger.error(e)
+                    return Response(
+                        {
+                            "error": f"Failed to find Anchor.toml or Xargo.toml in the source path {source_file_path}."
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
         serializer_data = {
             "ast": ast_data,
@@ -153,11 +166,10 @@ class RunScanView(APIView):
 
             if yaml_data is not None:
                 result = run_scan_task.delay(
-                        yaml_data=yaml_data,
-                        generated_ast_id=generated_ast.id,
-                    )
+                    yaml_data=yaml_data,
+                    generated_ast_id=generated_ast.id,
+                )
                 task_ids.append(result.id)
-
 
         generated_ast.task_ids = task_ids
         generated_ast.save()
@@ -178,7 +190,9 @@ class PollResultsView(APIView):
             )
 
         query = {"source_type": source_type, f"{source_type}_path": source_path}
-        generated_ast = GeneratedAST.objects.filter(**query).order_by("-created").first()
+        generated_ast = (
+            GeneratedAST.objects.filter(**query).order_by("-created").first()
+        )
 
         if not generated_ast:
             return Response(
@@ -213,6 +227,5 @@ class PollResultsView(APIView):
             return Response({"results": results}, status=status.HTTP_200_OK)
         else:
             return Response(
-                {"status": "Tasks are still running."},
-                status=status.HTTP_202_ACCEPTED
+                {"status": "Tasks are still running."}, status=status.HTTP_202_ACCEPTED
             )

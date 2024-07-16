@@ -133,7 +133,7 @@ def find_anchor_program_paths(source_file_path, workspace_members):
     return program_paths
 
 
-def generate_anchor_program_ast(source_file_path: Path):
+def generate_anchor_program_ast(source_file_path: Path) -> dict:
     cargo_toml_path = source_file_path / "Cargo.toml"
     package_name, package_version = parse_toml_keys(
         cargo_toml_path, ["package.name", "package.version"]
@@ -152,7 +152,7 @@ def generate_anchor_program_ast(source_file_path: Path):
     return radar_ast
 
 
-def generate_anchor_project_derived_program_ast(program_path: Path):
+def generate_anchor_project_derived_program_ast(program_path: Path) -> dict:
     cargo_toml_path = program_path / "Cargo.toml"
     package_name, package_version = parse_toml_keys(
         cargo_toml_path, ["package.name", "package.version"]
@@ -173,7 +173,7 @@ def generate_anchor_project_derived_program_ast(program_path: Path):
     return program_ast
 
 
-def generate_anchor_project_ast(source_path: Path):
+def generate_anchor_project_ast(source_path: Path) -> dict:
     anchor_toml_path = source_path / "Anchor.toml"
     anchor_version, solana_version = parse_toml_keys(
         anchor_toml_path, ["anchor_version", "solana_version"]
@@ -198,6 +198,32 @@ def generate_anchor_project_ast(source_path: Path):
     for program_path in programs:
         program_ast = generate_anchor_project_derived_program_ast(program_path)
         project_ast["sources"].update(program_ast["sources"])
+
+    sorted_sources = dict(sorted(project_ast["sources"].items()))
+    project_ast["sources"] = sorted_sources
+
+    return project_ast
+
+
+def generate_aggregate_program_ast(base_path: Path) -> dict | None:
+    project_ast = {"sources": {}, "metadata": {}}
+    found_cargo_toml = False
+
+    def process_directory(directory):
+        nonlocal found_cargo_toml
+        for subdir in directory.iterdir():
+            if subdir.is_dir():
+                if (subdir / "Cargo.toml").exists():
+                    found_cargo_toml = True
+                    program_ast = generate_anchor_program_ast(subdir)
+                    for file_path, ast in program_ast["sources"].items():
+                        project_ast["sources"][file_path] = ast
+                process_directory(subdir)
+
+    process_directory(base_path)
+
+    if not found_cargo_toml:
+        return None
 
     sorted_sources = dict(sorted(project_ast["sources"].items()))
     project_ast["sources"] = sorted_sources

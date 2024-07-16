@@ -84,6 +84,93 @@ def get_first_node(ast):
         if isinstance(first_node, list):
             first_node = first_node[0]
     return first_node
+
+
+def find_compare_operations(ast, ident_name):
+    def search_node(node):
+        results = []
+        if isinstance(node, dict):
+            if node.get("ident") == ident_name:
+                results.append(node)
+
+            for key, value in node.items():
+                if isinstance(value, (dict, list)):
+                    if key == "expr":
+                        results.extend(search_node(value))
+                    else:
+                        results.extend(search_node(value))
+        
+        elif isinstance(node, list):
+            for item in node:
+                results.extend(search_node(item))
+        return results
+
+    def search_expr(expr):
+        results = []
+        if isinstance(expr, dict):
+            if "expr" in expr:
+                results.extend(search_node(expr["expr"]))
+            else:
+                for value in expr.values():
+                    if isinstance(value, (dict, list)):
+                        results.extend(search_expr(value))
+        elif isinstance(expr, list):
+            for item in expr:
+                results.extend(search_expr(item))
+        return results
+
+    return search_expr(ast)
+
+def find_compare_operations_between(ast, ident1, ident2):
+    comparisons = []
+
+    def traverse(node):
+        if isinstance(node, dict):
+            if 'binary' in node:
+                left = node['binary']['left']
+                right = node['binary']['right']
+                if (check_ident(left, ident1) and check_ident(right, ident2)) or (check_ident(left, ident2) and check_ident(right, ident1)):
+                    comparisons.append(node)
+            for key in node:
+                traverse(node[key])
+        elif isinstance(node, list):
+            for item in node:
+                traverse(item)
+
+    def check_ident(node, ident):
+        if isinstance(node, dict):
+            if 'ident' in node and node['ident'] == ident:
+                return True
+            for key in node:
+                if check_ident(node[key], ident):
+                    return True
+        elif isinstance(node, list):
+            for item in node:
+                if check_ident(item, ident):
+                    return True
+        return False
+
+    traverse(ast)
+    return comparisons
+
+def find_single_node_by_name(ast, ident_name):
+    def search_nodes(node):
+        if isinstance(node, dict):
+            if 'ident' in node and node['ident'] == ident_name:
+                return node
+            for key, value in node.items():
+                if isinstance(value, (dict, list)):
+                    result = search_nodes(value)
+                    if result:
+                        return result
+        elif isinstance(node, list):
+            for item in node:
+                result = search_nodes(item)
+                if result:
+                    return result
+        return None
+    
+    return search_nodes(ast)
 ##########################
 
 allowed_builtins = {"print", "len", "range", "dict", "list", "tuple", "set"}
@@ -100,6 +187,9 @@ sandbox_globals = {
     "get_all_derives": get_all_derives,
     "find_specific_member_access": find_specific_member_access,
     "get_first_node": get_first_node,
+    "find_compare_operations": find_compare_operations,
+    "find_compare_operations_between": find_compare_operations_between,
+    "find_single_node_by_name": find_single_node_by_name,
 }
 
 
