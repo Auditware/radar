@@ -7,7 +7,7 @@ def main():
     args = parse_arguments()
     contaner_path = Path(args.container_path)
     path_type = check_path(contaner_path)
-    print(f"[i] Loading {path_type} '{contaner_path}'")
+    print(f"[i] Copying {path_type} to the docker volume")
     copy_to_docker_mount(contaner_path, path_type)
 
     container_output_path = Path("/radar_data/output.json")

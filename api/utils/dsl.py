@@ -7,6 +7,7 @@ import json
 import sys
 from types import ModuleType
 
+
 # regular print, but tries to decode printed json outputs (to get a proper json instead of python-flavoured json)
 def print_try_jsonify(*args, **kwargs):
     new_args = []
@@ -17,6 +18,73 @@ def print_try_jsonify(*args, **kwargs):
         except (TypeError, ValueError):
             new_args.append(arg)
     print(*new_args, **kwargs)
+
+
+##########################
+## DSL helper functions ##
+def get_all_derives(ast, derived_name):
+    derives = []
+
+    def extract_derive_calls(node):
+        if isinstance(node, dict):
+            if "meta" in node and "list" in node["meta"]:
+                path_segments = node["meta"]["list"]["path"]["segments"]
+                if path_segments and path_segments[-1]["ident"] == "derive":
+                    tokens = node["meta"]["list"]["tokens"]
+                    if tokens and tokens[0]["ident"] == derived_name:
+                        derives.append(node)
+            for key, value in node.items():
+                extract_derive_calls(value)
+        elif isinstance(node, list):
+            for item in node:
+                extract_derive_calls(item)
+
+    extract_derive_calls(ast)
+    return derives
+
+
+def find_specific_member_access(ast, member_name):
+    results = []
+
+    def search_nodes(nodes):
+        for i in range(len(nodes) - 1):
+            if isinstance(nodes[i], dict) and isinstance(nodes[i + 1], dict):
+                if (
+                    nodes[i].get("punct", {}).get("op") == "."
+                    and nodes[i + 1].get("ident") == member_name
+                ):
+                    results.append((nodes[i + 1]))
+
+    def traverse_ast(node):
+        if isinstance(node, list):
+            search_nodes(node)
+            for sub_node in node:
+                traverse_ast(sub_node)
+        elif isinstance(node, dict):
+            for value in node.values():
+                traverse_ast(value)
+
+    traverse_ast(ast)
+    return results
+
+
+def get_first_node(ast):
+    if isinstance(ast, list):
+        first_node = ast[0]
+    elif isinstance(ast, dict):
+        first_node = next(iter(ast.values()))
+        if isinstance(first_node, list):
+            first_node = first_node[0]
+
+    while isinstance(first_node, dict):
+        keys = list(first_node.keys())
+        if "src" in keys and "ident" in keys:
+            return first_node
+        first_node = first_node[keys[0]]
+        if isinstance(first_node, list):
+            first_node = first_node[0]
+    return first_node
+##########################
 
 allowed_builtins = {"print", "len", "range", "dict", "list", "tuple", "set"}
 allowed_imports = {}
@@ -29,6 +97,9 @@ sandbox_globals = {
     "list": list,
     "tuple": tuple,
     "set": set,
+    "get_all_derives": get_all_derives,
+    "find_specific_member_access": find_specific_member_access,
+    "get_first_node": get_first_node,
 }
 
 
@@ -56,10 +127,11 @@ class SandboxTransformer(NodeTransformer):
             )
 
             if func_id in builtins_dict and func_id not in allowed_builtins:
-                raise RuntimeError(f"[e] Use of built-in function is not allowed: {func_id}")
+                raise RuntimeError(
+                    f"[e] Use of built-in function is not allowed: {func_id}"
+                )
 
         return self.generic_visit(node)
-
 
 
 def wrapped_exec(code: str) -> list:

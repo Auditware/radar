@@ -49,7 +49,7 @@ def generate_ast_for_file_or_folder(path: Path, path_type: str):
         )
         result = handle_response(response)
         if result is not None:
-            print(f"[i] AST successfully generated for {path}")
+            print(f"[i] AST successfully generated for {path_type}")
             return result
         else:
             print(f"[e] Failed to generate AST for {path}")
@@ -72,7 +72,7 @@ def run_scan(path: Path, path_type: str, templates_path: Path = None):
         )
         result = handle_response(response)
         if result is not None:
-            print(f"[i] Scan initiated for {path}")
+            print(f"[i] Scan initiated for {path_type}")
             return result
         else:
             print(f"[e] Scan execution failed for {path}")
@@ -101,12 +101,6 @@ def poll_results(
                     results = localize_results(results, local_path)
                 return results
             elif response.status_code == 202:
-                if retries > 0:
-                    print(
-                        f"[i] Polling for scan results. (Retry {retries + 1}/{max_retries})"
-                    )
-                else:
-                    print("[i] Polling for scan results.")
                 retries += 1
                 time.sleep(delay)
             else:

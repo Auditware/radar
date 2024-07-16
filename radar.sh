@@ -15,19 +15,17 @@ usage() {
 check_docker() {
     local timeout_duration=5
 
-    docker compose version &
+    docker compose version &> /dev/null &
     pid=$!
 
-    ( sleep $timeout_duration && kill -0 "$pid" 2>/dev/null && kill -9 "$pid" && echo "[w] Docker check timed out." && exit 1 ) &
+    ( sleep $timeout_duration && kill -0 "$pid" 2>/dev/null && kill -9 "$pid" && echo "[w] Docker availability check timed out." && exit 1 ) &
 
     wait $pid
     local status=$?
 
     if [ $status -ne 0 ]; then
-        echo "[e] Docker is not available. Please ensure Docker is installed and running."
+        echo "[e] Docker is not available. Please ensure Docker is installed and running. If further problems arise consider restarting the Docker service."
         exit 1
-    else
-        echo "[i] Docker is available."
     fi
 }
 
@@ -35,13 +33,11 @@ source_directory_or_file=""
 shutdown_containers=false
 path=""
 
-check_docker
-
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        -p|--path) path="$2"; shift ;;
+        -p|--path) path=$(realpath "$2"); shift ;;
         -s|--source) source_directory_or_file="$2"; shift ;;
-        -t|--templates) templates_directory="$2"; shift ;;
+        -t|--templates) templates_directory=$(realpath "$2"); shift ;;
         -d|--down) shutdown_containers=true ;;
         -h|--help) usage ;;
         *) echo "[e] Unknown argument: $1"; usage ;;
@@ -54,6 +50,8 @@ if [ "$shutdown_containers" = true ] && [ -z "$path" ]; then
     docker compose down
     exit 0
 fi
+
+check_docker
 
 if [ -z "$path" ]; then
     echo "[e] Path to the contract is not set."
@@ -70,7 +68,6 @@ if [ -f "$checksum_file" ]; then
         docker compose up -d --build
         echo "$current_checksum" > "$checksum_file"
     else
-        echo "[i] Configuration unchanged, using existing images"
         docker compose up -d --no-build
     fi
 else

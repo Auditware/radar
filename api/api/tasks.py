@@ -35,6 +35,10 @@ def run_scan_task(yaml_data, generated_ast_id):
                 src = valid_output["src"]
                 location = f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
                 finding_data["locations"].append(location)
+            else:
+                if "debug" not in finding_data:
+                    finding_data["debug"] = []
+                finding_data["debug"].append(output)
 
         # Save to task results backend and end task successfully
         task_result["results"] = finding_data

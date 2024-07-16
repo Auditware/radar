@@ -1,0 +1,11 @@
+name: Missing Owner Check
+severity: Low
+certainty: Low
+description: The Account struct includes an owner field indicating the key associated with that account's owner. This field should be used to ensure a caller of an owner-only intended functionality, is infact the owner.
+rule: |
+  for source, nodes in ast["sources"].items():
+    derive_account_nodes = get_all_derives(nodes, "Accounts")
+    if not derive_account_nodes or find_specific_member_access(nodes, "owner"):
+        continue
+
+    print(get_first_node(derive_account_nodes))

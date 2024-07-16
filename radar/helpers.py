@@ -45,18 +45,40 @@ def check_path(path: Path) -> str:
 
 def copy_to_docker_mount(src_path: Path, path_type: str) -> None:
     dst_path = Path("/radar_data") / src_path.relative_to("/")
-    if dst_path.exists() and dst_path.is_dir():
-        shutil.rmtree(dst_path)
+
+    if not src_path.exists():
+        raise FileNotFoundError(f"No such {path_type}: {src_path}")
+
+    if dst_path.exists():
+        if dst_path.is_dir():
+            shutil.rmtree(dst_path)
+        else:
+            dst_path.unlink()
 
     try:
         if path_type == "file":
-            dst_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(src_path, dst_path)
+            if src_path.is_symlink():
+                os.symlink(os.readlink(src_path), dst_path)
+            else:
+                shutil.copy2(src_path, dst_path)
+
         elif path_type == "folder":
-            shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+            shutil.copytree(
+                src_path,
+                dst_path,
+                dirs_exist_ok=True,
+                symlinks=True,
+                ignore=shutil.ignore_patterns(
+                    "*.tmp", "*cache*", "node_modules", "*.git", "target"
+                ),
+            )
+
+        else:
+            raise ValueError("Invalid path_type: Must be 'file' or 'folder'")
+
         print(f"[i] Successfully copied {path_type} to {dst_path}")
     except Exception as e:
-        raise Exception(f"[e] Failed to copy contract {path_type} to volume: {str(e)}")
+        raise Exception(f"[e] Failed to copy {path_type} to volume: {str(e)}")
 
 
 def localize_results(results, local_path):
