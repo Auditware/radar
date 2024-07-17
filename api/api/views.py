@@ -209,7 +209,7 @@ class PollResultsView(APIView):
                 if result.successful():
                     task_result = result.get()
                     task_result_results = task_result.get("results")
-                    if task_result_results and task_result_results.get("locations"):
+                    if task_result_results and (task_result_results.get("locations") or task_result_results.get("debug")):
                         results.append(task_result_results)
                 else:
                     return Response(

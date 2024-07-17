@@ -22,7 +22,7 @@ def print_try_jsonify(*args, **kwargs):
 
 ##########################
 ## DSL helper functions ##
-def get_all_derives(ast, derived_name):
+def get_all_derives(ast: dict, derived_name: str) -> list:
     derives = []
 
     def extract_derive_calls(node):
@@ -43,7 +43,7 @@ def get_all_derives(ast, derived_name):
     return derives
 
 
-def find_specific_member_access(ast, member_name):
+def find_specific_member_access(ast: dict, member_name: str) -> list:
     results = []
 
     def search_nodes(nodes):
@@ -68,7 +68,7 @@ def find_specific_member_access(ast, member_name):
     return results
 
 
-def get_first_node(ast):
+def get_first_node(ast: dict) -> dict:
     if isinstance(ast, list):
         first_node = ast[0]
     elif isinstance(ast, dict):
@@ -86,7 +86,7 @@ def get_first_node(ast):
     return first_node
 
 
-def find_compare_operations(ast, ident_name):
+def find_compare_operations(ast: dict, ident_name: str) -> dict:
     def search_node(node):
         results = []
         if isinstance(node, dict):
@@ -99,7 +99,7 @@ def find_compare_operations(ast, ident_name):
                         results.extend(search_node(value))
                     else:
                         results.extend(search_node(value))
-        
+
         elif isinstance(node, list):
             for item in node:
                 results.extend(search_node(item))
@@ -121,15 +121,18 @@ def find_compare_operations(ast, ident_name):
 
     return search_expr(ast)
 
-def find_compare_operations_between(ast, ident1, ident2):
+
+def find_compare_operations_between(ast: dict, ident1: str, ident2: str) -> list:
     comparisons = []
 
     def traverse(node):
         if isinstance(node, dict):
-            if 'binary' in node:
-                left = node['binary']['left']
-                right = node['binary']['right']
-                if (check_ident(left, ident1) and check_ident(right, ident2)) or (check_ident(left, ident2) and check_ident(right, ident1)):
+            if "binary" in node:
+                left = node["binary"]["left"]
+                right = node["binary"]["right"]
+                if (check_ident(left, ident1) and check_ident(right, ident2)) or (
+                    check_ident(left, ident2) and check_ident(right, ident1)
+                ):
                     comparisons.append(node)
             for key in node:
                 traverse(node[key])
@@ -139,7 +142,7 @@ def find_compare_operations_between(ast, ident1, ident2):
 
     def check_ident(node, ident):
         if isinstance(node, dict):
-            if 'ident' in node and node['ident'] == ident:
+            if "ident" in node and node["ident"] == ident:
                 return True
             for key in node:
                 if check_ident(node[key], ident):
@@ -153,10 +156,11 @@ def find_compare_operations_between(ast, ident1, ident2):
     traverse(ast)
     return comparisons
 
-def find_single_node_by_name(ast, ident_name):
+
+def find_single_node_by_name(ast: dict, ident_name: str) -> dict:
     def search_nodes(node):
         if isinstance(node, dict):
-            if 'ident' in node and node['ident'] == ident_name:
+            if "ident" in node and node["ident"] == ident_name:
                 return node
             for key, value in node.items():
                 if isinstance(value, (dict, list)):
@@ -169,8 +173,108 @@ def find_single_node_by_name(ast, ident_name):
                 if result:
                     return result
         return None
-    
+
     return search_nodes(ast)
+
+def find_mutables(ast: dict) -> dict:
+    def search_mutable(node):
+        results = []
+        if isinstance(node, dict):
+            if node.get("mut") == True:
+                ident_node = find_ident_node(node)
+                if ident_node:
+                    results.append(ident_node)
+            for k, v in node.items():
+                results.extend(search_mutable(v))
+        elif isinstance(node, list):
+            for item in node:
+                results.extend(search_mutable(item))
+        return results
+
+    def find_ident_node(node):
+        if isinstance(node, dict):
+            if "ident" in node:
+                return node
+            for k, v in node.items():
+                result = find_ident_node(v)
+                if result:
+                    return result
+        elif isinstance(node, list):
+            for item in node:
+                result = find_ident_node(item)
+                if result:
+                    return result
+        return None
+
+    results = search_mutable(ast)
+    unique_results = []
+    seen = set()
+    for result in results:
+        ident = result["ident"]
+        if ident not in seen:
+            unique_results.append(result)
+            seen.add(ident)
+    return unique_results
+
+def find_account_typed_nodes(ast: dict, ident_name: str) -> list:
+    def recurse(node):
+        results = []
+        if isinstance(node, dict):
+            if node.get("ident") == ident_name:
+                if "ty" in node:
+                    ty_path = node["ty"].get("path")
+                    if ty_path:
+                        for segment in ty_path.get("segments", []):
+                            if segment.get("ident") == "Account":
+                                results.append(node)
+            for key, value in node.items():
+                results.extend(recurse(value))
+        elif isinstance(node, list):
+            for item in node:
+                results.extend(recurse(item))
+        return results
+
+    return recurse(ast)
+
+def find_node_with_method_call(ast, ident, method):
+    def search_node(node):
+        if isinstance(node, dict):
+            if "method_call" in node:
+                method_call = node["method_call"]
+                if method_call["method"] == method:
+                    receiver = method_call["receiver"]
+                    if find_ident_in_receiver(receiver, ident):
+                        return get_receiver_data(receiver)
+            for key, value in node.items():
+                result = search_node(value)
+                if result:
+                    return result
+        elif isinstance(node, list):
+            for item in node:
+                result = search_node(item)
+                if result:
+                    return result
+        return None
+
+    def find_ident_in_receiver(receiver, ident):
+        if isinstance(receiver, dict):
+            if "ident" in receiver and receiver["ident"] == ident:
+                return True
+            for key, value in receiver.items():
+                if find_ident_in_receiver(value, ident):
+                    return True
+        elif isinstance(receiver, list):
+            for item in receiver:
+                if find_ident_in_receiver(item, ident):
+                    return True
+        return False
+
+    def get_receiver_data(receiver):
+        if isinstance(receiver, dict) and "field" in receiver:
+            return receiver["field"]
+        return receiver
+
+    return search_node(ast)
 ##########################
 
 allowed_builtins = {"print", "len", "range", "dict", "list", "tuple", "set"}
@@ -185,11 +289,14 @@ sandbox_globals = {
     "tuple": tuple,
     "set": set,
     "get_all_derives": get_all_derives,
-    "find_specific_member_access": find_specific_member_access,
     "get_first_node": get_first_node,
+    "find_account_typed_nodes": find_account_typed_nodes,
     "find_compare_operations": find_compare_operations,
     "find_compare_operations_between": find_compare_operations_between,
+    "find_mutables": find_mutables,
+    "find_node_with_method_call": find_node_with_method_call,
     "find_single_node_by_name": find_single_node_by_name,
+    "find_specific_member_access": find_specific_member_access,
 }
 
 

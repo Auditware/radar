@@ -96,7 +96,7 @@ def print_write_outputs(results: list, container_output_path: Path):
     if len(results) == 0:
         print("[i] Radar completed successfully. No results found.")
         return
-    print("[i] Radar completed successfully. Results (also saved to output.json):")
+    print("[i] Radar completed successfully. Results (also saved to output.json):")    
     print(json.dumps(results, indent=4))
 
     container_output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -7,7 +7,6 @@ rule: |
     derive_account_nodes = get_all_derives(nodes, "Accounts")
     if not derive_account_nodes:
         continue
-    
     if find_single_node_by_name(nodes, "SplTokenAccount"):
         if find_compare_operations_between(nodes, "owner", "spl_token"):
             continue
