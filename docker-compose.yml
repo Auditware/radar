@@ -60,6 +60,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -102,6 +104,7 @@ services:
     ports:
       - "5672:5672" 
       - "15672:15672"
+    restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "rabbitmq-diagnostics check_port_connectivity"]
       start_period: 15s

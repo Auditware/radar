@@ -50,7 +50,8 @@ def copy_to_docker_mount(path_type: str) -> None:
     if not src_path.exists():
         raise FileNotFoundError(f"No such {path_type}: {src_path}")
 
-    shutil.rmtree(Path("/radar_data") / "contract")
+    if dst_path.exists():
+        shutil.rmtree(Path("/radar_data") / "contract")
 
     try:
         if path_type == "file":
