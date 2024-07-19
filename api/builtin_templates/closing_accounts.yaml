@@ -1,0 +1,12 @@
+name: Closing Accounts Insecurely
+severity: Medium
+certainty: Low
+description: Closing accounts in Solana requires transferring the lamports remaining in the account. When lamports are zeroed, the Solana runtime eventually closes the account. Improperly setting the account for closure could cause account reinitialization type attacks.
+rule: |
+  for source, nodes in ast["sources"].items():
+    borrow_callers = find_method_calls(nodes, "lamports", "borrow_mut")
+    if not borrow_callers:
+        continue
+    borrows_assigned_to_zero = find_assignments_between(nodes, "borrow_mut", "0")
+    if borrows_assigned_to_zero and not get_node_by_name(nodes, "CLOSED_ACCOUNT_DISCRIMINATOR"):
+      print(get_first_node(borrows_assigned_to_zero))

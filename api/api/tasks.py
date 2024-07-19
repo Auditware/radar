@@ -1,6 +1,6 @@
 from api.models import GeneratedAST
 from celery import shared_task
-from utils.dsl import extract_json_output, inject_code_lines, wrapped_exec
+from utils.dsl.dsl import extract_json_output, inject_code_lines, process_template_outputs, wrapped_exec
 
 
 @shared_task
@@ -20,28 +20,8 @@ def run_scan_task(yaml_data, generated_ast_id):
 
         template_outputs = wrapped_exec(code)
 
-        # Iterate over outputs, treat only ast nodes (dict types with an 'ident' & 'src' key on the top level)
-        finding_data = {
-            "name": yaml_data["name"],
-            "description": yaml_data["description"],
-            "severity": yaml_data["severity"],
-            "certainty": yaml_data["certainty"],
-            "locations": [],
-        }
-        for output in template_outputs:
-            valid_output = extract_json_output(output)
-            if valid_output is not None:
-                print("[i] Finding-valid printed output detected")
-                src = valid_output["src"]
-                location = f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
-                finding_data["locations"].append(location)
-            else:
-                if "debug" not in finding_data:
-                    finding_data["debug"] = []
-                finding_data["debug"].append(output)
-
         # Save to task results backend and end task successfully
-        task_result["results"] = finding_data
+        task_result["results"] = process_template_outputs(template_outputs, yaml_data)
         return task_result
 
     except GeneratedAST.DoesNotExist:

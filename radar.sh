@@ -4,11 +4,12 @@ set -e
 usage() {
     echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-d]"
     echo "Options:"
-    echo "  -p, --path       Path to the contract on the host."
-    echo "  -s, --source     Specific source within the contract path (optional) (default - project root)."
-    echo "  -t, --templates  Path to the templates directory (optional) (default - builtin_templates folder)."
-    echo "  -d, --down       Shut down radar containers."
-    echo "  -h, --help       Help message."
+    echo "  -p, --path       Path to the contract on the host"
+    echo "  -s, --source     Specific source within the contract path (optional) (default - project root)"
+    echo "  -t, --templates  Path to the templates directory (optional) (default - builtin_templates folder)"
+    echo "  -a, --ast        Copy generated AST alongside the report"
+    echo "  -d, --down       Shut down radar containers"
+    echo "  -h, --help       Help message"
     exit 1
 }
 
@@ -47,12 +48,14 @@ adjust_source_path_for_docker() {
 source_directory_or_file=""
 shutdown_containers=false
 path=""
+generate_ast=false
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         -p|--path) path=$(realpath "$2"); shift ;;
         -s|--source) source_directory_or_file=$(adjust_source_path_for_docker "$path" "$2"); shift ;;
         -t|--templates) templates_directory=$(realpath "$2"); shift ;;
+        -a|--ast) generate_ast=true ;;
         -d|--down) shutdown_containers=true ;;
         -h|--help) usage ;;
         *) echo "[e] Unknown argument: $1"; usage ;;
@@ -104,6 +107,9 @@ docker_command+=" radar --path ${path} --container-path ${container_path}"
 if [ -n "$templates_directory" ]; then
     docker_command+=" --templates /templates"
 fi
+if [ "$generate_ast" = true ]; then
+    docker_command+=" --ast"
+fi
 
 echo "[i] Executing command: $docker_command"
 eval "$docker_command"
@@ -114,3 +120,7 @@ if [ "$shutdown_containers" = true ]; then
 fi
 
 docker cp radar-api:/radar_data/output.json . >/dev/null 2>&1
+
+if [ "$generate_ast" = true ]; then
+    docker cp radar-api:/radar_data/ast.json . >/dev/null 2>&1
+fi

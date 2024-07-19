@@ -20,9 +20,10 @@ cd radar
 
 Usage: ./radar.sh [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-d]
 Options:
-  -p, --path       Path to the contract on the host.
-  -s, --source     Specific source within the contract path (optional) (default - project root).
-  -t, --templates  Path to the templates directory (optional) (default - builtin_templates folder).
-  -d, --down       Shut down radar containers.
-  -h, --help       Help message.
+  -p, --path       Path to the contract on the host
+  -s, --source     Specific source within the contract path (optional) (default - project root)
+  -t, --templates  Path to the templates directory (optional) (default - builtin_templates folder)
+  -a, --ast        Copy generated AST alongside the report
+  -d, --down       Shut down radar containers
+  -h, --help       Help message
 ```

@@ -15,6 +15,9 @@ run:
 build:
 	$(MAKE) compose
 	$(MAKE) run
+
+test:
+	cd api/ && poetry run pytest -s -v
 	
 include .env
 export

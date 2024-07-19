@@ -1,0 +1,16 @@
+name: Unvalidated Sysvar Account
+severity: Low
+certainty: Low
+description: Sysvars are special Solana accounts that provide access to dynamically updated data. When using them, it's important to verify the interaction is made to the real inteded system variable account, and not to fraudulent or inorrect ones.
+rule: |
+  sysvars = ["clock", "epoch_schedule", "instructions", "rent"]
+  for source, nodes in ast["sources"].items():
+      for sysvar_name in sysvars:
+          key_access_path = [sysvar_name, "key"]
+          id_access_path = ["sysvar", sysvar_name, "ID"]          
+          sysvar_key_calls = find_member_access_chain(nodes, key_access_path)
+          if not sysvar_key_calls:
+              continue
+          sysvar_id_calls = find_member_access_chain(nodes, id_access_path)
+          if not sysvar_id_calls:
+              print(get_first_node(sysvar_key_calls))

@@ -1,0 +1,14 @@
+name: Arbitrary Cross-Program Invocation
+severity: Medium
+certainty: Medium
+description: If not validated properly, when a program implements a Cross-Program Invocation, callers of the program may provide an arbitrary or untrusted program - manipulating the program to call instructions on an untrusted target program.
+rule: |
+  for source, nodes in ast["sources"].items():
+    invoke_nodes, cpi_nodes = find_cpi_nodes(nodes)
+    transfer_call = find_nodes_by_order(cpi_nodes, ["spl_token", "instruction", "transfer"])
+    if not transfer_call:
+        continue
+    if find_compare_operations_between(nodes, "spl_token", "token_program"):
+        continue
+    for invoke_node in invoke_nodes:
+        print(invoke_node)

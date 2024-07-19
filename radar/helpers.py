@@ -8,16 +8,25 @@ import shutil
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="radar")
     parser.add_argument(
-        "--path", type=str, required=False, help="Path to the contract source"
+        "--path", type=str, required=False, help="Path to the contract on the host"
     )
     parser.add_argument(
         "--container-path",
         type=str,
         required=True,
-        help="Path to the contract source on the docker container",
+        help="Specific source within the contract path (optional) (default - project root)",
     )
     parser.add_argument(
-        "--templates", type=str, required=False, help="Path to custom templates folder"
+        "--templates",
+        type=str,
+        required=False,
+        help="Path to the templates directory (optional) (default - builtin_templates folder)",
+    )
+    parser.add_argument(
+        "--ast",
+        required=False,
+        action="store_true",
+        help="Copy generated AST alongside the report",
     )
     return parser.parse_args()
 
@@ -44,7 +53,7 @@ def check_path(path: Path) -> str:
 
 
 def copy_to_docker_mount(path_type: str) -> None:
-    src_path = Path("/contract") 
+    src_path = Path("/contract")
     dst_path = Path("/radar_data") / src_path.relative_to("/")
 
     if not src_path.exists():
@@ -93,16 +102,24 @@ def localize_results(results, local_path):
     return results
 
 
-def print_write_outputs(results: list, container_output_path: Path):
+def print_write_outputs(results: list, ast: dict, write_ast: bool):
+    container_output_path_json = Path("/radar_data/output.json")
+    container_output_path_ast = Path("/radar_data/ast.json")
+
     if len(results) == 0:
         print("[i] Radar completed successfully. No results found.")
         return
-    print("[i] Radar completed successfully. Results (also saved to output.json):")    
-    print(json.dumps(results, indent=4))
 
-    container_output_path.parent.mkdir(parents=True, exist_ok=True)
-    if container_output_path.exists():
-        container_output_path.unlink()
+    print(
+        f"[i] Radar completed successfully. Results (also saved to output.json{' & ast.json' if write_ast else ''}):"
+    )
+    print(json.dumps(results, indent=4).replace('\\"', ''))
 
-    with open(container_output_path, "w") as f:
+    container_output_path_json.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(container_output_path_json, "w") as f:
         json.dump(results, f, indent=4)
+
+    if write_ast:
+        with open(container_output_path_ast, "w") as f:
+            json.dump(ast, f, indent=4)

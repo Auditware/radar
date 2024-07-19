@@ -4,7 +4,7 @@ certainty: Medium
 description: When there are two or more accounts with mutable data, a check must be in place to ensure mutation of each account is differentiated properly, to avoid unintended data modification of other accounts.
 rule: |
   for source, nodes in ast["sources"].items():
-      derive_account_nodes = get_all_derives(nodes, "Accounts")
+      derive_account_nodes = find_derives(nodes, "Accounts")
       if not derive_account_nodes:
           continue
       mutables = find_mutables(nodes)
@@ -13,6 +13,6 @@ rule: |
       for mutable in mutables:
           if not find_account_typed_nodes(nodes, mutable["ident"]):
               continue
-          if find_node_with_method_call(nodes, mutable["ident"], "key"):
+          if get_node_with_method_call(nodes, mutable["ident"], "key"):
               continue
           print(mutable)

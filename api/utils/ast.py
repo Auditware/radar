@@ -178,6 +178,7 @@ def generate_anchor_project_ast(source_path: Path) -> dict:
     anchor_version, solana_version = parse_toml_keys(
         anchor_toml_path, ["anchor_version", "solana_version"]
     )
+    anchor_toml_path = str(anchor_toml_path)
 
     cargo_toml_path = source_path / "Cargo.toml"
     workspace_members = parse_toml_keys(cargo_toml_path, ["workspace.members"])
@@ -188,9 +189,13 @@ def generate_anchor_project_ast(source_path: Path) -> dict:
 
     project_ast = {
         "metadata": {
-            "anchor_version": anchor_version,
-            "solana_version": solana_version,
-            "anchor_toml_path": str(anchor_toml_path),
+            key: value
+            for key, value in [
+                ("anchor_version", anchor_version),
+                ("solana_version", solana_version),
+                ("anchor_toml_path", anchor_toml_path),
+            ]
+            if value is not None
         },
         "sources": {},
     }
