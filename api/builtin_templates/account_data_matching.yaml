@@ -1,0 +1,17 @@
+name: Account Data Matching
+severity: Low
+certainty: Low
+description: Unpacking account structures without verifying authorization might allow an attacker to view or modify account data unintentionally. Therefore, account unpack operations should be accompanied by appropriate ownership verification.
+rule: |
+  for source, nodes in ast["sources"].items():
+    stmts = find_stmts(nodes)
+    matched_variable = None
+    for stmt in stmts:
+      if not find_segmented_nodes_by_order(stmt, ["SplTokenAccount", "unpack"]):
+          continue
+      matched_variable = get_first_node(stmt)
+      break
+    if matched_variable is not None:
+        if find_compare_operations_between(nodes, matched_variable["ident"], "authority"):
+            continue
+        print(matched_variable)

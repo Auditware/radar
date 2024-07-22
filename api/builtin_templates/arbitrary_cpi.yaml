@@ -5,7 +5,7 @@ description: If not validated properly, when a program implements a Cross-Progra
 rule: |
   for source, nodes in ast["sources"].items():
     invoke_nodes, cpi_nodes = find_cpi_nodes(nodes)
-    transfer_call = find_nodes_by_order(cpi_nodes, ["spl_token", "instruction", "transfer"])
+    transfer_call = find_cpi_nodes_by_order(cpi_nodes, ["spl_token", "instruction", "transfer"])
     if not transfer_call:
         continue
     if find_compare_operations_between(nodes, "spl_token", "token_program"):

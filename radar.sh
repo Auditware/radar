@@ -19,9 +19,10 @@ check_docker() {
     docker compose version &> /dev/null &
     pid=$!
 
-    ( sleep $timeout_duration && kill -0 "$pid" 2>/dev/null && kill -9 "$pid" && echo "[w] Docker availability check timed out." && exit 1 ) &
+    ( sleep $timeout_duration && kill -0 "$pid" 2>/dev/null && kill -9 "$pid" && echo "[w] Docker availability check timed out" && exit 1 ) &
 
     wait $pid
+
     local status=$?
 
     if [ $status -ne 0 ]; then
@@ -64,7 +65,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 if [ "$shutdown_containers" = true ] && [ -z "$path" ]; then
-    echo "[i] Shutting down radar containers."
+    echo "[i] Shutting down radar containers"
     docker compose down
     exit 0
 fi
@@ -72,7 +73,7 @@ fi
 check_docker
 
 if [ -z "$path" ]; then
-    echo "[e] Path to the contract is not set."
+    echo "[e] Path to the contract is not set"
     usage
 fi
 
@@ -86,6 +87,7 @@ if [ -f "$checksum_file" ]; then
         docker compose up -d --build
         echo "$current_checksum" > "$checksum_file"
     else
+        echo "[i] Running images.. (if frozen - make sure Docker is available)" 
         docker compose up -d --no-build
     fi
 else
@@ -110,6 +112,7 @@ fi
 if [ "$generate_ast" = true ]; then
     docker_command+=" --ast"
 fi
+
 
 echo "[i] Executing command: $docker_command"
 eval "$docker_command"

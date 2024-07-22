@@ -24,7 +24,7 @@ def parse_toml_keys(toml_path: Path, keys: list) -> list:
             results.append(value)
         except KeyError:
             results.append(None)
-            print(f"Key '{key}' not found in {toml_path}")
+            print(f"[w] Key '{key}' not found in {toml_path}")
     return results
 
 

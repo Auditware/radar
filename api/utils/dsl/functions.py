@@ -1,6 +1,3 @@
-from typing import Tuple
-
-
 def get_first_node(ast: dict) -> dict | None:
     def recursive_search(node):
         if isinstance(node, dict):
@@ -260,7 +257,7 @@ def find_account_typed_nodes(ast: dict, ident_name: str) -> list:
     return recurse(ast)
 
 
-def find_cpi_nodes(ast: dict) -> Tuple[list, list]:
+def find_cpi_nodes(ast: dict) -> tuple[list, list]:
     def find_invokes(node):
         invoke_nodes = []
         cpi_nodes = []
@@ -303,7 +300,7 @@ def find_cpi_nodes(ast: dict) -> Tuple[list, list]:
     return find_invokes(ast)
 
 
-def find_nodes_by_order(ast_nodes: list, idents: list) -> list:
+def find_cpi_nodes_by_order(cpi_nodes: list, idents: list) -> list:
     def match_idents(nodes, idents):
         if not idents:
             return []
@@ -326,7 +323,7 @@ def find_nodes_by_order(ast_nodes: list, idents: list) -> list:
 
         return []
 
-    result = match_idents(ast_nodes, idents)
+    result = match_idents(cpi_nodes, idents)
     return result
 
 
@@ -482,14 +479,12 @@ def find_member_access_chain(ast: dict, member_names: list) -> list:
                     and nodes[current_index].get("ident") != member_names[j]
                 ):
                     current_index += 1
-                    if (
-                        current_index >= n
-                        or nodes[current_index].get("ident") != member_names[j]
-                    ):
-                        matched = False
-                        break
 
-                if not matched:
+                if (
+                    current_index >= n
+                    or nodes[current_index].get("ident") != member_names[j]
+                ):
+                    matched = False
                     break
 
                 temp_result.append(nodes[current_index])
@@ -500,9 +495,10 @@ def find_member_access_chain(ast: dict, member_names: list) -> list:
                         "punct", {}
                     ).get("op") not in [".", ":"]:
                         current_index += 1
-                        if current_index >= n:
-                            matched = False
-                            break
+
+                    if current_index >= n:
+                        matched = False
+                        break
 
                 current_index += 1
 
@@ -523,3 +519,128 @@ def find_member_access_chain(ast: dict, member_names: list) -> list:
 
     traverse_ast(ast)
     return results
+
+
+def find_segmented_nodes_by_order(ast: dict, idents: list) -> list:
+    def search_segments(nodes, idents):
+        if not idents:
+            return []
+
+        current_ident = idents[0]
+        remaining_idents = idents[1:]
+
+        for i, node in enumerate(nodes):
+            if isinstance(node, dict) and "ident" in node:
+                if node["ident"] == current_ident:
+                    if not remaining_idents:
+                        return [node]
+                    nested_nodes = nodes[
+                        i + 1 :
+                    ]  # Continue searching from the next node in the same list
+                    result = search_segments(nested_nodes, remaining_idents)
+                    if result:
+                        return [node] + result
+        return []
+
+    def find_segments_key(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "segments" and isinstance(value, list):
+                    result = search_segments(value, idents)
+                    if result:
+                        return result
+                elif isinstance(value, (dict, list)):
+                    result = find_segments_key(value)
+                    if result:
+                        return result
+        elif isinstance(node, list):
+            for item in node:
+                result = find_segments_key(item)
+                if result:
+                    return result
+        return []
+
+    return find_segments_key(ast)
+
+
+def find_segmented_nodes_by_order(ast_nodes: list, idents: list) -> list:
+    def search_segments(nodes, idents):
+        if not idents:
+            return []
+
+        current_ident = idents[0]
+        remaining_idents = idents[1:]
+
+        for i, node in enumerate(nodes):
+            if isinstance(node, dict) and "ident" in node:
+                if node["ident"] == current_ident:
+                    if not remaining_idents:
+                        return [node]
+                    nested_nodes = nodes[
+                        i + 1 :
+                    ]  # Continue searching from the next node in the same list
+                    result = search_segments(nested_nodes, remaining_idents)
+                    if result:
+                        return [node] + result
+        return []
+
+    def find_segments_key(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "segments" and isinstance(value, list):
+                    result = search_segments(value, idents)
+                    if result:
+                        return result
+                elif isinstance(value, (dict, list)):
+                    result = find_segments_key(value)
+                    if result:
+                        return result
+        elif isinstance(node, list):
+            for item in node:
+                result = find_segments_key(item)
+                if result:
+                    return result
+        return []
+
+    return find_segments_key(ast_nodes)
+
+
+def find_stmts_by_ident(ast: dict, variable_name: list):
+    def recursive_search(node):
+        if isinstance(node, dict):
+            if "stmts" in node:
+                for stmt in node["stmts"]:
+                    result = recursive_search(stmt)
+                    if result:
+                        return stmt
+            if "ident" in node and node["ident"] == variable_name:
+                return node
+            for key, value in node.items():
+                result = recursive_search(value)
+                if result:
+                    return result
+        elif isinstance(node, list):
+            for item in node:
+                result = recursive_search(item)
+                if result:
+                    return result
+        return None
+
+    return recursive_search(ast)
+
+
+def find_stmts(ast: dict):
+    matched_stmts = []
+
+    def recursive_search(node):
+        if isinstance(node, dict):
+            if "stmts" in node:
+                matched_stmts.extend(node["stmts"])
+            for key, value in node.items():
+                recursive_search(value)
+        elif isinstance(node, list):
+            for item in node:
+                recursive_search(item)
+
+    recursive_search(ast)
+    return matched_stmts

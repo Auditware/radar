@@ -125,7 +125,7 @@ def test_templates_consistency(rule_name, expected_locations):
 
         code = yaml_data["rule"]
 
-        with open("tests/ast_mock.json", "r") as file:
+        with open("tests/mocks/ast_mock.json", "r") as file:
             generated_ast = json.load(file)
 
         modified_code = inject_code_lines(code, [f"ast = {generated_ast}"])
