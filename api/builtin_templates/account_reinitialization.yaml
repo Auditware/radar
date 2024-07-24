@@ -1,14 +1,17 @@
+version: 0.1.0
+author: forefy
 name: Account Reinitialization
 severity: Medium
 certainty: Low
 description: When account initialization is not properly validated against reinitialization attempts, callers of the program may try to reinitialize an existing account to manipulate it's data and state.
 rule: |
-  for source, nodes in ast["sources"].items():
-    init_funcs = find_functions_by_names(nodes, ["initialize", "init"])
-    funcs_with_important_actions = find_nodes_by_names(init_funcs, ["authority"])
-    if not funcs_with_important_actions:
-        continue
-    discriminator_impls = find_nodes_by_names(init_funcs, ["discriminator"])
-    if len(discriminator_impls) >= 2:
-        continue
-    print(get_first_node(init_funcs))
+  for source, nodes in ast:
+      try:
+          init_funcs = nodes.find_functions_by_names("initialize", "init")
+          init_funcs.find_by_names("authority").exit_on_none()
+          discriminator_impls = init_funcs.find_by_names("discriminator").exit_on_value()
+          if len(discriminator_impls) >= 2:
+              continue
+          print(init_funcs.first().to_result())
+      except:
+          continue

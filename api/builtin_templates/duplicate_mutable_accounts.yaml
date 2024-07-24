@@ -1,18 +1,25 @@
+version: 0.1.0
+author: forefy
 name: Duplicate Mutable Accounts
 severity: Medium
 certainty: Medium
 description: When there are two or more accounts with mutable data, a check must be in place to ensure mutation of each account is differentiated properly, to avoid unintended data modification of other accounts.
 rule: |
-  for source, nodes in ast["sources"].items():
-      derive_account_nodes = find_derives(nodes, "Accounts")
-      if not derive_account_nodes:
-          continue
-      mutables = find_mutables(nodes)
-      if len(mutables) < 2:
-          continue
-      for mutable in mutables:
-          if not find_account_typed_nodes(nodes, mutable["ident"]):
+  for source, nodes in ast:
+      try:
+          nodes.find_chained_calls("derive", "Accounts").exit_on_none()
+          mutables = nodes.find_mutables().exit_on_none()
+          account_typed_mutables = []
+          account_typed_mutables_tracking = set()
+          for mutable in mutables:
+              nodes.find_account_typed_nodes(mutable.ident).exit_on_none()
+              nodes.find_method_calls(mutable.ident, "key").exit_on_value()
+              if mutable.ident not in account_typed_mutables_tracking:
+                  account_typed_mutables_tracking.add(mutable.ident)
+                  account_typed_mutables.append(mutable)
+          if len(account_typed_mutables) < 2:
               continue
-          if get_node_with_method_call(nodes, mutable["ident"], "key"):
-              continue
-          print(mutable)
+          for mut in account_typed_mutables:
+              print(mut.to_result())
+      except:
+          continue

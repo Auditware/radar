@@ -1,7 +1,5 @@
 {
     "metadata": {
-        "anchor_version": null,
-        "solana_version": null,
         "anchor_toml_path": "/radar_data/contract/Anchor.toml"
     },
     "sources": {
@@ -1876,7 +1874,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "borrow",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "borrow",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/1-account-data-matching/insecure/src/lib.rs",
+                                                                                            "line": 12,
+                                                                                            "start_col": 70,
+                                                                                            "end_col": 76
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -3073,7 +3078,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "borrow",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "borrow",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/1-account-data-matching/secure/src/lib.rs",
+                                                                                            "line": 12,
+                                                                                            "start_col": 70,
+                                                                                            "end_col": 76
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -5390,7 +5402,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "borrow",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "borrow",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/2-owner-checks/insecure/src/lib.rs",
+                                                                                            "line": 13,
+                                                                                            "start_col": 70,
+                                                                                            "end_col": 76
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -6781,7 +6800,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "borrow",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "borrow",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/2-owner-checks/secure/src/lib.rs",
+                                                                                            "line": 13,
+                                                                                            "start_col": 70,
+                                                                                            "end_col": 76
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -7629,7 +7655,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "borrow",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "borrow",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/3-type-cosplay/insecure/src/lib.rs",
+                                                                                            "line": 11,
+                                                                                            "start_col": 65,
+                                                                                            "end_col": 71
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -7638,7 +7671,14 @@
                                                                 }
                                                             },
                                                             "method": "unwrap",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "unwrap",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/3-type-cosplay/insecure/src/lib.rs",
+                                                                "line": 11,
+                                                                "start_col": 75,
+                                                                "end_col": 81
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -7861,7 +7901,14 @@
                                                                             }
                                                                         },
                                                                         "method": "key",
-                                                                        "args": []
+                                                                        "args": [],
+                                                                        "ident": "key",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/3-type-cosplay/insecure/src/lib.rs",
+                                                                            "line": 15,
+                                                                            "start_col": 53,
+                                                                            "end_col": 56
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -9311,7 +9358,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "borrow",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "borrow",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/3-type-cosplay/secure/src/lib.rs",
+                                                                                            "line": 11,
+                                                                                            "start_col": 65,
+                                                                                            "end_col": 71
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -9320,7 +9374,14 @@
                                                                 }
                                                             },
                                                             "method": "unwrap",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "unwrap",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/3-type-cosplay/secure/src/lib.rs",
+                                                                "line": 11,
+                                                                "start_col": 75,
+                                                                "end_col": 81
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -9543,7 +9604,14 @@
                                                                             }
                                                                         },
                                                                         "method": "key",
-                                                                        "args": []
+                                                                        "args": [],
+                                                                        "ident": "key",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/3-type-cosplay/secure/src/lib.rs",
+                                                                            "line": 15,
+                                                                            "start_col": 53,
+                                                                            "end_col": 56
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -10634,7 +10702,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "borrow",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "borrow",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/4-initialization/insecure/src/lib.rs",
+                                                                                            "line": 12,
+                                                                                            "start_col": 69,
+                                                                                            "end_col": 75
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -10643,7 +10718,14 @@
                                                                 }
                                                             },
                                                             "method": "unwrap",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "unwrap",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/4-initialization/insecure/src/lib.rs",
+                                                                "line": 12,
+                                                                "start_col": 79,
+                                                                "end_col": 85
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -10719,7 +10801,14 @@
                                                                     }
                                                                 },
                                                                 "method": "key",
-                                                                "args": []
+                                                                "args": [],
+                                                                "ident": "key",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/4-initialization/insecure/src/lib.rs",
+                                                                    "line": 14,
+                                                                    "start_col": 49,
+                                                                    "end_col": 52
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -10784,7 +10873,14 @@
                                                                         }
                                                                     },
                                                                     "method": "try_borrow_mut_data",
-                                                                    "args": []
+                                                                    "args": [],
+                                                                    "ident": "try_borrow_mut_data",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/4-initialization/insecure/src/lib.rs",
+                                                                        "line": 16,
+                                                                        "start_col": 45,
+                                                                        "end_col": 64
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -10833,14 +10929,35 @@
                                                                                 }
                                                                             },
                                                                             "method": "deref_mut",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "deref_mut",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/4-initialization/insecure/src/lib.rs",
+                                                                                "line": 17,
+                                                                                "start_col": 32,
+                                                                                "end_col": 41
+                                                                            }
                                                                         }
                                                                     }
-                                                                ]
+                                                                ],
+                                                                "ident": "serialize",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/4-initialization/insecure/src/lib.rs",
+                                                                    "line": 17,
+                                                                    "start_col": 14,
+                                                                    "end_col": 23
+                                                                }
                                                             }
                                                         },
                                                         "method": "unwrap",
-                                                        "args": []
+                                                        "args": [],
+                                                        "ident": "unwrap",
+                                                        "src": {
+                                                            "file": "/radar_data/contract/programs/4-initialization/insecure/src/lib.rs",
+                                                            "line": 12,
+                                                            "start_col": 79,
+                                                            "end_col": 85
+                                                        }
                                                     }
                                                 },
                                                 true
@@ -12097,7 +12214,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "borrow",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "borrow",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/4-initialization/secure/src/lib.rs",
+                                                                                            "line": 12,
+                                                                                            "start_col": 69,
+                                                                                            "end_col": 75
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
@@ -12106,7 +12230,14 @@
                                                                 }
                                                             },
                                                             "method": "unwrap",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "unwrap",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/4-initialization/secure/src/lib.rs",
+                                                                "line": 12,
+                                                                "start_col": 79,
+                                                                "end_col": 85
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -12278,7 +12409,14 @@
                                                                     }
                                                                 },
                                                                 "method": "key",
-                                                                "args": []
+                                                                "args": [],
+                                                                "ident": "key",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/4-initialization/secure/src/lib.rs",
+                                                                    "line": 17,
+                                                                    "start_col": 49,
+                                                                    "end_col": 52
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -12383,7 +12521,14 @@
                                                                         }
                                                                     },
                                                                     "method": "try_borrow_mut_data",
-                                                                    "args": []
+                                                                    "args": [],
+                                                                    "ident": "try_borrow_mut_data",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/4-initialization/secure/src/lib.rs",
+                                                                        "line": 20,
+                                                                        "start_col": 45,
+                                                                        "end_col": 64
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -12432,14 +12577,35 @@
                                                                                 }
                                                                             },
                                                                             "method": "deref_mut",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "deref_mut",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/4-initialization/secure/src/lib.rs",
+                                                                                "line": 21,
+                                                                                "start_col": 32,
+                                                                                "end_col": 41
+                                                                            }
                                                                         }
                                                                     }
-                                                                ]
+                                                                ],
+                                                                "ident": "serialize",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/4-initialization/secure/src/lib.rs",
+                                                                    "line": 21,
+                                                                    "start_col": 14,
+                                                                    "end_col": 23
+                                                                }
                                                             }
                                                         },
                                                         "method": "unwrap",
-                                                        "args": []
+                                                        "args": [],
+                                                        "ident": "unwrap",
+                                                        "src": {
+                                                            "file": "/radar_data/contract/programs/4-initialization/secure/src/lib.rs",
+                                                            "line": 12,
+                                                            "start_col": 79,
+                                                            "end_col": 85
+                                                        }
                                                     }
                                                 },
                                                 true
@@ -13338,7 +13504,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "clone",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "clone",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/5-arbitrary-cpi/insecure/src/lib.rs",
+                                                                                            "line": 21,
+                                                                                            "start_col": 37,
+                                                                                            "end_col": 42
+                                                                                        }
                                                                                     }
                                                                                 },
                                                                                 {
@@ -13381,7 +13554,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "clone",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "clone",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/5-arbitrary-cpi/insecure/src/lib.rs",
+                                                                                            "line": 21,
+                                                                                            "start_col": 37,
+                                                                                            "end_col": 42
+                                                                                        }
                                                                                     }
                                                                                 },
                                                                                 {
@@ -13424,7 +13604,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "clone",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "clone",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/5-arbitrary-cpi/insecure/src/lib.rs",
+                                                                                            "line": 21,
+                                                                                            "start_col": 37,
+                                                                                            "end_col": 42
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             ]
@@ -13974,7 +14161,14 @@
                                                                         }
                                                                     },
                                                                     "method": "transfer_ctx",
-                                                                    "args": []
+                                                                    "args": [],
+                                                                    "ident": "transfer_ctx",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/5-arbitrary-cpi/recommended/src/lib.rs",
+                                                                        "line": 11,
+                                                                        "start_col": 38,
+                                                                        "end_col": 50
+                                                                    }
                                                                 }
                                                             },
                                                             {
@@ -14436,7 +14630,14 @@
                                                                 }
                                                             },
                                                             "method": "to_account_info",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "to_account_info",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/5-arbitrary-cpi/recommended/src/lib.rs",
+                                                                "line": 25,
+                                                                "start_col": 42,
+                                                                "end_col": 57
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -14513,7 +14714,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/5-arbitrary-cpi/recommended/src/lib.rs",
+                                                                                "line": 25,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -14555,7 +14763,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/5-arbitrary-cpi/recommended/src/lib.rs",
+                                                                                "line": 25,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -14597,7 +14812,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/5-arbitrary-cpi/recommended/src/lib.rs",
+                                                                                "line": 25,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -15413,7 +15635,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "clone",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "clone",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/5-arbitrary-cpi/secure/src/lib.rs",
+                                                                                            "line": 24,
+                                                                                            "start_col": 37,
+                                                                                            "end_col": 42
+                                                                                        }
                                                                                     }
                                                                                 },
                                                                                 {
@@ -15456,7 +15685,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "clone",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "clone",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/5-arbitrary-cpi/secure/src/lib.rs",
+                                                                                            "line": 24,
+                                                                                            "start_col": 37,
+                                                                                            "end_col": 42
+                                                                                        }
                                                                                     }
                                                                                 },
                                                                                 {
@@ -15499,7 +15735,14 @@
                                                                                             }
                                                                                         },
                                                                                         "method": "clone",
-                                                                                        "args": []
+                                                                                        "args": [],
+                                                                                        "ident": "clone",
+                                                                                        "src": {
+                                                                                            "file": "/radar_data/contract/programs/5-arbitrary-cpi/secure/src/lib.rs",
+                                                                                            "line": 24,
+                                                                                            "start_col": 37,
+                                                                                            "end_col": 42
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             ]
@@ -17576,7 +17819,14 @@
                                                                             }
                                                                         },
                                                                         "method": "key",
-                                                                        "args": []
+                                                                        "args": [],
+                                                                        "ident": "key",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/6-duplicate-mutable-accounts/secure/src/lib.rs",
+                                                                            "line": 10,
+                                                                            "start_col": 32,
+                                                                            "end_col": 35
+                                                                        }
                                                                     }
                                                                 },
                                                                 "op": "==",
@@ -17620,7 +17870,14 @@
                                                                             }
                                                                         },
                                                                         "method": "key",
-                                                                        "args": []
+                                                                        "args": [],
+                                                                        "ident": "key",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/6-duplicate-mutable-accounts/secure/src/lib.rs",
+                                                                            "line": 10,
+                                                                            "start_col": 32,
+                                                                            "end_col": 35
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -18511,11 +18768,25 @@
                                                                                                                 }
                                                                                                             },
                                                                                                             "method": "to_le_bytes",
-                                                                                                            "args": []
+                                                                                                            "args": [],
+                                                                                                            "ident": "to_le_bytes",
+                                                                                                            "src": {
+                                                                                                                "file": "/radar_data/contract/programs/7-bump-seed-canonicalization/insecure/src/lib.rs",
+                                                                                                                "line": 11,
+                                                                                                                "start_col": 50,
+                                                                                                                "end_col": 61
+                                                                                                            }
                                                                                                         }
                                                                                                     },
                                                                                                     "method": "as_ref",
-                                                                                                    "args": []
+                                                                                                    "args": [],
+                                                                                                    "ident": "as_ref",
+                                                                                                    "src": {
+                                                                                                        "file": "/radar_data/contract/programs/7-bump-seed-canonicalization/insecure/src/lib.rs",
+                                                                                                        "line": 11,
+                                                                                                        "start_col": 64,
+                                                                                                        "end_col": 70
+                                                                                                    }
                                                                                                 }
                                                                                             },
                                                                                             {
@@ -18644,7 +18915,14 @@
                                                                             }
                                                                         },
                                                                         "method": "key",
-                                                                        "args": []
+                                                                        "args": [],
+                                                                        "ident": "key",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/7-bump-seed-canonicalization/insecure/src/lib.rs",
+                                                                            "line": 9,
+                                                                            "start_col": 46,
+                                                                            "end_col": 49
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -20043,11 +20321,25 @@
                                                                                                         }
                                                                                                     },
                                                                                                     "method": "to_le_bytes",
-                                                                                                    "args": []
+                                                                                                    "args": [],
+                                                                                                    "ident": "to_le_bytes",
+                                                                                                    "src": {
+                                                                                                        "file": "/radar_data/contract/programs/7-bump-seed-canonicalization/secure/src/lib.rs",
+                                                                                                        "line": 16,
+                                                                                                        "start_col": 48,
+                                                                                                        "end_col": 59
+                                                                                                    }
                                                                                                 }
                                                                                             },
                                                                                             "method": "as_ref",
-                                                                                            "args": []
+                                                                                            "args": [],
+                                                                                            "ident": "as_ref",
+                                                                                            "src": {
+                                                                                                "file": "/radar_data/contract/programs/7-bump-seed-canonicalization/secure/src/lib.rs",
+                                                                                                "line": 16,
+                                                                                                "start_col": 62,
+                                                                                                "end_col": 68
+                                                                                            }
                                                                                         }
                                                                                     }
                                                                                 ]
@@ -20149,7 +20441,14 @@
                                                                             }
                                                                         },
                                                                         "method": "key",
-                                                                        "args": []
+                                                                        "args": [],
+                                                                        "ident": "key",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/7-bump-seed-canonicalization/secure/src/lib.rs",
+                                                                            "line": 11,
+                                                                            "start_col": 9,
+                                                                            "end_col": 12
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -20977,7 +21276,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "as_ref",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "as_ref",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/8-pda-sharing/insecure/src/lib.rs",
+                                                                                    "line": 12,
+                                                                                    "start_col": 46,
+                                                                                    "end_col": 52
+                                                                                }
                                                                             }
                                                                         },
                                                                         {
@@ -21106,7 +21412,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "transfer_ctx",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "transfer_ctx",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/insecure/src/lib.rs",
+                                                                                "line": 13,
+                                                                                "start_col": 38,
+                                                                                "end_col": 50
+                                                                            }
                                                                         }
                                                                     },
                                                                     "method": "with_signer",
@@ -21136,7 +21449,14 @@
                                                                                 }
                                                                             }
                                                                         }
-                                                                    ]
+                                                                    ],
+                                                                    "ident": "with_signer",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/8-pda-sharing/insecure/src/lib.rs",
+                                                                        "line": 13,
+                                                                        "start_col": 53,
+                                                                        "end_col": 64
+                                                                    }
                                                                 }
                                                             },
                                                             {
@@ -21728,7 +22048,14 @@
                                                                 }
                                                             },
                                                             "method": "to_account_info",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "to_account_info",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/8-pda-sharing/insecure/src/lib.rs",
+                                                                "line": 29,
+                                                                "start_col": 42,
+                                                                "end_col": 57
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -21805,7 +22132,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/insecure/src/lib.rs",
+                                                                                "line": 29,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -21847,7 +22181,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/insecure/src/lib.rs",
+                                                                                "line": 29,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -21889,7 +22230,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/insecure/src/lib.rs",
+                                                                                "line": 29,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -22487,7 +22835,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "as_ref",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "as_ref",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/8-pda-sharing/recommended/src/lib.rs",
+                                                                                    "line": 13,
+                                                                                    "start_col": 52,
+                                                                                    "end_col": 58
+                                                                                }
                                                                             }
                                                                         },
                                                                         {
@@ -22616,7 +22971,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "transfer_ctx",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "transfer_ctx",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/recommended/src/lib.rs",
+                                                                                "line": 16,
+                                                                                "start_col": 38,
+                                                                                "end_col": 50
+                                                                            }
                                                                         }
                                                                     },
                                                                     "method": "with_signer",
@@ -22646,7 +23008,14 @@
                                                                                 }
                                                                             }
                                                                         }
-                                                                    ]
+                                                                    ],
+                                                                    "ident": "with_signer",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/8-pda-sharing/recommended/src/lib.rs",
+                                                                        "line": 16,
+                                                                        "start_col": 53,
+                                                                        "end_col": 64
+                                                                    }
                                                                 }
                                                             },
                                                             {
@@ -23368,7 +23737,14 @@
                                                                 }
                                                             },
                                                             "method": "to_account_info",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "to_account_info",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/8-pda-sharing/recommended/src/lib.rs",
+                                                                "line": 37,
+                                                                "start_col": 42,
+                                                                "end_col": 57
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -23445,7 +23821,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/recommended/src/lib.rs",
+                                                                                "line": 37,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -23487,7 +23870,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/recommended/src/lib.rs",
+                                                                                "line": 37,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -23529,7 +23919,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/recommended/src/lib.rs",
+                                                                                "line": 37,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -24127,7 +24524,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "as_ref",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "as_ref",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/8-pda-sharing/secure/src/lib.rs",
+                                                                                    "line": 13,
+                                                                                    "start_col": 52,
+                                                                                    "end_col": 58
+                                                                                }
                                                                             }
                                                                         },
                                                                         {
@@ -24256,7 +24660,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "transfer_ctx",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "transfer_ctx",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/secure/src/lib.rs",
+                                                                                "line": 16,
+                                                                                "start_col": 38,
+                                                                                "end_col": 50
+                                                                            }
                                                                         }
                                                                     },
                                                                     "method": "with_signer",
@@ -24286,7 +24697,14 @@
                                                                                 }
                                                                             }
                                                                         }
-                                                                    ]
+                                                                    ],
+                                                                    "ident": "with_signer",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/8-pda-sharing/secure/src/lib.rs",
+                                                                        "line": 16,
+                                                                        "start_col": 53,
+                                                                        "end_col": 64
+                                                                    }
                                                                 }
                                                             },
                                                             {
@@ -24878,7 +25296,14 @@
                                                                 }
                                                             },
                                                             "method": "to_account_info",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "to_account_info",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/8-pda-sharing/secure/src/lib.rs",
+                                                                "line": 32,
+                                                                "start_col": 42,
+                                                                "end_col": 57
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -24955,7 +25380,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/secure/src/lib.rs",
+                                                                                "line": 32,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -24997,7 +25429,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/secure/src/lib.rs",
+                                                                                "line": 32,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -25039,7 +25478,14 @@
                                                                                 }
                                                                             },
                                                                             "method": "to_account_info",
-                                                                            "args": []
+                                                                            "args": [],
+                                                                            "ident": "to_account_info",
+                                                                            "src": {
+                                                                                "file": "/radar_data/contract/programs/8-pda-sharing/secure/src/lib.rs",
+                                                                                "line": 32,
+                                                                                "start_col": 42,
+                                                                                "end_col": 57
+                                                                            }
                                                                         }
                                                                     },
                                                                     "src": {
@@ -25569,7 +26015,14 @@
                                                                 }
                                                             },
                                                             "method": "to_account_info",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "to_account_info",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                "line": 12,
+                                                                "start_col": 44,
+                                                                "end_col": 59
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -25629,7 +26082,14 @@
                                                                 }
                                                             },
                                                             "method": "lamports",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "lamports",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                "line": 14,
+                                                                "start_col": 63,
+                                                                "end_col": 71
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -25696,7 +26156,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "borrow_mut",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "borrow_mut",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                                    "line": 16,
+                                                                                    "start_col": 45,
+                                                                                    "end_col": 55
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -25742,14 +26209,35 @@
                                                                                         }
                                                                                     },
                                                                                     "method": "lamports",
-                                                                                    "args": []
+                                                                                    "args": [],
+                                                                                    "ident": "lamports",
+                                                                                    "src": {
+                                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                                        "line": 14,
+                                                                                        "start_col": 63,
+                                                                                        "end_col": 71
+                                                                                    }
                                                                                 }
                                                                             }
-                                                                        ]
+                                                                        ],
+                                                                        "ident": "checked_add",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                            "line": 17,
+                                                                            "start_col": 14,
+                                                                            "end_col": 25
+                                                                        }
                                                                     }
                                                                 },
                                                                 "method": "unwrap",
-                                                                "args": []
+                                                                "args": [],
+                                                                "ident": "unwrap",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                    "line": 18,
+                                                                    "start_col": 14,
+                                                                    "end_col": 20
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -25796,7 +26284,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "borrow_mut",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "borrow_mut",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                                    "line": 16,
+                                                                                    "start_col": 45,
+                                                                                    "end_col": 55
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -25805,7 +26300,14 @@
                                                         },
                                                         "right": {
                                                             "lit": {
-                                                                "int": "0"
+                                                                "int": "0",
+                                                                "ident": "0",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                    "line": 19,
+                                                                    "start_col": 43,
+                                                                    "end_col": 44
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -25848,7 +26350,14 @@
                                                                         }
                                                                     },
                                                                     "method": "try_borrow_mut_data",
-                                                                    "args": []
+                                                                    "args": [],
+                                                                    "ident": "try_borrow_mut_data",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                        "line": 21,
+                                                                        "start_col": 32,
+                                                                        "end_col": 51
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -25891,11 +26400,25 @@
                                                                             }
                                                                         },
                                                                         "method": "deref_mut",
-                                                                        "args": []
+                                                                        "args": [],
+                                                                        "ident": "deref_mut",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                            "line": 22,
+                                                                            "start_col": 26,
+                                                                            "end_col": 35
+                                                                        }
                                                                     }
                                                                 },
                                                                 "method": "iter_mut",
-                                                                "args": []
+                                                                "args": [],
+                                                                "ident": "iter_mut",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                    "line": 22,
+                                                                    "start_col": 38,
+                                                                    "end_col": 46
+                                                                }
                                                             }
                                                         },
                                                         "body": [
@@ -25925,7 +26448,14 @@
                                                                             },
                                                                             "right": {
                                                                                 "lit": {
-                                                                                    "int": "0"
+                                                                                    "int": "0",
+                                                                                    "ident": "0",
+                                                                                    "src": {
+                                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                                        "line": 19,
+                                                                                        "start_col": 43,
+                                                                                        "end_col": 44
+                                                                                    }
                                                                                 }
                                                                             }
                                                                         }
@@ -26145,11 +26675,25 @@
                                                                             }
                                                                         }
                                                                     }
-                                                                ]
+                                                                ],
+                                                                "ident": "write_all",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                                    "line": 29,
+                                                                    "start_col": 14,
+                                                                    "end_col": 23
+                                                                }
                                                             }
                                                         },
                                                         "method": "unwrap",
-                                                        "args": []
+                                                        "args": [],
+                                                        "ident": "unwrap",
+                                                        "src": {
+                                                            "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still-still/src/lib.rs",
+                                                            "line": 18,
+                                                            "start_col": 14,
+                                                            "end_col": 20
+                                                        }
                                                     }
                                                 },
                                                 true
@@ -26676,7 +27220,14 @@
                                                                 }
                                                             },
                                                             "method": "to_account_info",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "to_account_info",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                "line": 11,
+                                                                "start_col": 44,
+                                                                "end_col": 59
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -26736,7 +27287,14 @@
                                                                 }
                                                             },
                                                             "method": "lamports",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "lamports",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                "line": 13,
+                                                                "start_col": 63,
+                                                                "end_col": 71
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -26803,7 +27361,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "borrow_mut",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "borrow_mut",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                                    "line": 15,
+                                                                                    "start_col": 45,
+                                                                                    "end_col": 55
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -26849,14 +27414,35 @@
                                                                                         }
                                                                                     },
                                                                                     "method": "lamports",
-                                                                                    "args": []
+                                                                                    "args": [],
+                                                                                    "ident": "lamports",
+                                                                                    "src": {
+                                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                                        "line": 13,
+                                                                                        "start_col": 63,
+                                                                                        "end_col": 71
+                                                                                    }
                                                                                 }
                                                                             }
-                                                                        ]
+                                                                        ],
+                                                                        "ident": "checked_add",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                            "line": 16,
+                                                                            "start_col": 14,
+                                                                            "end_col": 25
+                                                                        }
                                                                     }
                                                                 },
                                                                 "method": "unwrap",
-                                                                "args": []
+                                                                "args": [],
+                                                                "ident": "unwrap",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                    "line": 17,
+                                                                    "start_col": 14,
+                                                                    "end_col": 20
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -26903,7 +27489,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "borrow_mut",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "borrow_mut",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                                    "line": 15,
+                                                                                    "start_col": 45,
+                                                                                    "end_col": 55
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -26912,7 +27505,14 @@
                                                         },
                                                         "right": {
                                                             "lit": {
-                                                                "int": "0"
+                                                                "int": "0",
+                                                                "ident": "0",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                    "line": 18,
+                                                                    "start_col": 43,
+                                                                    "end_col": 44
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -26955,7 +27555,14 @@
                                                                         }
                                                                     },
                                                                     "method": "try_borrow_mut_data",
-                                                                    "args": []
+                                                                    "args": [],
+                                                                    "ident": "try_borrow_mut_data",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                        "line": 20,
+                                                                        "start_col": 32,
+                                                                        "end_col": 51
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -26998,11 +27605,25 @@
                                                                             }
                                                                         },
                                                                         "method": "deref_mut",
-                                                                        "args": []
+                                                                        "args": [],
+                                                                        "ident": "deref_mut",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                            "line": 21,
+                                                                            "start_col": 26,
+                                                                            "end_col": 35
+                                                                        }
                                                                     }
                                                                 },
                                                                 "method": "iter_mut",
-                                                                "args": []
+                                                                "args": [],
+                                                                "ident": "iter_mut",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                    "line": 21,
+                                                                    "start_col": 38,
+                                                                    "end_col": 46
+                                                                }
                                                             }
                                                         },
                                                         "body": [
@@ -27032,7 +27653,14 @@
                                                                             },
                                                                             "right": {
                                                                                 "lit": {
-                                                                                    "int": "0"
+                                                                                    "int": "0",
+                                                                                    "ident": "0",
+                                                                                    "src": {
+                                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs",
+                                                                                        "line": 18,
+                                                                                        "start_col": 43,
+                                                                                        "end_col": 44
+                                                                                    }
                                                                                 }
                                                                             }
                                                                         }
@@ -27711,7 +28339,14 @@
                                                                 }
                                                             },
                                                             "method": "lamports",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "lamports",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs",
+                                                                "line": 10,
+                                                                "start_col": 63,
+                                                                "end_col": 71
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -27778,7 +28413,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "borrow_mut",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "borrow_mut",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs",
+                                                                                    "line": 12,
+                                                                                    "start_col": 45,
+                                                                                    "end_col": 55
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -27848,18 +28490,46 @@
                                                                                                 }
                                                                                             },
                                                                                             "method": "to_account_info",
-                                                                                            "args": []
+                                                                                            "args": [],
+                                                                                            "ident": "to_account_info",
+                                                                                            "src": {
+                                                                                                "file": "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs",
+                                                                                                "line": 13,
+                                                                                                "start_col": 47,
+                                                                                                "end_col": 62
+                                                                                            }
                                                                                         }
                                                                                     },
                                                                                     "method": "lamports",
-                                                                                    "args": []
+                                                                                    "args": [],
+                                                                                    "ident": "lamports",
+                                                                                    "src": {
+                                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs",
+                                                                                        "line": 10,
+                                                                                        "start_col": 63,
+                                                                                        "end_col": 71
+                                                                                    }
                                                                                 }
                                                                             }
-                                                                        ]
+                                                                        ],
+                                                                        "ident": "checked_add",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs",
+                                                                            "line": 13,
+                                                                            "start_col": 14,
+                                                                            "end_col": 25
+                                                                        }
                                                                     }
                                                                 },
                                                                 "method": "unwrap",
-                                                                "args": []
+                                                                "args": [],
+                                                                "ident": "unwrap",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs",
+                                                                    "line": 14,
+                                                                    "start_col": 14,
+                                                                    "end_col": 20
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -27921,7 +28591,14 @@
                                                                                                     }
                                                                                                 },
                                                                                                 "method": "to_account_info",
-                                                                                                "args": []
+                                                                                                "args": [],
+                                                                                                "ident": "to_account_info",
+                                                                                                "src": {
+                                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs",
+                                                                                                    "line": 13,
+                                                                                                    "start_col": 47,
+                                                                                                    "end_col": 62
+                                                                                                }
                                                                                             }
                                                                                         },
                                                                                         "ident": "lamports",
@@ -27934,7 +28611,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "borrow_mut",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "borrow_mut",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs",
+                                                                                    "line": 12,
+                                                                                    "start_col": 45,
+                                                                                    "end_col": 55
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -27943,7 +28627,14 @@
                                                         },
                                                         "right": {
                                                             "lit": {
-                                                                "int": "0"
+                                                                "int": "0",
+                                                                "ident": "0",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs",
+                                                                    "line": 15,
+                                                                    "start_col": 74,
+                                                                    "end_col": 75
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -29085,7 +29776,14 @@
                                                                 }
                                                             },
                                                             "method": "lamports",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "lamports",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                "line": 13,
+                                                                "start_col": 63,
+                                                                "end_col": 71
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -29145,7 +29843,14 @@
                                                                 }
                                                             },
                                                             "method": "to_account_info",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "to_account_info",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                "line": 15,
+                                                                "start_col": 44,
+                                                                "end_col": 59
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -29212,7 +29917,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "borrow_mut",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "borrow_mut",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                                    "line": 16,
+                                                                                    "start_col": 45,
+                                                                                    "end_col": 55
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -29258,14 +29970,35 @@
                                                                                         }
                                                                                     },
                                                                                     "method": "lamports",
-                                                                                    "args": []
+                                                                                    "args": [],
+                                                                                    "ident": "lamports",
+                                                                                    "src": {
+                                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                                        "line": 13,
+                                                                                        "start_col": 63,
+                                                                                        "end_col": 71
+                                                                                    }
                                                                                 }
                                                                             }
-                                                                        ]
+                                                                        ],
+                                                                        "ident": "checked_add",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                            "line": 17,
+                                                                            "start_col": 14,
+                                                                            "end_col": 25
+                                                                        }
                                                                     }
                                                                 },
                                                                 "method": "unwrap",
-                                                                "args": []
+                                                                "args": [],
+                                                                "ident": "unwrap",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                    "line": 18,
+                                                                    "start_col": 14,
+                                                                    "end_col": 20
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -29312,7 +30045,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "borrow_mut",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "borrow_mut",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                                    "line": 16,
+                                                                                    "start_col": 45,
+                                                                                    "end_col": 55
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -29321,7 +30061,14 @@
                                                         },
                                                         "right": {
                                                             "lit": {
-                                                                "int": "0"
+                                                                "int": "0",
+                                                                "ident": "0",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                    "line": 19,
+                                                                    "start_col": 43,
+                                                                    "end_col": 44
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -29364,7 +30111,14 @@
                                                                         }
                                                                     },
                                                                     "method": "try_borrow_mut_data",
-                                                                    "args": []
+                                                                    "args": [],
+                                                                    "ident": "try_borrow_mut_data",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                        "line": 21,
+                                                                        "start_col": 32,
+                                                                        "end_col": 51
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -29407,11 +30161,25 @@
                                                                             }
                                                                         },
                                                                         "method": "deref_mut",
-                                                                        "args": []
+                                                                        "args": [],
+                                                                        "ident": "deref_mut",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                            "line": 22,
+                                                                            "start_col": 26,
+                                                                            "end_col": 35
+                                                                        }
                                                                     }
                                                                 },
                                                                 "method": "iter_mut",
-                                                                "args": []
+                                                                "args": [],
+                                                                "ident": "iter_mut",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                    "line": 22,
+                                                                    "start_col": 38,
+                                                                    "end_col": 46
+                                                                }
                                                             }
                                                         },
                                                         "body": [
@@ -29441,7 +30209,14 @@
                                                                             },
                                                                             "right": {
                                                                                 "lit": {
-                                                                                    "int": "0"
+                                                                                    "int": "0",
+                                                                                    "ident": "0",
+                                                                                    "src": {
+                                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                                        "line": 19,
+                                                                                        "start_col": 43,
+                                                                                        "end_col": 44
+                                                                                    }
                                                                                 }
                                                                             }
                                                                         }
@@ -29625,11 +30400,25 @@
                                                                             }
                                                                         }
                                                                     }
-                                                                ]
+                                                                ],
+                                                                "ident": "write_all",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                    "line": 28,
+                                                                    "start_col": 16,
+                                                                    "end_col": 25
+                                                                }
                                                             }
                                                         },
                                                         "method": "unwrap",
-                                                        "args": []
+                                                        "args": [],
+                                                        "ident": "unwrap",
+                                                        "src": {
+                                                            "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                            "line": 18,
+                                                            "start_col": 14,
+                                                            "end_col": 20
+                                                        }
                                                     }
                                                 },
                                                 true
@@ -29842,7 +30631,14 @@
                                                                         }
                                                                     },
                                                                     "method": "try_borrow_data",
-                                                                    "args": []
+                                                                    "args": [],
+                                                                    "ident": "try_borrow_data",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                        "line": 36,
+                                                                        "start_col": 28,
+                                                                        "end_col": 43
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -29929,12 +30725,26 @@
                                                         "repeat": {
                                                             "expr": {
                                                                 "lit": {
-                                                                    "int": "0u8"
+                                                                    "int": "0u8",
+                                                                    "ident": "0u8",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                        "line": 39,
+                                                                        "start_col": 34,
+                                                                        "end_col": 37
+                                                                    }
                                                                 }
                                                             },
                                                             "len": {
                                                                 "lit": {
-                                                                    "int": "8"
+                                                                    "int": "8",
+                                                                    "ident": "8",
+                                                                    "src": {
+                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                        "line": 37,
+                                                                        "start_col": 30,
+                                                                        "end_col": 31
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -29986,13 +30796,27 @@
                                                                                 "range": {
                                                                                     "start": {
                                                                                         "lit": {
-                                                                                            "int": "0"
+                                                                                            "int": "0",
+                                                                                            "ident": "0",
+                                                                                            "src": {
+                                                                                                "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                                                "line": 19,
+                                                                                                "start_col": 43,
+                                                                                                "end_col": 44
+                                                                                            }
                                                                                         }
                                                                                     },
                                                                                     "limits": "..",
                                                                                     "end": {
                                                                                         "lit": {
-                                                                                            "int": "8"
+                                                                                            "int": "8",
+                                                                                            "ident": "8",
+                                                                                            "src": {
+                                                                                                "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                                                "line": 37,
+                                                                                                "start_col": 30,
+                                                                                                "end_col": 31
+                                                                                            }
                                                                                         }
                                                                                     }
                                                                                 }
@@ -30001,7 +30825,14 @@
                                                                     }
                                                                 }
                                                             }
-                                                        ]
+                                                        ],
+                                                        "ident": "copy_from_slice",
+                                                        "src": {
+                                                            "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                            "line": 40,
+                                                            "start_col": 23,
+                                                            "end_col": 38
+                                                        }
                                                     }
                                                 },
                                                 true
@@ -30161,7 +30992,14 @@
                                                                 }
                                                             },
                                                             "method": "lamports",
-                                                            "args": []
+                                                            "args": [],
+                                                            "ident": "lamports",
+                                                            "src": {
+                                                                "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                "line": 13,
+                                                                "start_col": 63,
+                                                                "end_col": 71
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -30228,7 +31066,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "borrow_mut",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "borrow_mut",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                                    "line": 16,
+                                                                                    "start_col": 45,
+                                                                                    "end_col": 55
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -30274,14 +31119,35 @@
                                                                                         }
                                                                                     },
                                                                                     "method": "lamports",
-                                                                                    "args": []
+                                                                                    "args": [],
+                                                                                    "ident": "lamports",
+                                                                                    "src": {
+                                                                                        "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                                        "line": 13,
+                                                                                        "start_col": 63,
+                                                                                        "end_col": 71
+                                                                                    }
                                                                                 }
                                                                             }
-                                                                        ]
+                                                                        ],
+                                                                        "ident": "checked_add",
+                                                                        "src": {
+                                                                            "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                            "line": 17,
+                                                                            "start_col": 14,
+                                                                            "end_col": 25
+                                                                        }
                                                                     }
                                                                 },
                                                                 "method": "unwrap",
-                                                                "args": []
+                                                                "args": [],
+                                                                "ident": "unwrap",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                    "line": 18,
+                                                                    "start_col": 14,
+                                                                    "end_col": 20
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -30328,7 +31194,14 @@
                                                                                     }
                                                                                 },
                                                                                 "method": "borrow_mut",
-                                                                                "args": []
+                                                                                "args": [],
+                                                                                "ident": "borrow_mut",
+                                                                                "src": {
+                                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                                    "line": 16,
+                                                                                    "start_col": 45,
+                                                                                    "end_col": 55
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -30337,7 +31210,14 @@
                                                         },
                                                         "right": {
                                                             "lit": {
-                                                                "int": "0"
+                                                                "int": "0",
+                                                                "ident": "0",
+                                                                "src": {
+                                                                    "file": "/radar_data/contract/programs/9-closing-accounts/secure/src/lib.rs",
+                                                                    "line": 19,
+                                                                    "start_col": 43,
+                                                                    "end_col": 44
+                                                                }
                                                             }
                                                         }
                                                     }

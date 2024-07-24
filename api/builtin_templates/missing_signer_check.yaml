@@ -1,12 +1,15 @@
+version: 0.1.0
+author: forefy
 name: Missing Signer Check
 severity: Low
 certainty: Low
 description: Signer checks verify whether an account owner has authorized the requested transaction. Failing to perform these checks might result in unintended operations executable by any account.
 rule: |
-  for source, nodes in ast["sources"].items():
-    derive_account_nodes = find_derives(nodes, "Accounts")
-    if not derive_account_nodes:
-        continue
-    if find_compare_operations(nodes, "is_signer") or find_specific_member_accesses(nodes, "is_signer"):
-        continue
-    print(get_first_node(derive_account_nodes))
+  for source, nodes in ast:
+      try:
+          derive_account_nodes = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
+          nodes.find_comparison_to_any("is_signer").exit_on_value()
+          nodes.find_member_accesses("is_signer").exit_on_value()
+          print(derive_account_nodes.first().first().to_result())
+      except:
+          continue

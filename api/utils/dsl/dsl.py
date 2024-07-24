@@ -7,7 +7,7 @@ import io
 import json
 import sys
 from types import ModuleType
-from utils.dsl import functions
+from utils.dsl import dsl_ast_iterator
 
 
 # regular print, but tries to decode printed json outputs (to get a proper json instead of python-flavoured json)
@@ -38,9 +38,9 @@ sandbox_globals.update(
     {
         name: func
         for name, func in inspect.getmembers(
-            functions,
+            dsl_ast_iterator,
             predicate=lambda f: inspect.isfunction(f)
-            and f.__module__ == functions.__name__,
+            and f.__module__ == dsl_ast_iterator.__name__,
         )
     }
 )

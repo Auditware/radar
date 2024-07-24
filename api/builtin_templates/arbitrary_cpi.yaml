@@ -1,14 +1,15 @@
+version: 0.1.0
+author: forefy
 name: Arbitrary Cross-Program Invocation
 severity: Medium
 certainty: Medium
 description: If not validated properly, when a program implements a Cross-Program Invocation, callers of the program may provide an arbitrary or untrusted program - manipulating the program to call instructions on an untrusted target program.
 rule: |
-  for source, nodes in ast["sources"].items():
-    invoke_nodes, cpi_nodes = find_cpi_nodes(nodes)
-    transfer_call = find_cpi_nodes_by_order(cpi_nodes, ["spl_token", "instruction", "transfer"])
-    if not transfer_call:
-        continue
-    if find_compare_operations_between(nodes, "spl_token", "token_program"):
-        continue
-    for invoke_node in invoke_nodes:
-        print(invoke_node)
+  for source, nodes in ast:
+      try:
+          cpi_groups = nodes.find_chained_calls("solana_program", "program", "invoke").exit_on_none()
+          nodes.find_comparisons("spl_token", "token_program").exit_on_value()
+          for cpi_group in cpi_groups:
+              print(cpi_group.first().parent.to_result())
+      except:
+          continue

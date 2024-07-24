@@ -60,8 +60,8 @@ expected_data = [
     (
         "Closing Accounts Insecurely",
         [
-            "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs:13:63-71",
-            "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs:10:63-71",
+            "/radar_data/contract/programs/9-closing-accounts/insecure/src/lib.rs:12:45-55",
+            "/radar_data/contract/programs/9-closing-accounts/insecure-still/src/lib.rs:15:45-55",
         ],
     ),
     (
@@ -108,7 +108,7 @@ expected_data = [
     ),
     (
         "Arbitrary Cross-Program Invocation",
-        ["/radar_data/contract/programs/5-arbitrary-cpi/insecure/src/lib.rs:11:34-40"],
+        ["/radar_data/contract/programs/5-arbitrary-cpi/insecure/src/lib.rs:10:12-15"],
     ),
 ]
 
@@ -128,7 +128,7 @@ def test_templates_consistency(rule_name, expected_locations):
         with open("tests/mocks/ast_mock.json", "r") as file:
             generated_ast = json.load(file)
 
-        modified_code = inject_code_lines(code, [f"ast = {generated_ast}"])
+        modified_code = inject_code_lines(code, [f"ast = parse_ast({generated_ast}).items()"])
 
         template_outputs = wrapped_exec(modified_code)
         res = process_template_outputs(template_outputs, yaml_data)
@@ -139,4 +139,4 @@ def test_templates_consistency(rule_name, expected_locations):
         if result["name"] == rule_name:
             assert sorted(result["locations"]) == sorted(
                 expected_locations
-            ), f"Mismatch in locations for {rule_name}"
+            ), f"Mismatch in template results for {rule_name}"

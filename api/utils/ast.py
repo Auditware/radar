@@ -92,8 +92,13 @@ def enrich_ast_with_source_lines(
                 elif isinstance(value, list):
                     for item in value:
                         enrich_node(item, scanned_idents)
-                elif key == "ident":
+                elif key in ("ident", "method", "int"):
                     ident = value
+                    if key == "method":
+                        node["ident"] = ident
+                    if key == "int":
+                        print(node)
+                        node["ident"] = str(node["int"])
                     if ident not in scanned_idents:
                         positions = find_ident_positions(rust_code, ident)
                         if positions:
@@ -104,6 +109,7 @@ def enrich_ast_with_source_lines(
                             if pos not in node.get("src", []):
                                 node["src"] = pos
                                 break
+                    
         elif isinstance(node, list):
             for item in node:
                 enrich_node(item, scanned_idents)

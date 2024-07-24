@@ -165,9 +165,12 @@ class RunScanView(APIView):
                 )
 
             if yaml_data is not None:
-                result = run_scan_task.delay(
-                    yaml_data=yaml_data,
-                    generated_ast_id=generated_ast.id,
+                result = run_scan_task.apply_async(
+                    kwargs={
+                        "yaml_data": yaml_data,
+                        "generated_ast_id": generated_ast.id,
+                    },
+                    task_id=yaml_data["name"],
                 )
                 task_ids.append(result.id)
 
@@ -209,12 +212,16 @@ class PollResultsView(APIView):
                 if result.successful():
                     task_result = result.get()
                     task_result_results = task_result.get("results")
-                    if task_result_results and (task_result_results.get("locations") or task_result_results.get("debug")):
+                    if task_result_results and (
+                        task_result_results.get("locations")
+                        or task_result_results.get("debug")
+                    ):
                         results.append(task_result_results)
                 else:
+                    print(dir(result))
                     return Response(
                         {
-                            "error": f"Task {task_id} failed",
+                            "error": f"Task '{task_id}' failed",
                             "details": str(result.result),
                             "traceback": result.traceback.split("\n "),
                         },
