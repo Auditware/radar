@@ -6,19 +6,28 @@ A static analysis tool for anchor rust programs.
 
 1) Install and start docker
 
-2) In first use, the `radar.sh` script will build the docker-compose.yml specifications.
+2) Install git
+
+3) Install radar either from install script or from source
+
+```bash
+curl -L https://raw.githubusercontent.com/Auditware/radar/main/install-radar.sh | bash
+radar -h
+```
+
+OR
 
 ```bash
 git clone https://github.com/Auditware/radar.git
 cd radar
-./radar.sh -p <contract>
+./radar.sh -h
 ```
 
 ## Usage
 ```bash
-./radar.sh -h
+radar -h
 
-Usage: ./radar.sh [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-d]
+Usage: radar [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-d]
 Options:
   -p, --path       Path to the contract on the host
   -s, --source     Specific source within the contract path (optional) (default - project root)

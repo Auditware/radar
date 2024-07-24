@@ -1,5 +1,7 @@
 # radar Templates
 
+## Template example
+
 ```yaml
 version: 0.1.0
 author: forefy
@@ -24,30 +26,32 @@ The descriptive fields represent the information associated with the vulnerabili
 
 The rule is python based statements through which we iterate on the AST (Abstract Syntax Tree) of the contract and extract insightful information.
 
+## Understanding Rules
+
 At a first glance, we can see that we have the `ast` variable magically available to us, and that we can iterate on it in `source` and `nodes` pairs.
 
 `source` is the file path of the current iteration
 
 `nodes` are the nodes of that specific file path
 
-Then we have the real magic, demonstrated on line 3:
+Then we have the real magic, demonstrated on line 3 of the rule above:
 ```python
 cpi_groups = nodes.find_chained_calls("solana_program", "program", "invoke").exit_on_none()
 ``` 
 
 We have setup ease-of-use functions, and there are operations that can be done on each.
 
-This functionality lives in a single file in the repo [dsl_ast_iterator.py](https://github.com/Auditware/radar/api/utils/dsl/dsl_ast_iterator.py), and to deep dive and understand the different methods available that's the place to be.
+These functions live in a single file in the repo [dsl_ast_iterator.py](https://github.com/Auditware/radar/blob/main/api/utils/dsl/dsl_ast_iterator.py), and to deep dive and understand the different methods available that's the place to be.
 
 In a high level, there are three important classes: `ASTNode`, `ASTNodeList` and `ASTNodeListGroup`, all give us an abstraction to iterate over the rust JSON AST radar generates.
 
-`ASTNode` represent an AST node, and the layers above it (List, ListGroup) can be used similarly.
+`ASTNode` represent an AST node, and the layers above it (List, ListGroup) can be thought of similarly - the functions implemented on `ASTNode` can be called in the Node, List, or ListGroup level accordingly.
 
-Meaning, the functions implemented on `ASTNode` can be called in the Node, List, or ListGroup level accordingly. In the code snippet above we iterate on an `ASTNodeList`, retreiving occurrences of `solana_program::program::invoke(..)`.
+In the code snippet above we iterate on an `ASTNodeList`, retreiving occurrences of `solana_program::program::invoke(..)`.
 
-That returns us List Groups (i.e. list of ast node lists) of the nodes involved in that calls including further relevant data like line positioning, metadata, child nodes, parent nodes etc.
+That returns us List Groups (i.e. list of ast node lists) of the nodes involved in those occurrences, including further relevant data like line positioning, metadata, child nodes, parent nodes etc.
 
-We can then use this info and pass it to more methods, until the rule is filtering as expected.
+We can then use this info and pass it to more methods, filtering results further, or print nodes based on conditions we choose.
 
 When we want to indicate a result, we just print the vulnerable node found (or the node whose line information we want to include in the raised vulnerability/insight):
 

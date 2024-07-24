@@ -4,7 +4,7 @@
 
 After ensuring Docker is up and running on your system, install radar using curl:
 ```bash
-curl -L https://github.com/Auditware/radar/install-radar.sh | bash
+curl -L https://raw.githubusercontent.com/Auditware/radar/main/install-radar.sh | bash
 radar -h
 ```
 
