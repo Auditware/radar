@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+INITIAL_DIR=$(pwd)
+RADAR_BASE_DIR="${XDG_CONFIG_HOME:-$HOME}/.radar/radar"
+
 usage() {
     echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-d]"
     echo "Options:"
@@ -53,9 +56,9 @@ generate_ast=false
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        -p|--path) path=$(realpath "$2"); shift ;;
+        -p|--path) path=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -s|--source) source_directory_or_file=$(adjust_source_path_for_docker "$path" "$2"); shift ;;
-        -t|--templates) templates_directory=$(realpath "$2"); shift ;;
+        -t|--templates) templates_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -a|--ast) generate_ast=true ;;
         -d|--down) shutdown_containers=true ;;
         -h|--help) usage ;;
@@ -63,6 +66,7 @@ while [[ "$#" -gt 0 ]]; do
     esac
     shift
 done
+
 
 if [ "$shutdown_containers" = true ] && [ -z "$path" ]; then
     echo "[i] Shutting down radar containers"
@@ -73,9 +77,16 @@ fi
 check_docker
 
 if [ -z "$path" ]; then
-    echo "[e] Path to the contract is not set"
     usage
 fi
+
+if [[ -n "$path" ]]; then
+    path=$(cd "$path" && pwd)
+fi
+if [[ -n "$templates" ]]; then
+    templates=$(cd "$templates" && pwd)
+fi
+cd "$RADAR_BASE_DIR"
 
 checksum_file="docker_checksum.sha"
 current_checksum=$(cat docker-compose.yml | shasum -a 256 | cut -d" " -f1)
@@ -113,7 +124,6 @@ if [ "$generate_ast" = true ]; then
     docker_command+=" --ast"
 fi
 
-
 echo "[i] Executing command: $docker_command"
 eval "$docker_command"
 
@@ -121,6 +131,8 @@ if [ "$shutdown_containers" = true ]; then
     echo "[i] Shutting down radar containers"
     docker compose down
 fi
+
+cd "$INITIAL_DIR"
 
 docker cp radar-api:/radar_data/output.json . >/dev/null 2>&1
 

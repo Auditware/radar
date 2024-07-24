@@ -13,8 +13,13 @@ def main():
     container_path = Path(args.container_path)
 
     path_type = check_path(container_path)
-    print(f"[i] Copying {path_type} to the docker volume")
-    copy_to_docker_mount(path_type)
+
+    print(f"[i] Copying {path_type} from radar container to a shared docker volume")
+    copy_to_docker_mount(
+        Path("/contract"),
+        Path("/radar_data" / container_path.relative_to("/")),
+        path_type,
+    )
 
     templates_path = None
     if args.templates:
@@ -24,7 +29,11 @@ def main():
                 f"[e] Provided custom templates folder path {templates_path} is invalid"
             )
             raise FileNotFoundError
-        copy_to_docker_mount(templates_path, "folder")
+        copy_to_docker_mount(
+            Path("/templates"),
+            Path("/radar_data" / templates_path.relative_to("/")),
+            "folder",
+        )
         print(f"[i] Using custom provided templates folder.")
 
     local_path = None

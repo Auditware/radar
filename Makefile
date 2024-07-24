@@ -18,6 +18,15 @@ build:
 
 test:
 	cd api/ && poetry run pytest -s -v
+
+update-docs:
+	git clone https://github.com/Auditware/radar.wiki.git
+	cp -r docs/* radar.wiki/
+	cd radar.wiki/ && \
+	git add . && \
+	git commit -m "Update docs" && \
+	git push origin master
+	rm -rf radar.wiki/
 	
 include .env
 export

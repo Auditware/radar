@@ -8,3 +8,4 @@ Makefile.local
 output.json
 ast.json
 *checksum*
+radar.wiki

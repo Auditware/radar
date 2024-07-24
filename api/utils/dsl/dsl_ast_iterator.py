@@ -128,7 +128,7 @@ class ASTNode:
             results.extend(child.find_by_parent(parent_ident))
         return ASTNodeList(results)
 
-    def find_chained_calls(self, *idents) -> ASTNodeListGroup:
+    def find_chained_calls(self, *idents: tuple[str, ...]) -> ASTNodeListGroup:
         matches = []
 
         def recurse(node, idents):
@@ -164,7 +164,7 @@ class ASTNode:
         recurse(self)
         return ASTNodeList(matching_nodes)
 
-    def find_comparisons(self, ident1, ident2):
+    def find_comparisons(self, ident1: str, ident2: str):
         comparisons = []
 
         def traverse(node):
@@ -226,7 +226,7 @@ class ASTNode:
         traverse(self)
         return ASTNodeList(comparisons)
 
-    def find_comparison_to_any(self, ident):
+    def find_comparison_to_any(self, ident: str):
         comparisons = []
 
         def traverse(node):
@@ -257,7 +257,7 @@ class ASTNode:
         traverse(self)
         return ASTNodeList(comparisons)
 
-    def find_negative_of_operation(self, operation_name, *args):
+    def find_negative_of_operation(self, operation_name: str, *args: tuple) -> ASTNodeList:
         operation = getattr(self, operation_name)
         operation_results = operation(*args)
         operation_nodes = {node for pair in operation_results for node in pair}
@@ -272,7 +272,7 @@ class ASTNode:
         traverse(self)
         return ASTNodeList(non_operation_nodes)
 
-    def find_functions_by_names(self, *function_names) -> ASTNodeList:
+    def find_functions_by_names(self, *function_names: tuple[str, ...]) -> ASTNodeList:
         matching_nodes = []
 
         def find_function(node):
@@ -291,12 +291,12 @@ class ASTNode:
         find_function(self)
         return ASTNodeList(matching_nodes)
 
-    def find_by_names(self, *ident_names) -> ASTNodeList:
+    def find_by_names(self, *idents: tuple[str, ...]) -> ASTNodeList:
         matching_nodes = []
 
         def search_nodes(node):
             if isinstance(node, ASTNode):
-                if node.ident in ident_names:
+                if node.ident in idents:
                     matching_nodes.append(node)
                 for child in node.children:
                     search_nodes(child)
@@ -311,7 +311,7 @@ class ASTNode:
         search_nodes(self)
         return ASTNodeList(matching_nodes)
 
-    def find_method_calls(self, caller, method) -> ASTNodeList:
+    def find_method_calls(self, caller: str, method: str) -> ASTNodeList:
         matching_nodes = []
 
         def recurse(node):
@@ -331,14 +331,14 @@ class ASTNode:
         recurse(self)
         return ASTNodeList(matching_nodes)
 
-    def find_assignments(self, method_name, value_ident):
+    def find_assignments(self, ident: str, value_ident: str) -> ASTNodeList:
         assignments = []
 
         def traverse(node):
             if not node:
                 return
 
-            if node.ident == method_name and ".assign.left" in node.access_path:
+            if node.ident == ident and ".assign.left" in node.access_path:
                 assignment_path = node.access_path.split(".assign.left")[0] + ".assign"
                 right_node = find_node_by_access_path(assignment_path + ".right")
                 if right_node and check_conditions(node, right_node, value_ident):
@@ -390,7 +390,7 @@ class ASTNode:
         traverse(self)
         return ASTNodeList(mutables)
 
-    def find_account_typed_nodes(self, ident):
+    def find_account_typed_nodes(self, ident: str) -> ASTNodeList:
         matches = []
 
         def ends_with_ty_path_segments(access_path):
@@ -426,7 +426,7 @@ class ASTNode:
         traverse(self)
         return ASTNodeList(matches)
 
-    def find_member_accesses(self, ident) -> ASTNodeList:
+    def find_member_accesses(self, ident: str) -> ASTNodeList:
         member_accesses = []
 
         def traverse(node):
@@ -446,20 +446,20 @@ class ASTNode:
         return ASTNodeList(member_accesses)
 
 
-def parse_prime_nodes(data, access_path="", parent=None):
+def parse_prime_nodes(ast, access_path="", parent=None) -> list:
     nodes = []
-    if isinstance(data, dict):
-        if "src" in data and "ident" in data:
+    if isinstance(ast, dict):
+        if "src" in ast and "ident" in ast:
             metadata = {}
-            if "mut" in data:
-                metadata["mut"] = data["mut"]
-            node = ASTNode(data, access_path, metadata)
+            if "mut" in ast:
+                metadata["mut"] = ast["mut"]
+            node = ASTNode(ast, access_path, metadata)
             node.parent = parent
             nodes.append(node)
             parent = node
         # Mutable but no ident edge case, corelate a mutable statement with the closest ident
-        elif "mut" in data:
-            metadata = {"mut": data["mut"]}
+        elif "mut" in ast:
+            metadata = {"mut": ast["mut"]}
 
             def find_ident_src_node(sub_data, sub_access_path):
                 if isinstance(sub_data, dict):
@@ -480,23 +480,23 @@ def parse_prime_nodes(data, access_path="", parent=None):
                             return result
                 return None
 
-            node = find_ident_src_node(data, access_path)
+            node = find_ident_src_node(ast, access_path)
             if node:
                 node.parent = parent
                 nodes.append(node)
                 parent = node
 
-        for key, value in data.items():
+        for key, value in ast.items():
             new_path = f"{access_path}.{key}" if access_path else key
             nodes.extend(parse_prime_nodes(value, new_path, parent))
-    elif isinstance(data, list):
-        for i, item in enumerate(data):
+    elif isinstance(ast, list):
+        for i, item in enumerate(ast):
             new_path = f"{access_path}[{i}]"
             nodes.extend(parse_prime_nodes(item, new_path, parent))
     return nodes
 
 
-def map_hierarchy(prime_nodes):
+def map_hierarchy(prime_nodes: list):
     path_to_node = {node.access_path: node for node in prime_nodes}
     assigned_children = set()
     for node in prime_nodes:
@@ -512,7 +512,7 @@ def map_hierarchy(prime_nodes):
             parent_path = ".".join(parent_path.split(".")[:-1])
 
 
-def parse_ast(ast):
+def parse_ast(ast: dict) -> dict:
     sources = {}
     prime_nodes = parse_prime_nodes(ast)
 

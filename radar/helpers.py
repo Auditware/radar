@@ -52,31 +52,29 @@ def check_path(path: Path) -> str:
         return "folder"
 
 
-def copy_to_docker_mount(path_type: str) -> None:
-    src_path = Path("/contract")
-    dst_path = Path("/radar_data") / src_path.relative_to("/")
+def copy_to_docker_mount(radar_src_path: Path, api_dst_path: Path, path_type: str) -> None:
 
-    if not src_path.exists():
-        raise FileNotFoundError(f"No such {path_type}: {src_path}")
+    if not radar_src_path.exists():
+        raise FileNotFoundError(f"No such {path_type}: {radar_src_path}")
 
-    if dst_path.exists():
-        shutil.rmtree(Path("/radar_data") / "contract")
+    if api_dst_path.exists():
+        shutil.rmtree(api_dst_path)
 
     try:
         if path_type == "file":
-            if src_path.is_symlink():
-                os.symlink(os.readlink(src_path), dst_path)
+            if radar_src_path.is_symlink():
+                os.symlink(os.readlink(radar_src_path), api_dst_path)
             else:
-                shutil.copy2(src_path, dst_path)
+                shutil.copy2(radar_src_path, api_dst_path)
 
         elif path_type == "folder":
             shutil.copytree(
-                src_path,
-                dst_path,
+                radar_src_path,
+                api_dst_path,
                 dirs_exist_ok=True,
                 symlinks=True,
                 ignore=shutil.ignore_patterns(
-                    "*.tmp", "*cache*", "node_modules", "*.git", "target"
+                    "*.tmp", "*cache*", "node_modules", "*.git", "target", ".DS_Store"
                 ),
             )
 
