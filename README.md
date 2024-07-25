@@ -9,8 +9,6 @@
 <a href="https://github.com/Auditware/radar/wiki"><img alt="Wiki" title="Wiki" src="https://img.shields.io/badge/radar-Wiki-blue"></a>
 </p>
 
-https://img.shields.io/github/directory-file-count/auditware/radar/api/builtin_templates?label=templates
-
 A static analysis tool for anchor rust programs.
 
 > `radar` allows you to write, share, and utilize [templates](https://github.com/Auditware/radar/tree/main/api/builtin_templates) to identify security issues in rust-based smart contracts using a powerful python based rule engine that enables automating detection of vulnerable code patterns through logical expressions.
