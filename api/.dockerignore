@@ -3,3 +3,4 @@
 **/.pytest_cache
 **/target
 staticfiles
+.vscode
