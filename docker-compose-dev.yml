@@ -1,10 +1,11 @@
 services:
   radar:
-    image: ghcr.io/auditware/radar-radar:main
-    environment:
-      DJANGO_HOST: ${DJANGO_HOST}
-      DJANGO_HOST_LOCAL: ${DJANGO_HOST_LOCAL}
-      DJANGO_PORT: ${DJANGO_PORT}
+    build:
+      context: radar
+      args:
+        DJANGO_HOST: ${DJANGO_HOST}
+        DJANGO_HOST_LOCAL: ${DJANGO_HOST_LOCAL}
+        DJANGO_PORT: ${DJANGO_PORT}
     depends_on:
       api:
         condition: service_healthy
@@ -12,24 +13,25 @@ services:
       - radar_data:/radar_data
 
   api:
-    container_name: radar-api
-    image: ghcr.io/auditware/radar-radar:main
-    environment:
-      DEBUG: ${DEBUG}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_HOST_LOCAL: ${POSTGRES_HOST_LOCAL}
-      POSTGRES_PORT: ${POSTGRES_PORT}
-      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
-      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
-      SECRET_KEY: ${SECRET_KEY}
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      CELERY_BROKER_HOST: ${CELERY_BROKER_HOST}
-      CELERY_BROKER_HOST_LOCAL: ${CELERY_BROKER_HOST_LOCAL}
-      CELERY_BROKER_PORT: ${CELERY_BROKER_PORT}
+    container_name: "radar-api"
+    build:
+      context: api
+      args:
+        DEBUG: ${DEBUG}
+        POSTGRES_DB: ${POSTGRES_DB}
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        POSTGRES_HOST: ${POSTGRES_HOST}
+        POSTGRES_HOST_LOCAL: ${POSTGRES_HOST_LOCAL}
+        POSTGRES_PORT: ${POSTGRES_PORT}
+        DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
+        DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+        SECRET_KEY: ${SECRET_KEY}
+        RABBITMQ_USER: ${RABBITMQ_USER}
+        RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+        CELERY_BROKER_HOST: ${CELERY_BROKER_HOST}
+        CELERY_BROKER_HOST_LOCAL: ${CELERY_BROKER_HOST_LOCAL}
+        CELERY_BROKER_PORT: ${CELERY_BROKER_PORT}
     ports:
       - "8000:8000"
     volumes:
@@ -47,7 +49,8 @@ services:
       retries: 20
 
   celeryworker:
-    image: ghcr.io/auditware/radar-api:main
+    build:
+      context: api
     command: poetry run celery -A api worker -l info
     stdin_open: true
     tty: true
