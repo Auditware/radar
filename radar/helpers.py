@@ -52,7 +52,9 @@ def check_path(path: Path) -> str:
         return "folder"
 
 
-def copy_to_docker_mount(radar_src_path: Path, api_dst_path: Path, path_type: str) -> None:
+def copy_to_docker_mount(
+    radar_src_path: Path, api_dst_path: Path, path_type: str
+) -> None:
 
     if not radar_src_path.exists():
         raise FileNotFoundError(f"No such {path_type}: {radar_src_path}")
@@ -108,11 +110,13 @@ def print_write_outputs(results: list, ast: dict, write_ast: bool):
         print("[i] Radar completed successfully. No results found.")
         return
 
-    print(
-        f"[i] Radar completed successfully. Results (also saved to output.json{' & ast.json' if write_ast else ''}):"
-    )
-    print(json.dumps(results, indent=4).replace('\\"', ''))
-
+    for finding in results:
+        print()
+        print(f"[ {finding['severity']} ] {finding['name']} found at:")
+        for location in finding["locations"]:
+            print(f"    - {location}")
+        print()
+        
     container_output_path_json.parent.mkdir(parents=True, exist_ok=True)
 
     with open(container_output_path_json, "w") as f:
@@ -121,3 +125,5 @@ def print_write_outputs(results: list, ast: dict, write_ast: bool):
     if write_ast:
         with open(container_output_path_ast, "w") as f:
             json.dump(ast, f, indent=4)
+
+    print(f"[i] Radar completed successfully. results were saved to disk.")

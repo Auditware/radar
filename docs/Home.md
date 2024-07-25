@@ -1,6 +1,5 @@
 Welcome to the radar wiki!
 
-1. [What is radar for](https://github.com/Auditware/radar/wiki/What-is-Radar)
-2. [How does it work](https://github.com/Auditware/radar/wiki/How-it-Works)
-3. [How to use](https://github.com/Auditware/radar/wiki/How-to-Use)
-4. [How to write templates](https://github.com/Auditware/radar/wiki/How-to-Write-Templates)
+radar is a rule-based static analyzer for Anchor Rust Smart Contracts.
+
+Navigate the right sidebar to explore about the tool and how you can use it.

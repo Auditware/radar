@@ -111,15 +111,6 @@ class ASTNode:
             "parent": self.parent.ident if self.parent else None,
         }
 
-    def find_by_name(self, ident: str):
-        if self.ident == ident:
-            return self
-        for child in self.children:
-            result = child.find_by_name(ident)
-            if result:
-                return result
-        return None
-
     def find_by_parent(self, parent_ident: str) -> ASTNodeList:
         results = []
         if self.parent and self.parent.ident == parent_ident:
