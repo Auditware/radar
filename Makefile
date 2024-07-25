@@ -1,7 +1,7 @@
 -include Makefile.local
 
 compose:
-	docker compose up -d --build
+	docker compose -f docker-compose-dev.yml up -d --build
 
 compose-dbg:
 	DOCKER_BUILDKIT=0 docker compose up --build
@@ -9,10 +9,10 @@ compose-dbg:
 # e.g. make run root=~/Desktop/anchor-test source=programs/anchor-test/src/lib.rs
 #      make build root=~/Desktop/anchor-test source=programs/anchor-test/src/lib.rs
 run:
-	docker compose run --rm -v $(root):/contract radar --path $(root) --container-path /contract/$(source)
-	docker cp radar-api:/radar_data/output.json .
+	docker compose -f docker-compose-dev.yml run --rm -v $(root):/contract radar --path $(root) --container-path /contract/$(source)
+	docker cp radar-api:/radar_data/output.json . >/dev/null 2>&1
 
-build:
+build-run:
 	$(MAKE) compose
 	$(MAKE) run
 
