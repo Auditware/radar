@@ -102,7 +102,7 @@ if [ -f "$checksum_file" ]; then
         docker compose up -d --no-build
     fi
 else
-    echo "[i] No checksum stored, building images"
+    echo "[i] No checksum stored, building images.. (if frozen - make sure Docker is available)"
     docker compose up -d --build
     echo "$current_checksum" > "$checksum_file"
 fi

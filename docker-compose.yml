@@ -13,7 +13,7 @@ services:
 
   api:
     container_name: radar-api
-    image: ghcr.io/auditware/radar-radar:main
+    image: ghcr.io/auditware/radar-api:main
     environment:
       DEBUG: ${DEBUG}
       POSTGRES_DB: ${POSTGRES_DB}
