@@ -112,11 +112,16 @@ def print_write_outputs(results: list, ast: dict, write_ast: bool):
 
     for finding in results:
         print()
-        print(f"[ {finding['severity']} ] {finding['name']} found at:")
-        for location in finding["locations"]:
-            print(f"    - {location}")
+        locations = finding["locations"]
+        locations_length = len(locations)
+        if locations_length < 8:
+            print(f"[ {finding['severity']} ] {finding['name']} found at:")
+            for location in locations:
+                print(f" * {location}")
+        else:
+            print(f"[ {finding['severity']} ] {finding['name']} found at {locations_length} locations, see output file for more details.")
         print()
-        
+
     container_output_path_json.parent.mkdir(parents=True, exist_ok=True)
 
     with open(container_output_path_json, "w") as f:
