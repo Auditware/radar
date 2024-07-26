@@ -33,7 +33,7 @@ OR
 ```bash
 git clone https://github.com/auditware/radar.git
 cd radar
-./radar.sh -p <your-contract-folder>
+./radar -p <your-contract-folder>
 ```
 
 ## Usage
