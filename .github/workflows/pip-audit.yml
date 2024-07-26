@@ -11,10 +11,6 @@ jobs:
     container:
       image: python:3.11
 
-    defaults:
-      run:
-        working-directory: api/
-
     steps:
       - uses: actions/checkout@v3
 
@@ -26,5 +22,12 @@ jobs:
       - name: Install pip-audit
         run: pip install pip-audit
 
-      - name: Audit Python dependencies
-        run: pip-audit
+      - name: Audit Python Dependencies in api
+        run: |
+          cd api
+          pip-audit
+      
+      - name: Audit Python Dependencies in controller
+        run: |
+          cd controller
+          pip-audit
