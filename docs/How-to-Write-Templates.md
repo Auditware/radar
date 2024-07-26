@@ -52,9 +52,9 @@ Example nodes looks like
 
 We have setup ease-of-use rule functions, and there are operations that can be done on each.
 
-These functions live in a single file in the repo [dsl_ast_iterator.py](https://github.com/Auditware/radar/blob/main/api/utils/dsl/dsl_ast_iterator.py), and to deep dive and understand the different methods available that's the place to be.
+These functions live in a single file in the repo [dsl_ast_iterator.py](https://github.com/auditware/radar/blob/main/api/utils/dsl/dsl_ast_iterator.py), and to deep dive and understand the different methods available that's the place to be.
 
-[Rule Functions Documentation](https://github.com/Auditware/radar/wiki/Rule-Functions)
+[Rule Functions Documentation](https://github.com/auditware/radar/wiki/Rule-Functions)
 
 We can learn from the template at the top of this page how example calls are made on the AST. Take this line for example:
 
@@ -96,4 +96,4 @@ In that example we printed the first CPI's parent from each node list group, usi
 
 ### Write your first rule
 
-For an easy learning curve, we've setup [demo.ipynb](https://github.com/Auditware/radar/blob/main/demo.ipynb) in which you can start playing with a simulated rule and see results, no docker setup needed!
+For an easy learning curve, we've setup [demo.ipynb](https://github.com/auditware/radar/blob/main/demo.ipynb) in which you can start playing with a simulated rule and see results, no docker setup needed!

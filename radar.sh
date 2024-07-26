@@ -35,8 +35,8 @@ check_docker() {
 }
 
 adjust_source_path_for_docker() {
-    local base=$1
-    local target=$2
+    local base="$1"
+    local target="$2"
 
     local resolved_base=$(cd "$base" && pwd)
     local resolved_target=$(cd "$(dirname "$base/$target")" && pwd)/$(basename "$target")
@@ -102,7 +102,7 @@ if [ -f "$checksum_file" ]; then
         docker compose up -d --no-build
     fi
 else
-    echo "[i] No checksum stored, building images.. (if frozen - make sure Docker is available)"
+    echo "[i] First run, building images.. (if frozen - make sure Docker is available)"
     docker compose up -d --build
     echo "$current_checksum" > "$checksum_file"
 fi
@@ -112,11 +112,11 @@ if [ -n "$source_directory_or_file" ]; then
     container_path+="/${source_directory_or_file}"
 fi
 
-docker_command="docker compose run --rm -v ${path}:/contract"
+docker_command="docker compose run --rm -v \"${path}\":/contract"
 if [ -n "$templates_directory" ]; then
-    docker_command+=" -v ${templates_directory}:/templates"
+    docker_command+=" -v \"${templates_directory}\":/templates"
 fi
-docker_command+=" radar --path ${path} --container-path ${container_path}"
+docker_command+=" radar --path \"${path}\" --container-path \"${container_path}\""
 if [ -n "$templates_directory" ]; then
     docker_command+=" --templates /templates"
 fi
