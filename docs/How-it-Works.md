@@ -2,7 +2,7 @@
 
 The project is layed out as a [docker-compose.yml](https://github.com/auditware/radar/blob/main/docker-compose.yml) specification, and the code is designed to run in docker instances.
 
-Since the tool runs from a local/personal computer perspective, [radar.sh](https://github.com/auditware/radar/blob/main/radar.sh) is the layer that the generic user interacts with.
+Since the tool runs from a local/personal computer perspective, [radar](https://github.com/auditware/radar/blob/main/radar) is the layer that the generic user interacts with.
 
 These are the containers being managed by radar:
 

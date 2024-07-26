@@ -6,8 +6,10 @@ echo "Installing radar.."
 BASE_DIR="${XDG_CONFIG_HOME:-$HOME}"
 RADAR_DIR="${RADAR_DIR-"$BASE_DIR/.radar"}"
 REPO_URL="https://github.com/auditware/radar.git"
-SCRIPT_PATH="$RADAR_DIR/radar/radar.sh"
+SCRIPT_PATH="$RADAR_DIR/radar"
 LINK_PATH="/usr/local/bin/radar"
+
+echo "$SCRIPT_PATH"
 
 mkdir -p "$RADAR_DIR"
 
@@ -19,7 +21,10 @@ else
     git -C "$RADAR_DIR/radar" pull
 fi
 
+chmod +x "/Users/test/.radar/radar"
 chmod +x "$SCRIPT_PATH"
+
+echo "$LINK_PATH"
 
 if ln -sf "$SCRIPT_PATH" "$LINK_PATH"; then
     chmod +x "$LINK_PATH"

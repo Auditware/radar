@@ -10,7 +10,7 @@ We took this approach of a docker-only CLI tool to have a stable setup across di
 
 Most of the logic occurs within the django container (`api`), parsing the AST and managing task executions by running them concurrently using `Celery` tasks.
 
-[docker-compose.yml](https://github.com/auditware/radar/blob/main/docker-compose.yml) specifies the radar containers, and a bash script [radar.sh](https://github.com/auditware/radar/blob/main/radar.sh) is used as a convinent user interaction layer.
+[docker-compose.yml](https://github.com/auditware/radar/blob/main/docker-compose.yml) specifies the radar containers, and a bash script [radar](https://github.com/auditware/radar/blob/main/radar) is used as a convinent user interaction layer.
 
 ## AST as the base of the analysis
 

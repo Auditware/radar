@@ -30,20 +30,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # https://github.com/docker/metadata-action
-      - name: Extract Docker metadata for API
+      - name: Extract Docker metadata for api
         id: meta-api
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api
 
-      - name: Extract Docker metadata for Radar
-        id: meta-radar
+      - name: Extract Docker metadata for controller
+        id: meta-controller
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-radar
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-controller
 
       # https://github.com/docker/build-push-action
-      - name: Build and push Docker image for API
+      - name: Build and push Docker image for api
         id: build-and-push-api
         uses: docker/build-push-action@v5
         with:
@@ -54,13 +54,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Docker image for Radar
-        id: build-and-push-radar
+      - name: Build and push Docker image for controller
+        id: build-and-push-controller
         uses: docker/build-push-action@v5
         with:
-          context: ./radar
+          context: ./controller
           push: true
-          tags: ${{ steps.meta-radar.outputs.tags }}
-          labels: ${{ steps.meta-radar.outputs.labels }}
+          tags: ${{ steps.meta-controller.outputs.tags }}
+          labels: ${{ steps.meta-controller.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

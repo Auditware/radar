@@ -14,7 +14,7 @@ Alternative - clone the repo:
 ```bash
 git clone https://github.com/auditware/radar.git
 cd radar
-./radar.sh -h
+./radar -h
 ```
 
 The first scan will take a while, as radar collects and builds the necessary docker images from the [docker-compose.yml](https://github.com/auditware/radar/blob/main/docker-compose.yml) specifications. Unless you are changing the source of the project, or builtin tempaltes, rebuilding won't be necessary, and instead just turn the containers on/off.
