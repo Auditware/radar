@@ -94,7 +94,7 @@ current_checksum=$(cat docker-compose.yml | shasum -a 256 | cut -d" " -f1)
 if [ -f "$checksum_file" ]; then
     stored_checksum=$(cat "$checksum_file")
     if [ "$current_checksum" != "$stored_checksum" ]; then
-        echo "[i] Configuration changed, building images"
+        echo "[i] Configuration changed, building images.. (if frozen - make sure Docker is available)"
         docker compose up -d --build
         echo "$current_checksum" > "$checksum_file"
     else

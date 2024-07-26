@@ -23,7 +23,7 @@ A static analysis tool for anchor rust programs.
 
 ```bash
 curl -L https://raw.githubusercontent.com/Auditware/radar/main/install-radar.sh | bash
-radar -h
+radar -p <your-contract-folder>
 ```
 
 OR
@@ -31,7 +31,7 @@ OR
 ```bash
 git clone https://github.com/Auditware/radar.git
 cd radar
-./radar.sh -h
+./radar.sh -p <your-contract-folder>
 ```
 
 ## Usage
