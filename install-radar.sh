@@ -5,7 +5,6 @@ echo "Installing radar.."
 
 BASE_DIR="${XDG_CONFIG_HOME:-$HOME}"
 RADAR_DIR="${RADAR_DIR-"$BASE_DIR/.radar"}"
-
 REPO_URL="https://github.com/auditware/radar.git"
 SCRIPT_PATH="$RADAR_DIR/radar/radar.sh"
 LINK_PATH="/usr/local/bin/radar"
@@ -20,8 +19,40 @@ else
     git -C "$RADAR_DIR/radar" pull
 fi
 
-ln -sf "$SCRIPT_PATH" "$LINK_PATH"
 chmod +x "$SCRIPT_PATH"
-chmod +x "$LINK_PATH"
 
-echo "Radar installed. You can run it by typing 'radar' in your terminal."
+if ln -sf "$SCRIPT_PATH" "$LINK_PATH"; then
+    chmod +x "$LINK_PATH"
+    echo "Radar installed. You can run it by typing 'radar' in your terminal."
+else
+    echo "Adding radar directory to PATH."
+
+    case $SHELL in
+        */zsh)
+            PROFILE="${ZDOTDIR:-"$HOME"}/.zshenv"
+            ;;
+        */bash)
+            PROFILE="$HOME/.bashrc"
+            ;;
+        */fish)
+            PROFILE="$HOME/.config/fish/config.fish"
+            ;;
+        */ash)
+            PROFILE="$HOME/.profile"
+            ;;
+        *)
+            echo "Could not detect shell, please manually add ${RADAR_DIR}/radar to your PATH before running radar."
+            exit 1
+            ;;
+    esac
+
+    if [[ ":$PATH:" != *":$RADAR_DIR/radar:"* ]]; then
+        if [[ "$SHELL" == */fish ]]; then
+            echo "set -Ux fish_user_paths $RADAR_DIR/radar \$fish_user_paths" >> "$PROFILE"
+        else
+            echo "export PATH=\"$RADAR_DIR/radar:\$PATH\"" >> "$PROFILE"
+        fi
+    fi
+
+    echo "Radar installed. Please run 'source $PROFILE' or restart your terminal session before running radar."
+fi
