@@ -1,6 +1,6 @@
 # Rule Functions Documentation
 
-Here you can read descriptions about the core instance methods used by the abstraction functionality of the radar template rule syntax. See [How to write templates](https://github.com/Auditware/radar/wiki/How-to-Write-Templates)
+Here you can read descriptions about the core instance methods used by the abstraction functionality of the radar template rule syntax. See [How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates)
 
 ## ASTNode
 

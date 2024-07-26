@@ -6,4 +6,4 @@ It's written for smart contract develoeprs and security auditors, to aid in loca
 
 As a key feature, radar exposes a pythonic querying mechanism that can empower creating new rules, whether for personal analysis or for community sharing. Each rule is shipped as a template file containing informational data on the vulnerability, and the logical rule to detect it.
 
-[How to use](https://github.com/Auditware/radar/wiki/How-to-Use)
+[How to use](https://github.com/auditware/radar/wiki/How-to-Use)

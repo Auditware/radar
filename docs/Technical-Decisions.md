@@ -1,6 +1,6 @@
 # Technical Decisions
 
-In this page we share about some of our decisions and unique paths while developing radar. See [How radar works](https://github.com/Auditware/radar/wiki/How-it-Works) for a more high level explanation.
+In this page we share about some of our decisions and unique paths while developing radar. See [How radar works](https://github.com/auditware/radar/wiki/How-it-Works) for a more high level explanation.
 
 ## Technological Stack
 
@@ -10,7 +10,7 @@ We took this approach of a docker-only CLI tool to have a stable setup across di
 
 Most of the logic occurs within the django container (`api`), parsing the AST and managing task executions by running them concurrently using `Celery` tasks.
 
-[docker-compose.yml](https://github.com/Auditware/radar/blob/main/docker-compose.yml) specifies the radar containers, and a bash script [radar.sh](https://github.com/Auditware/radar/blob/main/radar.sh) is used as a convinent user interaction layer.
+[docker-compose.yml](https://github.com/auditware/radar/blob/main/docker-compose.yml) specifies the radar containers, and a bash script [radar.sh](https://github.com/auditware/radar/blob/main/radar.sh) is used as a convinent user interaction layer.
 
 ## AST as the base of the analysis
 
@@ -27,12 +27,15 @@ Another approach was to expose the template rules to LLVM-IR.
 In general, for a Solana smart contract to be executed it is first compiled from rust to LLVM-IR ([LLVM](https://llvm.org/docs/LangRef.html) Intermediate Representation), then to BPF/SBF (Berkeley Packet Filter/Solana Binary Format), and then the bytecode is stored on the blockchain. the validators compile the SBF to instructions per the hardware and so on.
 
 In theory the process would be first parsing the rust code into an AST and then to LLVM-IR, something like this
+
 ```rust
 fn add(a: i32, b: i32) -> i32 {
     a + b
 }
 ```
+
 ↓
+
 ```json
 {
   "type": "Function",
@@ -62,7 +65,9 @@ fn add(a: i32, b: i32) -> i32 {
   }
 }
 ```
+
 ↓
+
 ```llvm
 define i32 @add(i32 %a, i32 %b) {
 entry:
