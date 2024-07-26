@@ -2,7 +2,7 @@
 set -e
 
 INITIAL_DIR=$(pwd)
-RADAR_BASE_DIR="${XDG_CONFIG_HOME:-$HOME}/.radar/radar"
+RADAR_BASE_DIR="${XDG_CONFIG_HOME:-$HOME}/.radar"
 
 usage() {
     echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-d]"
