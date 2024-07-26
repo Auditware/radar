@@ -116,7 +116,7 @@ docker_command="docker compose run --rm -v \"${path}\":/contract"
 if [ -n "$templates_directory" ]; then
     docker_command+=" -v \"${templates_directory}\":/templates"
 fi
-docker_command+=" radar --path \"${path}\" --container-path \"${container_path}\""
+docker_command+=" controller --path \"${path}\" --container-path \"${container_path}\""
 if [ -n "$templates_directory" ]; then
     docker_command+=" --templates /templates"
 fi

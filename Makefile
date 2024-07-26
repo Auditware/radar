@@ -9,7 +9,7 @@ compose-dbg:
 # e.g. make run root=~/Desktop/anchor-test source=programs/anchor-test/src/lib.rs
 #      make build root=~/Desktop/anchor-test source=programs/anchor-test/src/lib.rs
 run:
-	docker compose -f docker-compose-dev.yml run --rm -v $(root):/contract radar --path $(root) --container-path /contract/$(source)
+	docker compose -f docker-compose-dev.yml run --rm -v $(root):/contract controller --path $(root) --container-path /contract/$(source)
 	@docker cp radar-api:/radar_data/output.json .
 
 build-run:
