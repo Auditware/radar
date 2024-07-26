@@ -13,18 +13,15 @@ echo "$SCRIPT_PATH"
 
 mkdir -p "$RADAR_DIR"
 
-if [ ! -d "$RADAR_DIR/radar" ]; then
-    git clone "$REPO_URL" "$RADAR_DIR/radar"
+if [ ! -d "$RADAR_DIR/.git" ]; then
+    git clone "$REPO_URL" "$RADAR_DIR"
 else
     echo "Radar repository already exists. Pulling the latest changes.."
-    git -C "$RADAR_DIR/radar" reset --hard HEAD
-    git -C "$RADAR_DIR/radar" pull
+    git -C "$RADAR_DIR" reset --hard HEAD
+    git -C "$RADAR_DIR" pull
 fi
 
-chmod +x "/Users/test/.radar/radar"
 chmod +x "$SCRIPT_PATH"
-
-echo "$LINK_PATH"
 
 if ln -sf "$SCRIPT_PATH" "$LINK_PATH"; then
     chmod +x "$LINK_PATH"
@@ -46,16 +43,16 @@ else
             PROFILE="$HOME/.profile"
             ;;
         *)
-            echo "Could not detect shell, please manually add ${RADAR_DIR}/radar to your PATH before running radar."
+            echo "Could not detect shell, please manually add ${RADAR_DIR} to your PATH before running radar."
             exit 1
             ;;
     esac
 
-    if [[ ":$PATH:" != *":$RADAR_DIR/radar:"* ]]; then
+    if [[ ":$PATH:" != *":$RADAR_DIR:"* ]]; then
         if [[ "$SHELL" == */fish ]]; then
-            echo "set -Ux fish_user_paths $RADAR_DIR/radar \$fish_user_paths" >> "$PROFILE"
+            echo "set -Ux fish_user_paths $RADAR_DIR \$fish_user_paths" >> "$PROFILE"
         else
-            echo "export PATH=\"$RADAR_DIR/radar:\$PATH\"" >> "$PROFILE"
+            echo "export PATH=\"$RADAR_DIR:\$PATH\"" >> "$PROFILE"
         fi
     fi
 

@@ -97,7 +97,6 @@ def enrich_ast_with_source_lines(
                     if key == "method":
                         node["ident"] = ident
                     if key == "int":
-                        print(node)
                         node["ident"] = str(node["int"])
                     if ident not in scanned_idents:
                         positions = find_ident_positions(rust_code, ident)
