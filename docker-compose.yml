@@ -104,9 +104,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "rabbitmq-diagnostics check_port_connectivity"]
       start_period: 15s
-      interval: 3s
-      timeout: 10s
-      retries: 20
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
 volumes:
   postgres_data:
