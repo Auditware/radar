@@ -126,8 +126,7 @@ fi
 if [ "$generate_ast" = true ]; then
     docker_command+=" --ast"
 fi
-
-if [ "$output_directory" = true ]; then
+if [ -n "$output_directory" ]; then
     docker_command+=" --output \"${output_directory}\""
 fi
 
