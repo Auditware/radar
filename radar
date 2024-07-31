@@ -142,7 +142,7 @@ fi
 cd "$INITIAL_DIR"
 
 if [[ "$output_directory" == *".sarif"* ]]; then
-  docker cp radar-api:/radar_data/sarif.json "$output_directory" >/dev/null 2>&1
+  docker cp radar-api:/radar_data/output.sarif "$output_directory" >/dev/null 2>&1
 else
   docker cp radar-api:/radar_data/output.json "$output_directory" >/dev/null 2>&1
 fi
