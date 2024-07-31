@@ -239,7 +239,6 @@ def write_sarif_output(output_file_path: Path, findings: list):
             new_rule["name"] = finding["name"]
             new_rule["shortDescription"]["text"] = finding["name"]
             new_rule["fullDescription"]["text"] = finding["description"]
-            new_rule["helpUri"] = ""
             new_rule["help"]["text"] = ""
             new_rule["help"]["markdown"] = ""
             new_rule["properties"]["precision"] = finding["certainty"].casefold()
