@@ -25,6 +25,7 @@ pytest = "^8.2.2"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+markers = ["active_runtime: Tests that require an active runtime environment to work."]
 
 [build-system]
 requires = ["poetry-core"]

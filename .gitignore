@@ -6,6 +6,7 @@
 **/target
 Makefile.local
 output.json
+*.sarif
 ast.json
 *checksum*
 radar.wiki
