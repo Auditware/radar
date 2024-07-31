@@ -109,7 +109,7 @@ def localize_results(results, local_path):
     return results
 
 
-def print_write_outputs(results: list, ast: dict, write_ast: bool, output_type: str):
+def print_write_outputs(results: list, ast: dict, write_ast: bool, path: Path, output_type: str):
     container_output_path_json = Path(f"/radar_data/output.{output_type}")
     container_output_path_ast = Path("/radar_data/ast.json")
 
@@ -134,7 +134,7 @@ def print_write_outputs(results: list, ast: dict, write_ast: bool, output_type: 
     container_output_path_json.parent.mkdir(parents=True, exist_ok=True)
 
     if output_type == "sarif":
-        write_sarif_output(container_output_path_json, results)
+        write_sarif_output(container_output_path_json, results, path)
     else:
         save_json_output(container_output_path_json, results)
 
@@ -175,7 +175,7 @@ def save_json_output(container_output_path_json: Path, findings: list):
         json.dump(findings, f, indent=4)
 
 
-def write_sarif_output(output_file_path: Path, findings: list):
+def write_sarif_output(output_file_path: Path, findings: list, arg_path: Path):
     sarif_run_template = {
         "tool": {
             "driver": {
@@ -197,7 +197,7 @@ def write_sarif_output(output_file_path: Path, findings: list):
             "text": "",
             "markdown": "",
         },
-        "properties": {"precision": "", "security-severity": ""}
+        "properties": {"precision": "", "security-severity": ""},
     }
 
     output_file = Path(output_file_path)
@@ -252,15 +252,7 @@ def write_sarif_output(output_file_path: Path, findings: list):
         for location in finding["locations"]:
             file_path, start_line, start_column, end_column = parse_location(location)
 
-            new_result = {
-                "ruleId": rule_id,
-                "ruleIndex": rule_index,
-                "level": convert_severity_to_sarif_level(finding["severity"]),
-                "message": {"text": finding["name"]},
-                "locations": [],
-            }
-
-            artifact_uri = f"file://{file_path}"
+            artifact_uri = f"file://{Path(file_path).relative_to(arg_path)}"
 
             artifact_index = 0
             artifact_exists = False
@@ -289,9 +281,23 @@ def write_sarif_output(output_file_path: Path, findings: list):
                     },
                 }
             }
-            new_result["locations"].append(new_result_location)
 
-            new_run["results"].append(new_result)
+            result_exists = False
+            for existing_result in new_run["results"]:
+                if existing_result["ruleId"] == rule_id:
+                    existing_result["locations"].append(new_result_location)
+                    result_exists = True
+                    break
+
+            if not result_exists:
+                new_result = {
+                    "ruleId": rule_id,
+                    "ruleIndex": rule_index,
+                    "level": convert_severity_to_sarif_level(finding["severity"]),
+                    "message": {"text": finding["name"]},
+                    "locations": [new_result_location],
+                }
+                new_run["results"].append(new_result)
 
     sarif_json["runs"].append(new_run)
 
