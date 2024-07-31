@@ -193,7 +193,7 @@ def write_sarif_output(output_file_path: Path, findings: list):
         "name": "",
         "shortDescription": {"text": ""},
         "fullDescription": {"text": ""},
-        "properties": {"precision": "", "security-severity": ""},
+        "properties": {"precision": "", "security-severity": ""}
     }
 
     output_file = Path(output_file_path)
