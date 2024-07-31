@@ -9,14 +9,21 @@ compose-dbg:
 # e.g. make run root=~/Desktop/anchor-test source=programs/anchor-test/src/lib.rs
 #      make build root=~/Desktop/anchor-test source=programs/anchor-test/src/lib.rs
 run:
-	docker compose -f docker-compose-dev.yml run --rm -v $(root):/contract controller --path $(root) --container-path /contract/$(source)
-	@docker cp radar-api:/radar_data/output.json .
+	docker compose -f docker-compose-dev.yml run --rm -v $(root):/contract controller --path $(root) --container-path /contract/$(source) --output $(output)
+	@if [[ $(output) == *.sarif ]]; then \
+		docker cp radar-api:/radar_data/output.sarif $(output); \
+	else \
+		docker cp radar-api:/radar_data/output.json $(output); \
+	fi
 
 build-run:
 	$(MAKE) compose
 	$(MAKE) run
 
 test:
+	cd api/ && poetry run pytest -s -v -m "not active_runtime"
+
+test-all:
 	cd api/ && poetry run pytest -s -v
 
 update-docs:

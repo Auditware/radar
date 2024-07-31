@@ -11,8 +11,11 @@ from api import generate_ast_for_file_or_folder, run_scan, poll_results
 def main():
     args = parse_arguments()
     container_path = Path(args.container_path)
-
     path_type = check_path(container_path)
+    output_type = "json"
+
+    if args.output.endswith(".sarif"):
+        output_type = "sarif"
 
     print(f"[i] Copying {path_type} from radar container to a shared docker volume")
     copy_to_docker_mount(
@@ -44,7 +47,8 @@ def main():
     run_scan(container_path, path_type, templates_path)
     results = poll_results(container_path, path_type, local_path)
 
-    print_write_outputs(results, ast["ast"], args.ast)
+    
+    print_write_outputs(results, ast["ast"], args.ast, output_type)
 
 
 if __name__ == "__main__":

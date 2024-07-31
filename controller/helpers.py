@@ -1,4 +1,5 @@
 import argparse
+import copy
 import json
 import os
 from pathlib import Path
@@ -27,6 +28,12 @@ def parse_arguments() -> argparse.Namespace:
         required=False,
         action="store_true",
         help="Copy generated AST alongside the report",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        required=False,
+        help="Path to the output directory (optional) (default - current folder)",
     )
     return parser.parse_args()
 
@@ -102,8 +109,8 @@ def localize_results(results, local_path):
     return results
 
 
-def print_write_outputs(results: list, ast: dict, write_ast: bool):
-    container_output_path_json = Path("/radar_data/output.json")
+def print_write_outputs(results: list, ast: dict, write_ast: bool, output_type: str):
+    container_output_path_json = Path(f"/radar_data/output.{output_type}")
     container_output_path_ast = Path("/radar_data/ast.json")
 
     if len(results) == 0:
@@ -119,16 +126,171 @@ def print_write_outputs(results: list, ast: dict, write_ast: bool):
             for location in locations:
                 print(f" * {location}")
         else:
-            print(f"[ {finding['severity']} ] {finding['name']} found at {locations_length} locations, see output file for more details.")
+            print(
+                f"[ {finding['severity']} ] {finding['name']} found at {locations_length} locations, see output file for more details."
+            )
         print()
 
     container_output_path_json.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(container_output_path_json, "w") as f:
-        json.dump(results, f, indent=4)
+    if output_type == "sarif":
+        write_sarif_output(container_output_path_json, results)
+    else:
+        save_json_output(container_output_path_json, results)
 
     if write_ast:
         with open(container_output_path_ast, "w") as f:
             json.dump(ast, f, indent=4)
 
-    print(f"[i] Radar completed successfully. results were saved to disk.")
+    print(
+        f"[i] Radar completed successfully. {output_type} results were saved to disk."
+    )
+
+
+def convert_severity_to_sarif_level(severity: str) -> str:
+    severity_mapping = {"High": "error", "Medium": "warning", "Low": "note"}
+    sarif_level = severity_mapping.get(severity)
+    if sarif_level is None:
+        print("[e] Could not convert severity to SARIF level")
+    return sarif_level
+
+
+def convert_severity_to_sarif_security_severity(severity: str) -> str:
+    security_severity_mapping = {"High": "8.0", "Medium": "5.0", "Low": "3.0"}
+    sarif_security_severity = security_severity_mapping.get(severity)
+    if sarif_security_severity is None:
+        print("[e] Could not convert severity to SARIF security severity")
+    return sarif_security_severity
+
+
+def parse_location(location: str):
+    file_path, line_info, column_info = location.split(":")
+    start_line = int(line_info)
+    start_column, end_column = map(int, column_info.split("-"))
+    return file_path, start_line, start_column, end_column
+
+
+def save_json_output(container_output_path_json: Path, findings: list):
+    with open(container_output_path_json, "w") as f:
+        json.dump(findings, f, indent=4)
+
+
+def write_sarif_output(output_file_path: Path, findings: list):
+    sarif_run_template = {
+        "tool": {
+            "driver": {
+                "name": "radar",
+                "informationUri": "https://github.com/auditware/radar",
+                "rules": [],
+            }
+        },
+        "artifacts": [],
+        "results": [],
+    }
+
+    sarif_rule_template = {
+        "id": "",
+        "name": "",
+        "shortDescription": {"text": ""},
+        "fullDescription": {"text": ""},
+        "properties": {"precision": "", "security-severity": ""},
+    }
+
+    output_file = Path(output_file_path)
+
+    if output_file.exists() and str(output_file).endswith(".sarif"):
+        with output_file.open("r") as infile:
+            try:
+                sarif_json = json.load(infile)
+                print("[i] Loaded from previous SARIF file")
+            except json.JSONDecodeError:
+                print("[w] Failed to decode existing SARIF file, creating a new one")
+                sarif_json = {
+                    "$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
+                    "version": "2.1.0",
+                    "runs": [],
+                }
+    else:
+        sarif_json = {
+            "$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
+            "version": "2.1.0",
+            "runs": [],
+        }
+
+    new_run = copy.deepcopy(sarif_run_template)
+
+    for finding in findings:
+        rule_id = finding["name"].replace(" ", "_")
+        rule_exists = False
+
+        for index, rule in enumerate(new_run["tool"]["driver"]["rules"]):
+            if rule["id"] == rule_id:
+                rule_exists = True
+                rule_index = index
+                break
+
+        if not rule_exists:
+            new_rule = copy.deepcopy(sarif_rule_template)
+            new_rule["id"] = rule_id
+            new_rule["name"] = finding["name"]
+            new_rule["shortDescription"]["text"] = finding["name"]
+            new_rule["fullDescription"]["text"] = finding["description"]
+            new_rule["helpUri"] = ""
+            new_rule["help"]["text"] = ""
+            new_rule["help"]["markdown"] = ""
+            new_rule["properties"]["precision"] = finding["certainty"].casefold()
+            new_rule["properties"]["security-severity"] = (
+                convert_severity_to_sarif_security_severity(finding["severity"])
+            )
+
+            new_run["tool"]["driver"]["rules"].append(new_rule)
+            rule_index = len(new_run["tool"]["driver"]["rules"]) - 1
+
+        for location in finding["locations"]:
+            file_path, start_line, start_column, end_column = parse_location(location)
+
+            new_result = {
+                "ruleId": rule_id,
+                "ruleIndex": rule_index,
+                "level": convert_severity_to_sarif_level(finding["severity"]),
+                "message": {"text": finding["name"]},
+                "locations": [],
+            }
+
+            artifact_uri = f"file://{file_path}"
+
+            artifact_index = 0
+            artifact_exists = False
+
+            for existing_artifact_index, artifact in enumerate(new_run["artifacts"]):
+                if artifact["location"]["uri"] == artifact_uri:
+                    artifact_index = existing_artifact_index
+                    artifact_exists = True
+                    break
+
+            if not artifact_exists:
+                new_artifact = {"location": {"uri": artifact_uri}}
+                new_run["artifacts"].append(new_artifact)
+                artifact_index = len(new_run["artifacts"]) - 1
+
+            new_result_location = {
+                "physicalLocation": {
+                    "artifactLocation": {
+                        "uri": file_path,
+                        "index": artifact_index,
+                    },
+                    "region": {
+                        "startLine": start_line,
+                        "startColumn": start_column,
+                        "endColumn": end_column,
+                    },
+                }
+            }
+            new_result["locations"].append(new_result_location)
+
+            new_run["results"].append(new_result)
+
+    sarif_json["runs"].append(new_run)
+
+    with output_file.open("w") as outfile:
+        json.dump(sarif_json, outfile, indent=4)
