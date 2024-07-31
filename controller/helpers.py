@@ -271,7 +271,7 @@ def write_sarif_output(output_file_path: Path, findings: list, arg_path: Path):
             new_result_location = {
                 "physicalLocation": {
                     "artifactLocation": {
-                        "uri": Path(file_path).relative_to(arg_path),
+                        "uri": str(Path(file_path).relative_to(arg_path)),
                         "index": artifact_index,
                     },
                     "region": {
