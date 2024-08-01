@@ -15,7 +15,7 @@ A static analysis tool for anchor rust programs.
 
 > `radar` allows you to write, share, and utilize [templates](https://github.com/auditware/radar/tree/main/api/builtin_templates) to identify security issues in rust-based smart contracts using a powerful python based rule engine that enables automating detection of vulnerable code patterns through logical expressions.
 
-## Installation
+## ⚙️ Installation
 
 1. Install and start docker
 
@@ -36,19 +36,13 @@ cd radar
 ./radar -p <your-contract-folder>
 ```
 
-## Usage
+## 👀 First run
 
+A good contract to first test radar against is the beautiful repo [sealevel-attacks](https://github.com/coral-xyz/sealevel-attacks)
 ```bash
-radar -h
-
-Usage: radar [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-d]
-Options:
-  -p, --path       Path to the contract on the host
-  -s, --source     Specific source within the contract path (optional) (default - project root)
-  -t, --templates  Path to the templates directory (optional) (default - builtin_templates folder)
-  -a, --ast        Copy generated AST alongside the report
-  -d, --down       Shut down radar containers
-  -h, --help       Help message
+git clone https://github.com/coral-xyz/sealevel-attacks
+radar -p sealevel-attacks
 ```
+
 
 Check out the [Wiki](https://github.com/auditware/radar/wiki) for more details.
