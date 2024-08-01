@@ -35,6 +35,12 @@ def parse_arguments() -> argparse.Namespace:
         required=False,
         help="Path to the output directory (optional) (default - current folder)",
     )
+    parser.add_argument(
+        "--ignore",
+        type=str,
+        required=False,
+        help="Comma-separated severities to ignore in the scan (e.g. low,medium)",
+    )
     return parser.parse_args()
 
 
@@ -110,10 +116,18 @@ def localize_results(results, local_path):
 
 
 def print_write_outputs(
-    results: list, ast: dict, write_ast: bool, path: Path, output_type: str
+    results: list, ast: dict, write_ast: bool, path: Path, output_type: str, ignore_severities: str | None
 ):
     container_output_path_json = Path(f"/radar_data/output.{output_type}")
     container_output_path_ast = Path("/radar_data/ast.json")
+
+    if ignore_severities:
+        ignored = set(s.strip().lower() for s in ignore_severities.replace(",", " ").split())
+    else:
+        ignored = set()
+    results = [
+        finding for finding in results if finding['severity'].lower() not in ignored
+    ]
 
     if len(results) == 0:
         print("[i] Radar completed successfully. No results found.")
