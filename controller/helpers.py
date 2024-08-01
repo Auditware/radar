@@ -109,7 +109,9 @@ def localize_results(results, local_path):
     return results
 
 
-def print_write_outputs(results: list, ast: dict, write_ast: bool, path: Path, output_type: str):
+def print_write_outputs(
+    results: list, ast: dict, write_ast: bool, path: Path, output_type: str
+):
     container_output_path_json = Path(f"/radar_data/output.{output_type}")
     container_output_path_ast = Path("/radar_data/ast.json")
 
@@ -249,55 +251,53 @@ def write_sarif_output(output_file_path: Path, findings: list, arg_path: Path):
             new_run["tool"]["driver"]["rules"].append(new_rule)
             rule_index = len(new_run["tool"]["driver"]["rules"]) - 1
 
-        for location in finding["locations"]:
-            file_path, start_line, start_column, end_column = parse_location(location)
+            for location in finding["locations"]:
+                file_path, start_line, start_column, end_column = parse_location(
+                    location
+                )
 
-            relative_path = str(Path(file_path).relative_to(arg_path))
-            artifact_uri = f"file://{relative_path}"
+                relative_file_path = str(Path(file_path).relative_to(arg_path))
 
-            artifact_index = 0
-            artifact_exists = False
-
-            for existing_artifact_index, artifact in enumerate(new_run["artifacts"]):
-                if artifact["location"]["uri"] == artifact_uri:
-                    artifact_index = existing_artifact_index
-                    artifact_exists = True
-                    break
-
-            if not artifact_exists:
-                new_artifact = {"location": {"uri": artifact_uri}}
-                new_run["artifacts"].append(new_artifact)
-                artifact_index = len(new_run["artifacts"]) - 1
-
-            new_result_location = {
-                "physicalLocation": {
-                    "artifactLocation": {
-                        "uri": relative_path,
-                        "index": artifact_index,
-                    },
-                    "region": {
-                        "startLine": start_line,
-                        "startColumn": start_column,
-                        "endColumn": end_column,
-                    },
-                }
-            }
-
-            result_exists = False
-            for existing_result in new_run["results"]:
-                if existing_result["ruleId"] == rule_id:
-                    existing_result["locations"].append(new_result_location)
-                    result_exists = True
-                    break
-
-            if not result_exists:
                 new_result = {
                     "ruleId": rule_id,
                     "ruleIndex": rule_index,
                     "level": convert_severity_to_sarif_level(finding["severity"]),
                     "message": {"text": finding["name"]},
-                    "locations": [new_result_location],
+                    "locations": [],
                 }
+
+                artifact_uri = f"file://{relative_file_path}"
+
+                artifact_index = 0
+                artifact_exists = False
+
+                for existing_artifact_index, artifact in enumerate(
+                    new_run["artifacts"]
+                ):
+                    if artifact["location"]["uri"] == artifact_uri:
+                        artifact_index = existing_artifact_index
+                        artifact_exists = True
+                        break
+
+                if not artifact_exists:
+                    new_artifact = {"location": {"uri": artifact_uri}}
+                    new_run["artifacts"].append(new_artifact)
+                    artifact_index = len(new_run["artifacts"]) - 1
+
+                new_result_location = {
+                    "physicalLocation": {
+                        "artifactLocation": {
+                            "uri": relative_file_path,
+                            "index": artifact_index,
+                        },
+                        "region": {
+                            "startLine": start_line,
+                            "startColumn": start_column,
+                            "endColumn": end_column,
+                        },
+                    }
+                }
+                new_result["locations"].append(new_result_location)
                 new_run["results"].append(new_result)
 
     sarif_json["runs"].append(new_run)
