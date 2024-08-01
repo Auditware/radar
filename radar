@@ -5,15 +5,16 @@ INITIAL_DIR=$(pwd)
 RADAR_BASE_DIR="${XDG_CONFIG_HOME:-$HOME}/.radar"
 
 usage() {
-    echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-o <output_directory>] [-a] [-d] [-h]"
+    echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-i <severities_to_ignore>] [-o <output_directory>] [-a] [-d] [-h]"
     echo "Options:"
     echo "  -p, --path       Path to the contract on the host"
     echo "  -s, --source     Specific source within the contract path (optional) (default - project root)"
     echo "  -t, --templates  Path to the templates directory (optional) (default - builtin_templates folder)"
-    echo "  -o, --output     Output directory for copied files (default - current directory, end file with '.sarif' for sarif output)"
-    echo "  -a, --ast        Copy generated AST alongside the report"
-    echo "  -d, --down       Shut down radar containers"
-    echo "  -h, --help       Help message"
+    echo "  -i, --ignore     Comma-separated severities to ignore in the scan (optional) (e.g. low,medium)"
+    echo "  -o, --output     Output directory for copied files (optional) (default - current directory, end file with '.sarif' for sarif output)"
+    echo "  -a, --ast        Copy generated AST alongside the report (optional)"
+    echo "  -d, --down       Shut down radar containers (optional)"
+    echo "  -h, --help       Help message (optional)"
     exit 1
 }
 
@@ -50,11 +51,12 @@ adjust_source_path_for_docker() {
     fi
 }
 
-source_directory_or_file=""
-shutdown_containers=false
 path=""
-generate_ast=false
+source_directory_or_file=""
+ignore_severities=""
 output_directory="$INITIAL_DIR"
+generate_ast=false
+shutdown_containers=false
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -62,6 +64,7 @@ while [[ "$#" -gt 0 ]]; do
         -s|--source) source_directory_or_file=$(adjust_source_path_for_docker "$path" "$2"); shift ;;
         -t|--templates) templates_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -a|--ast) generate_ast=true ;;
+        -i|--ignore) ignore_severities=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -o|--output) output_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -d|--down) shutdown_containers=true ;;
         -h|--help) usage ;;
@@ -128,6 +131,9 @@ if [ "$generate_ast" = true ]; then
 fi
 if [ -n "$output_directory" ]; then
     docker_command+=" --output \"${output_directory}\""
+fi
+if [ -n "$ignore_severities" ]; then
+    docker_command+=" --ignore \"${ignore_severities}\""
 fi
 
 
