@@ -5,13 +5,13 @@ INITIAL_DIR=$(pwd)
 RADAR_BASE_DIR="${XDG_CONFIG_HOME:-$HOME}/.radar"
 
 usage() {
-    echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-d]"
+    echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-o <output_directory>] [-a] [-d] [-h]"
     echo "Options:"
     echo "  -p, --path       Path to the contract on the host"
     echo "  -s, --source     Specific source within the contract path (optional) (default - project root)"
     echo "  -t, --templates  Path to the templates directory (optional) (default - builtin_templates folder)"
+    echo "  -o, --output     Output directory for copied files (default - current directory, end file with '.sarif' for sarif output)"
     echo "  -a, --ast        Copy generated AST alongside the report"
-    echo "  -o, --output     Output directory for copied files (default - current directory)"
     echo "  -d, --down       Shut down radar containers"
     echo "  -h, --help       Help message"
     exit 1
