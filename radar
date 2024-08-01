@@ -64,7 +64,7 @@ while [[ "$#" -gt 0 ]]; do
         -s|--source) source_directory_or_file=$(adjust_source_path_for_docker "$path" "$2"); shift ;;
         -t|--templates) templates_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -a|--ast) generate_ast=true ;;
-        -i|--ignore) ignore_severities=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
+        -i|--ignore) ignore_severities="$2"; shift ;;
         -o|--output) output_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -d|--down) shutdown_containers=true ;;
         -h|--help) usage ;;
