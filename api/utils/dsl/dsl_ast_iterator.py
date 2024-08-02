@@ -422,7 +422,7 @@ class ASTNode:
 
         def traverse(node):
             if isinstance(node, ASTNode):
-                if node and node.ident == ident and "tokens" in node.access_path:
+                if node and node.ident == ident and ("tokens" in node.access_path or "call.args" in node.access_path):
                     member_accesses.append(node)
                 for child in node.children:
                     traverse(child)
