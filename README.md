@@ -46,7 +46,7 @@ radar -p sealevel-attacks
 
 ## 🔂 GitHub Action !
 
-In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditware/radar-action) and be alerted with radar's insights continously through your contract repository.
+In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditware/radar-action) and be alerted with radar's insights continuously through your contract repository.
 
 <p>
   <img src="./static/gh-action.png" alt="Radar GitHub Action">
