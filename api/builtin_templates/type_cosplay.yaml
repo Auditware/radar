@@ -1,0 +1,14 @@
+version: 0.1.0
+author: forefy
+name: Type Cosplay
+severity: Low
+certainty: Low
+description: When two account types can be deserialized with the exact same values, a malicious user could substitute between the account types, leading to unexpected execution and possible authorization bypass depending on how the data is used. Using try_from_slice does not check for the necessary discriminator.
+rule: |
+  for source, nodes in ast:
+      try:
+          nodes.find_by_child("AccountInfo").exit_on_none()
+          try_from_slice_calls = nodes.find_functions_by_names("try_from_slice").exit_on_none()
+          print(try_from_slice_calls.first().to_result())
+      except:
+          continue

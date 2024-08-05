@@ -21,6 +21,14 @@ Finds all nodes whose parent has the specified identifier and returns them as an
 ---
 
 ```python
+find_by_child(self, child_ident: str) -> ASTNodeList
+```
+
+Finds all nodes whose child has the specified identifier and returns them as an ASTNodeList.
+
+---
+
+```python
 find_chained_calls(self, *idents: tuple[str, ...]) -> ASTNodeListGroup
 ```
 
