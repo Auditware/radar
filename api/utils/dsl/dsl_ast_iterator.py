@@ -119,6 +119,18 @@ class ASTNode:
             results.extend(child.find_by_parent(parent_ident))
         return ASTNodeList(results)
 
+    def find_by_child(self, child_ident: str) -> ASTNodeList:
+        matches = []
+
+        def recurse(node):
+            if any(child.ident == child_ident for child in node.children):
+                matches.append(node)
+            for child in node.children:
+                recurse(child)
+
+        recurse(self)
+        return ASTNodeList(matches)
+
     def find_chained_calls(self, *idents: tuple[str, ...]) -> ASTNodeListGroup:
         matches = []
 
