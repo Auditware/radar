@@ -53,4 +53,4 @@ In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditw
 </p>
 
 
-Check out the [Wiki](https://github.com/auditware/radar/wiki) for more details.
+Check out the [Wiki](https://github.com/auditware/radar/wiki) for more details. For support reach out to the Audit Wizard [Discord](https://discord.gg/8PTTMd96p4).
