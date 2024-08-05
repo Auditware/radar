@@ -44,5 +44,13 @@ git clone https://github.com/coral-xyz/sealevel-attacks
 radar -p sealevel-attacks
 ```
 
+## 🔂 GitHub Action !
+
+In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditware/radar-action) and be alerted with radar's insights continously through your contract repository.
+
+<p>
+  <img src="./static/gh-action.png" alt="Radar GitHub Action">
+</p>
+
 
 Check out the [Wiki](https://github.com/auditware/radar/wiki) for more details.
