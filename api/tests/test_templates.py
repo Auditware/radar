@@ -48,9 +48,7 @@ expected_data = [
         "Duplicate Mutable Accounts",
         [
             "/radar_data/contract/programs/6-duplicate-mutable-accounts/insecure/src/lib.rs:10:13-19",
-            "/radar_data/contract/programs/6-duplicate-mutable-accounts/insecure/src/lib.rs:11:13-19",
-            "/radar_data/contract/programs/6-duplicate-mutable-accounts/recommended/src/lib.rs:10:13-19",
-            "/radar_data/contract/programs/6-duplicate-mutable-accounts/recommended/src/lib.rs:11:13-19",
+            "/radar_data/contract/programs/6-duplicate-mutable-accounts/insecure/src/lib.rs:11:13-19"
         ],
     ),
     (
@@ -67,8 +65,7 @@ expected_data = [
     (
         "Unvalidated Sysvar Account",
         [
-            "/radar_data/contract/programs/10-sysvar-address-checking/insecure/src/lib.rs:10:45-49",
-            "/radar_data/contract/programs/10-sysvar-address-checking/recommended/src/lib.rs:10:45-49",
+            "/radar_data/contract/programs/10-sysvar-address-checking/insecure/src/lib.rs:10:45-49"
         ],
     ),
     (

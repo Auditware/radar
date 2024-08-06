@@ -152,12 +152,31 @@ class ASTNode:
 
         def recurse(node):
             if access_path_part in node.access_path:
-                print()
                 matching_nodes.append(node)
             for child in node.children:
                 recurse(child)
 
         recurse(self)
+        return ASTNodeList(matching_nodes)
+    
+    def find_macro_attribute_by_names(self, *idents: tuple[str, ...]) -> ASTNodeList:
+        matching_nodes = []
+
+        def search_nodes(node):
+            if isinstance(node, ASTNode):
+                if node.ident in idents and ".meta.list.tokens" in node.access_path:
+                    matching_nodes.append(node)
+                for child in node.children:
+                    search_nodes(child)
+            elif isinstance(node, dict):
+                for key, value in node.items():
+                    if isinstance(value, (dict, list)):
+                        search_nodes(value)
+            elif isinstance(node, list):
+                for item in node:
+                    search_nodes(item)
+
+        search_nodes(self)
         return ASTNodeList(matching_nodes)
 
     def find_by_similar_access_path(
