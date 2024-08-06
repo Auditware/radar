@@ -9,6 +9,7 @@ rule: |
       try:
           nodes.find_chained_calls("derive", "Accounts").exit_on_none()
           mutables = nodes.find_mutables().exit_on_none()
+          nodes.find_macro_attribute_by_names("constraint").exit_on_value()
           account_typed_mutables = []
           account_typed_mutables_tracking = set()
           for mutable in mutables:

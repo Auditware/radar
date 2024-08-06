@@ -1,6 +1,6 @@
 version: 0.1.0
 author: forefy
-name: Program Derived Address Sharing
+name: PDA Sharing
 severity: Low
 certainty: Low
 description: Reuse of a PDA across multiple authority domains can lead to unauthorized data or funds access.
@@ -8,7 +8,7 @@ rule: |
   for source, nodes in ast:
       try:
           transfer_nodes = nodes.find_chained_calls("token", "transfer").exit_on_none()
-          structs = nodes.find_by_access_path(".meta.list.tokens").find_by_names("seeds", "bump").exit_on_value()
+          nodes.find_macro_attribute_by_names("seeds", "bump").exit_on_value()
           print(transfer_nodes.first().first().to_result())
       except:
           continue

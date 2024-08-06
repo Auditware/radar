@@ -10,6 +10,7 @@ rule: |
       for sysvar_name in sysvars:
           try:
               sysvar_key_calls = nodes.find_chained_calls(sysvar_name, "key").exit_on_none()
+              nodes.find_by_names("Sysvar").exit_on_value()
               nodes.find_chained_calls("sysvar", sysvar_name, "ID").exit_on_value()
               print(sysvar_key_calls.first().first().to_result())
           except:
