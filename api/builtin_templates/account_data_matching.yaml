@@ -8,7 +8,7 @@ rule: |
   for source, nodes in ast:
       try:
           unpack_node = nodes.find_chained_calls("SplTokenAccount", "unpack").first().first()
-          unpack_assigned_var = nodes.find_by_access_path(unpack_node.access_path, "stmts").first()
+          unpack_assigned_var = nodes.find_by_similar_access_path(unpack_node.access_path, "stmts").first()
           nodes.find_comparisons(unpack_assigned_var.ident, "authority").exit_on_value()
           print(unpack_assigned_var.to_result())
       except:

@@ -146,10 +146,26 @@ class ASTNode:
         recurse(self, idents)
         return ASTNodeListGroup(matches)
 
-    def find_by_access_path(self, access_path: str, keyword: str) -> ASTNodeList:
-        index = access_path.rfind(keyword)
+    def find_by_access_path(self, access_path_part: str) -> ASTNodeList:
+
+        matching_nodes = []
+
+        def recurse(node):
+            if access_path_part in node.access_path:
+                print()
+                matching_nodes.append(node)
+            for child in node.children:
+                recurse(child)
+
+        recurse(self)
+        return ASTNodeList(matching_nodes)
+
+    def find_by_similar_access_path(
+        self, access_path: str, stop_keyword: str
+    ) -> ASTNodeList:
+        index = access_path.rfind(stop_keyword)
         if index != -1:
-            truncated_path = access_path[: index + len(keyword)]
+            truncated_path = access_path[: index + len(stop_keyword)]
         else:
             truncated_path = access_path
 
@@ -260,7 +276,9 @@ class ASTNode:
         traverse(self)
         return ASTNodeList(comparisons)
 
-    def find_negative_of_operation(self, operation_name: str, *args: tuple) -> ASTNodeList:
+    def find_negative_of_operation(
+        self, operation_name: str, *args: tuple
+    ) -> ASTNodeList:
         operation = getattr(self, operation_name)
         operation_results = operation(*args)
         operation_nodes = {node for pair in operation_results for node in pair}
@@ -434,7 +452,13 @@ class ASTNode:
 
         def traverse(node):
             if isinstance(node, ASTNode):
-                if node and node.ident == ident and ("tokens" in node.access_path or "call.args" in node.access_path):
+                if (
+                    node
+                    and node.ident == ident
+                    and (
+                        "tokens" in node.access_path or "call.args" in node.access_path
+                    )
+                ):
                     member_accesses.append(node)
                 for child in node.children:
                     traverse(child)

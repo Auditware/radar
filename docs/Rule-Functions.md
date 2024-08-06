@@ -37,10 +37,21 @@ Finds sequences of sequential nodes matching the specified identifiers and retur
 ---
 
 ```python
-find_by_access_path(self, access_path: str, keyword: str) -> ASTNodeList
+find_by_access_path(self, access_path_part: str) -> ASTNodeList
 ```
 
-Finds nodes whose access_path contains the specified keyword within the specified access path and returns them as an ASTNodeList.
+Finds nodes whose access_path with the given portion of the access path string within it, and returns them as an ASTNodeList.
+
+`access_path` is a value representing the sequence of AST nodes walked until indexing of the node, that did not get indexed (due to not being a prime node).
+
+
+---
+
+```python
+find_by_similar_access_path(self, access_path: str, stop_keyword: str) -> ASTNodeList
+```
+
+Finds nodes whose access_path is identical to the one provided up until the stop_keyword, and returns them as an ASTNodeList.
 
 `access_path` is a value representing the sequence of AST nodes walked until indexing of the node, that did not get indexed (due to not being a prime node).
 
