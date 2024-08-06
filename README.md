@@ -52,5 +52,15 @@ In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditw
   <img src="./static/gh-action.png" alt="Radar GitHub Action">
 </p>
 
+## Contribution
+
+
+Either if you have a vulnerability to test in mind, or if you want to improve the quality of an existing one, templates are the best way to contribute to this repo! Open a PR to add your template to the built-ins.
+
+[How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates)
+
+We'd love to assist with writing your first template, and provide guidance.
+
+
 
 Check out the [Wiki](https://github.com/auditware/radar/wiki) for more details. For support reach out to the Audit Wizard [Discord](https://discord.gg/8PTTMd96p4).
