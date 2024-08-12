@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class GenerateASTView(APIView):
+class GenerateRustASTView(APIView):
     def post(self, request, *args, **kwargs):
         source_type = request.data.get("source_type")
         source_path = request.data.get(f"{source_type}_path")
