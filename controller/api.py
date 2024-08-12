@@ -44,7 +44,7 @@ def handle_response(response):
 def generate_ast_for_file_or_folder(path: Path, path_type: str):
     try:
         response = requests.post(
-            f"{api_uri}/generate_ast/",
+            f"{api_uri}/generate_rust_ast/",
             json={"source_type": path_type, f"{path_type}_path": str(path)},
         )
         result = handle_response(response)
