@@ -1,3 +1,7 @@
+from dataclasses import dataclass, field
+from typing import List, Optional
+
+
 class ASTNodeListGroup:
     def __init__(self, node_lists):
         self.node_lists = node_lists if isinstance(node_lists, list) else [node_lists]
@@ -84,32 +88,59 @@ class ASTNodeList:
         return self
 
 
+@dataclass
 class ASTNode:
-    def __init__(self, node=None, access_path="", metadata={}):
+    src: Optional[str | dict] = None
+    metadata: dict = field(default_factory=dict)
+    children: List["ASTNode"] = field(default_factory=list)
+    parent: Optional["ASTNode"] = None
+    root: bool = False
+
+    def __init__(self, node=None, metadata=None):
         if node:
             self.src = node.get("src")
-            self.ident = node.get("ident")
         else:
-            self.src = None
-            self.ident = "root"
-        self.access_path = access_path
+            self.root = True
+
         self.metadata = metadata
         self.children = []
-        self.parent = None
 
-    def add_child(self, child):
+    def add_child(self, child: "ASTNode"):
         child.parent = self
         self.children.append(child)
 
     def to_result(self):
         return {
             "src": self.src,
-            "ident": self.ident,
-            "access_path": self.access_path,
-            "metadata": self.metadata,
             "children": [child.to_result() for child in self.children],
             "parent": self.parent.ident if self.parent else None,
+            "metadata": self.metadata,
         }
+
+
+@dataclass
+class RustASTNode(ASTNode):
+    access_path: str = ""
+    ident: str = "root"
+
+    def __init__(self, node=None, access_path="", metadata=None):
+        super().__init__(node, metadata)
+        if node:
+            self.ident = node.get("ident")
+        else:
+            self.ident = "root"
+            self.root = True
+        self.access_path = access_path
+
+    def to_result(self):
+        result = super().to_result()
+        result.update(
+            {
+                "access_path": self.access_path,
+                "ident": self.ident,
+            }
+        )
+        return result
 
     def find_by_parent(self, parent_ident: str) -> ASTNodeList:
         results = []
@@ -158,7 +189,7 @@ class ASTNode:
 
         recurse(self)
         return ASTNodeList(matching_nodes)
-    
+
     def find_macro_attribute_by_names(self, *idents: tuple[str, ...]) -> ASTNodeList:
         matching_nodes = []
 
@@ -416,8 +447,9 @@ class ASTNode:
 
         def traverse(node):
             if isinstance(node, ASTNode):
-                if node and node.metadata.get("mut") is True:
-                    mutables.append(node)
+                if hasattr(node, "metadata") and isinstance(node.metadata, dict):
+                    if node.metadata.get("mut") is True:
+                        mutables.append(node)
                 for child in node.children:
                     traverse(child)
             elif isinstance(node, dict):
@@ -492,25 +524,30 @@ class ASTNode:
         return ASTNodeList(member_accesses)
 
 
-def parse_prime_nodes(ast, access_path="", parent=None) -> list:
+def serialize_rust_ast(ast, access_path="", parent=None) -> list:
     nodes = []
     if isinstance(ast, dict):
+        # Match - include nodes that has src and ident keys
         if "src" in ast and "ident" in ast:
             metadata = {}
             if "mut" in ast:
                 metadata["mut"] = ast["mut"]
-            node = ASTNode(ast, access_path, metadata)
+            node = RustASTNode(ast, access_path, metadata)
             node.parent = parent
             nodes.append(node)
             parent = node
+
         # Mutable but no ident edge case, corelate a mutable statement with the closest ident
         elif "mut" in ast:
             metadata = {"mut": ast["mut"]}
 
             def find_ident_src_node(sub_data, sub_access_path):
                 if isinstance(sub_data, dict):
+                    # Match
                     if "src" in sub_data and "ident" in sub_data:
-                        return ASTNode(sub_data, sub_access_path, metadata)
+                        return RustASTNode(sub_data, sub_access_path, metadata)
+
+                    # Look deeper
                     for key, value in sub_data.items():
                         new_path = (
                             f"{sub_access_path}.{key}" if sub_access_path else key
@@ -518,6 +555,8 @@ def parse_prime_nodes(ast, access_path="", parent=None) -> list:
                         result = find_ident_src_node(value, new_path)
                         if result:
                             return result
+
+                # Look deeper
                 elif isinstance(sub_data, list):
                     for i, item in enumerate(sub_data):
                         new_path = f"{sub_access_path}[{i}]"
@@ -532,37 +571,25 @@ def parse_prime_nodes(ast, access_path="", parent=None) -> list:
                 nodes.append(node)
                 parent = node
 
+        # Look deeper
         for key, value in ast.items():
             new_path = f"{access_path}.{key}" if access_path else key
-            nodes.extend(parse_prime_nodes(value, new_path, parent))
+            nodes.extend(serialize_rust_ast(value, new_path, parent))
+
+    # Look deeper
     elif isinstance(ast, list):
         for i, item in enumerate(ast):
             new_path = f"{access_path}[{i}]"
-            nodes.extend(parse_prime_nodes(item, new_path, parent))
+            nodes.extend(serialize_rust_ast(item, new_path, parent))
+
     return nodes
-
-
-def map_hierarchy(prime_nodes: list):
-    path_to_node = {node.access_path: node for node in prime_nodes}
-    assigned_children = set()
-    for node in prime_nodes:
-        if node.access_path in assigned_children:
-            continue
-        parent_path = ".".join(node.access_path.split(".")[:-1])
-        while parent_path:
-            parent_node = path_to_node.get(parent_path)
-            if parent_node:
-                parent_node.add_child(node)
-                assigned_children.add(node.access_path)
-                break
-            parent_path = ".".join(parent_path.split(".")[:-1])
 
 
 def parse_ast(ast: dict) -> dict:
     sources = {}
-    prime_nodes = parse_prime_nodes(ast)
+    nodes = serialize_rust_ast(ast)
 
-    for node in prime_nodes:
+    for node in nodes:
         source = node.src.get("file") if node.src else "unknown"
         if source not in sources:
             sources[source] = []
@@ -570,8 +597,20 @@ def parse_ast(ast: dict) -> dict:
 
     roots = {}
     for source, nodes in sources.items():
-        map_hierarchy(nodes)
-        root = ASTNode()
+        path_to_node = {node.access_path: node for node in nodes}
+        assigned_children = set()
+        for node in nodes:
+            if node.access_path in assigned_children:
+                continue
+            parent_path = ".".join(node.access_path.split(".")[:-1])
+            while parent_path:
+                parent_node = path_to_node.get(parent_path)
+                if parent_node:
+                    parent_node.add_child(node)
+                    assigned_children.add(node.access_path)
+                    break
+                parent_path = ".".join(parent_path.split(".")[:-1])
+        root = RustASTNode()
         for node in nodes:
             if not node.parent:
                 root.add_child(node)

@@ -132,7 +132,7 @@ def extract_json_output(data: str) -> Optional[dict]:
     try:
         node_data = json.loads(data)
         if "ident" not in node_data or "src" not in node_data:
-            # print(f"[w] Dropping output node data without ident: {data}")
+            # print(f"[w] Dropping output node data without ident/src: {data}")
             raise ValueError
     except json.JSONDecodeError:
         # print(f"[w] Dropping output not json serializeable: {data}")
