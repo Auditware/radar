@@ -91,12 +91,13 @@ class ASTNodeList:
 @dataclass
 class ASTNode:
     src: Optional[str | dict] = None
+    access_path: str = ""
     metadata: dict = field(default_factory=dict)
     children: List["ASTNode"] = field(default_factory=list)
     parent: Optional["ASTNode"] = None
     root: bool = False
 
-    def __init__(self, node=None, metadata=None):
+    def __init__(self, node=None, access_path="", metadata={}):
         if node:
             self.src = node.get("src")
         else:
@@ -104,6 +105,7 @@ class ASTNode:
 
         self.metadata = metadata
         self.children = []
+        self.access_path = access_path
 
     def add_child(self, child: "ASTNode"):
         child.parent = self
@@ -113,31 +115,29 @@ class ASTNode:
         return {
             "src": self.src,
             "children": [child.to_result() for child in self.children],
-            "parent": self.parent.ident if self.parent else None,
+            "access_path": self.access_path,
             "metadata": self.metadata,
         }
 
 
 @dataclass
 class RustASTNode(ASTNode):
-    access_path: str = ""
     ident: str = "root"
 
-    def __init__(self, node=None, access_path="", metadata=None):
-        super().__init__(node, metadata)
+    def __init__(self, node=None, access_path="", metadata={}):
+        super().__init__(node, access_path, metadata)
         if node:
             self.ident = node.get("ident")
         else:
             self.ident = "root"
             self.root = True
-        self.access_path = access_path
 
     def to_result(self):
         result = super().to_result()
         result.update(
             {
-                "access_path": self.access_path,
                 "ident": self.ident,
+                "parent": self.parent.ident if self.parent else None,
             }
         )
         return result
