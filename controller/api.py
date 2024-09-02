@@ -87,8 +87,8 @@ def poll_results(
     path: Path,
     path_type: str,
     local_path: Path = None,
-    max_retries: int = 10,
-    delay: int = 1,
+    max_retries: int = 15,
+    delay: int = 3,
 ):
     req_params = {"source_type": path_type, f"{path_type}_path": str(path)}
     retries = 0
