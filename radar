@@ -51,6 +51,11 @@ adjust_source_path_for_docker() {
     fi
 }
 
+arm_specific_flag=""
+if [[ "$(uname -m)" == "arm64" ]] || [[ "$(uname -m)" == "aarch64" ]]; then
+    arm_specific_flag="--platform linux/amd64"
+fi
+
 path=""
 source_directory_or_file=""
 ignore_severities=""
@@ -118,7 +123,7 @@ if [ -n "$source_directory_or_file" ]; then
     container_path+="/${source_directory_or_file}"
 fi
 
-docker_command="docker compose run --rm -v \"${path}\":/contract"
+docker_command="docker compose run $arm_specific_flag --rm -v \"${path}\":/contract"
 if [ -n "$templates_directory" ]; then
     docker_command+=" -v \"${templates_directory}\":/templates"
 fi
