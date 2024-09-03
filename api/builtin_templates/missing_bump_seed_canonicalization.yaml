@@ -1,14 +1,16 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 name: Missing Bump Seed Canonicalization
 severity: Medium
 certainty: Low
-description: If a program is deriving a bump seed for a Program Derived Address (PDA) without ensuring its uniqueness, it could lead to collisions or unexpected insecure logical occurrences.
+description: If a program is deriving a bump seed for a Program Derived Address (PDA) without ensuring its uniqueness, it could lead to collisions or unexpected insecure logical occurrences. Check for usage of program_id which is not part of Pubkey::find_program_address and there is a usage of "bump"
 rule: |
   for source, nodes in ast:
       try:
           program_id_usages = nodes.find_member_accesses("program_id").exit_on_none()
           nodes.find_chained_calls("Pubkey", "find_program_address").exit_on_value()
+          nodes.find_member_accesses("bump").exit_on_none()
+          nodes.find_chained_calls("Pubkey", "create_program_address").exit_on_none()
           print(program_id_usages.first().to_result())
       except:
           continue
