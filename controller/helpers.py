@@ -129,10 +129,6 @@ def print_write_outputs(
         finding for finding in results if finding['severity'].lower() not in ignored
     ]
 
-    if len(results) == 0:
-        print("[i] Radar completed successfully. No results found.")
-        return
-
     for finding in results:
         print()
         locations = finding["locations"]
