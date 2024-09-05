@@ -48,7 +48,9 @@ def main():
     run_scan(container_path, path_type, templates_path)
     results = poll_results(container_path, path_type, local_path)
 
-    print_write_outputs(results, ast["ast"], args.ast, local_path, output_type, args.ignore)
+    print_write_outputs(
+        results, ast["ast"], args.ast, local_path, output_type, args.ignore
+    )
     print("[s] Radar finished successfully.")
     exit(0)
 
