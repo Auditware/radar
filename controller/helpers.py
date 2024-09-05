@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import sys
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -128,6 +129,10 @@ def print_write_outputs(
     results = [
         finding for finding in results if finding['severity'].lower() not in ignored
     ]
+
+    if len(results) == 0:
+        print("[i] Radar completed successfully. No results found.")
+        sys.exit(0)
 
     for finding in results:
         print()
