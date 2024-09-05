@@ -51,19 +51,6 @@ adjust_source_path_for_docker() {
     fi
 }
 
-copy_if_exists() {
-    local container_file_path="$1"
-    local host_output_directory="$2"
-    local file_type="$3"
-
-    if docker exec radar-api test -f "$container_file_path"; then
-        docker cp radar-api:"$container_file_path" "$host_output_directory" >/dev/null 2>&1
-        echo "[i] $file_type file copied to $host_output_directory"
-    else
-        echo "[i] No $file_type file found. Skipping copy."
-    fi
-}
-
 arm_specific_flag=""
 if [[ "$(uname -m)" == "arm64" ]] || [[ "$(uname -m)" == "aarch64" ]]; then
     arm_specific_flag="--platform linux/amd64"
@@ -166,13 +153,13 @@ fi
 cd "$INITIAL_DIR"
 
 if [[ "$output_directory" == *".sarif"* ]]; then
-    copy_if_exists "/radar_data/output.sarif" "$output_directory" "SARIF"
+  docker cp radar-api:/radar_data/output.sarif "$output_directory" >/dev/null 2>&1
 else
-    copy_if_exists "/radar_data/output.json" "$output_directory" "JSON"
+  docker cp radar-api:/radar_data/output.json "$output_directory" >/dev/null 2>&1
 fi
 
 if [ "$generate_ast" = true ]; then
-    copy_if_exists "/radar_data/ast.json" "$output_directory" "AST"
+    docker cp radar-api:/radar_data/ast.json "$output_directory" >/dev/null 2>&1
 fi
 
 radar_exit_code=$?
