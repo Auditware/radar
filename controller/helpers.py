@@ -131,7 +131,7 @@ def print_write_outputs(
 
     if len(results) == 0:
         print("[i] Radar completed successfully. No results found.")
-        return
+        exit(0)
 
     for finding in results:
         print()
