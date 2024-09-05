@@ -161,3 +161,6 @@ fi
 if [ "$generate_ast" = true ]; then
     docker cp radar-api:/radar_data/ast.json "$output_directory" >/dev/null 2>&1
 fi
+
+radar_exit_code=$?
+echo "[i] Radar run complete (status $radar_exit_code)"
