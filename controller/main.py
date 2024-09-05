@@ -1,5 +1,4 @@
 from pathlib import Path
-import sys
 from helpers import (
     check_path,
     copy_to_docker_mount,
@@ -48,16 +47,10 @@ def main():
     ast = generate_ast_for_file_or_folder(container_path, path_type)
     run_scan(container_path, path_type, templates_path)
     results = poll_results(container_path, path_type, local_path)
-
-    if len(results) == 0:
-        print("[i] Radar completed successfully. No results found.")
-        sys.exit(0)
     
     print_write_outputs(
         results, ast["ast"], args.ast, local_path, output_type, args.ignore
     )
-    print("[s] Radar ended successfully.")
-
 
 if __name__ == "__main__":
     main()
