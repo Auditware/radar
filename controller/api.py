@@ -35,6 +35,7 @@ def handle_response(response):
                 res_json = response.json()
                 print(json.dumps(res_json, indent=4))
             except:
+                print("[e] Failed to parse response from API")
                 sys.exit(0)
         else:
             print(f"[e] {response.status_code} error response from API")

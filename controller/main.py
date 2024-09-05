@@ -51,8 +51,7 @@ def main():
     print_write_outputs(
         results, ast["ast"], args.ast, local_path, output_type, args.ignore
     )
-    print("[s] Radar finished successfully.")
-    exit(0)
+    print("[s] Radar ended successfully.")
 
 
 if __name__ == "__main__":
