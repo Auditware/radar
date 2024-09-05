@@ -7,6 +7,24 @@ import shutil
 import sys
 
 
+no_results_sarif = {
+    "$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
+    "version": "2.1.0",
+    "runs": [
+        {
+            "tool": {
+                "driver": {
+                    "name": "radar",
+                    "informationUri": "https://github.com/auditware/radar",
+                    "rules": [],
+                }
+            },
+            "results": [],
+        }
+    ],
+}
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="radar")
     parser.add_argument(
@@ -117,21 +135,33 @@ def localize_results(results, local_path):
 
 
 def print_write_outputs(
-    results: list, ast: dict, write_ast: bool, path: Path, output_type: str, ignore_severities: str | None
+    results: list,
+    ast: dict,
+    write_ast: bool,
+    path: Path,
+    output_type: str,
+    ignore_severities: str | None,
 ):
     container_output_path_json = Path(f"/radar_data/output.{output_type}")
     container_output_path_ast = Path("/radar_data/ast.json")
 
     if ignore_severities:
-        ignored = set(s.strip().lower() for s in ignore_severities.replace(",", " ").split())
+        ignored = set(
+            s.strip().lower() for s in ignore_severities.replace(",", " ").split()
+        )
     else:
         ignored = set()
     results = [
-        finding for finding in results if finding['severity'].lower() not in ignored
+        finding for finding in results if finding["severity"].lower() not in ignored
     ]
 
     if len(results) == 0:
         print("[i] Radar completed successfully. No results found.")
+        if output_type == "sarif":
+            print("[i] Writing empty SARIF to indicate no results.")
+            output_file = Path(container_output_path_json)
+            with output_file.open("w") as outfile:
+                json.dump(no_results_sarif, outfile, indent=4)
         sys.exit(0)
 
     for finding in results:
