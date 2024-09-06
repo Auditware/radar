@@ -123,7 +123,7 @@ if [ -n "$source_directory_or_file" ]; then
     container_path+="/${source_directory_or_file}"
 fi
 
-docker_command="docker compose run $arm_specific_flag --rm -v \"${path}\":/contract"
+docker_command="docker compose run $arm_specific_flag --rm -T -v \"${path}\":/contract"
 if [ -n "$templates_directory" ]; then
     docker_command+=" -v \"${templates_directory}\":/templates"
 fi
