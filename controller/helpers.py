@@ -1,5 +1,6 @@
 import argparse
 import copy
+from datetime import datetime
 import json
 import os
 from pathlib import Path
@@ -142,7 +143,7 @@ def print_write_outputs(
     output_type: str,
     ignore_severities: str | None,
 ):
-    container_output_path_json = Path(f"/radar_data/output.{output_type}")
+    container_output_file_path = Path(f"/radar_data/output.{output_type}")
     container_output_path_ast = Path("/radar_data/ast.json")
 
     if ignore_severities:
@@ -159,7 +160,7 @@ def print_write_outputs(
         print("[i] Radar completed successfully. No results found.")
         if output_type == "sarif":
             print("[i] Writing empty SARIF to indicate no results.")
-            output_file = Path(container_output_path_json)
+            output_file = Path(container_output_file_path)
             with output_file.open("w") as outfile:
                 json.dump(no_results_sarif, outfile, indent=4)
         sys.exit(0)
@@ -178,12 +179,14 @@ def print_write_outputs(
             )
         print()
 
-    container_output_path_json.parent.mkdir(parents=True, exist_ok=True)
+    container_output_file_path.parent.mkdir(parents=True, exist_ok=True)
 
     if output_type == "sarif":
-        write_sarif_output(container_output_path_json, results, path)
+        write_sarif_output(container_output_file_path, results, path)
+    elif output_type == "md":
+        save_markdown_output(container_output_file_path, results)
     else:
-        save_json_output(container_output_path_json, results)
+        save_json_output(container_output_file_path, results)
 
     if write_ast:
         with open(container_output_path_ast, "w") as f:
@@ -217,8 +220,8 @@ def parse_location(location: str):
     return file_path, start_line, start_column, end_column
 
 
-def save_json_output(container_output_path_json: Path, findings: list):
-    with open(container_output_path_json, "w") as f:
+def save_json_output(container_output_file_path: Path, findings: list):
+    with open(container_output_file_path, "w") as f:
         json.dump(findings, f, indent=4)
 
 
@@ -349,3 +352,37 @@ def write_sarif_output(output_file_path: Path, findings: list, arg_path: Path):
 
     with output_file.open("w") as outfile:
         json.dump(sarif_json, outfile, indent=4)
+
+
+def save_markdown_output(container_output_file_path: Path, findings: list):
+    markdown = "# Radar Static Analysis Report\n\n"
+    markdown += f"This report was generated on {datetime.now().strftime('%d.%m.%Y at %H:%M')}. The results are provided for informational purposes only and should not replace thorough audits or expert evaluations. Users are responsible for conducting their own assessments and ensuring accuracy before making decisions.\n\n"
+    markdown += "## Alert Summary\n\n"
+    markdown += "| Alert       | Severity    | Certainty   | Locations   |\n"
+    markdown += "|-------------|-------------|-------------|-------------|\n"
+
+    details = ""
+
+    for finding in findings:
+        name = finding["name"]
+        severity = finding["severity"]
+        certainty = finding["certainty"]
+        locations = len(finding["locations"])
+        md_name = name.replace(" ", "-").replace(",", "").replace(".", "").lower()
+
+        markdown += (
+            f"| [{name}](#{md_name}) | {severity} | {certainty} | {locations} |\n"
+        )
+        details += f"\n### {name}\n"
+        details += f"**Severity:** {severity} | **Certainty:** {certainty}\n\n"
+        details += f"{finding['description']}\n\n"
+        details += "#### Locations\n"
+        for location in finding["locations"]:
+            details += f"- {location}\n"
+
+        details += "---\n"
+
+    markdown += "\n" + details
+
+    with open(container_output_file_path, "w") as md_file:
+        md_file.write(markdown)

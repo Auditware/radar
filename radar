@@ -11,7 +11,7 @@ usage() {
     echo "  -s, --source     Specific source within the contract path (optional) (default - project root)"
     echo "  -t, --templates  Path to the templates directory (optional) (default - builtin_templates folder)"
     echo "  -i, --ignore     Comma-separated severities to ignore in the scan (optional) (e.g. low,medium)"
-    echo "  -o, --output     Output directory for copied files (optional) (default - current directory, end file with '.sarif' for sarif output)"
+    echo "  -o, --output     Output file path (optional) (default - current directory) (change file extension to control output type - .json/.md/.sarif)"
     echo "  -a, --ast        Copy generated AST alongside the report (optional)"
     echo "  -d, --down       Shut down radar containers (optional)"
     echo "  -h, --help       Help message (optional)"
@@ -154,6 +154,8 @@ cd "$INITIAL_DIR"
 
 if [[ "$output_directory" == *".sarif"* ]]; then
   docker cp radar-api:/radar_data/output.sarif "$output_directory" >/dev/null 2>&1
+elif [[ "$output_directory" == *".md"* ]]; then
+  docker cp radar-api:/radar_data/output.md "$output_directory" >/dev/null 2>&1
 else
   docker cp radar-api:/radar_data/output.json "$output_directory" >/dev/null 2>&1
 fi
