@@ -6,6 +6,7 @@
 **/target
 Makefile.local
 output.json
+output.md
 *.sarif
 ast.json
 *checksum*

@@ -17,6 +17,8 @@ def main():
     if args.output:
         if args.output.endswith(".sarif"):
             output_type = "sarif"
+        elif args.output.endswith(".md"):
+            output_type = "md"
 
     print(f"[i] Copying {path_type} from radar container to a shared docker volume")
     copy_to_docker_mount(

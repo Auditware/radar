@@ -12,6 +12,8 @@ run:
 	docker compose -f docker-compose-dev.yml run --rm -v $(root):/contract controller --path $(root) --container-path /contract/$(source) --output $(output) --ignore $(ignore)
 	@if [[ $(output) == *.sarif ]]; then \
 		docker cp radar-api:/radar_data/output.sarif $(output); \
+	elif [[ $(output) == *.md ]]; then \
+		docker cp radar-api:/radar_data/output.md $(output); \
 	else \
 		docker cp radar-api:/radar_data/output.json $(output); \
 	fi
