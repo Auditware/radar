@@ -52,15 +52,35 @@ In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditw
   <img src="./static/gh-action.png" alt="Radar GitHub Action">
 </p>
 
-## Contribution
+After fixing issues, you could share that the action completes successfully each run by pasting a link similar to this in your repo's `README.md`:
 
+```html
+<img src="https://img.shields.io/github/actions/workflow/status/<USER>/<REPO>/<RADAR-WORKFLOW-NAME>.yaml">
+```
+
+## 🔙 Pre-commit hook
+
+If you're using `pre-commit`, you could also add radar to your workflow by adding radar to your `.pre-commit-config.yaml` configuration like so:
+```yaml
+repos:
+- repo: local
+  hooks:
+    - id: run-radar
+      name: Run Radar Static Analysis
+      entry: radar -p . --ignore low
+      language: system
+      stages: [commit]
+      pass_filenames: false
+      always_run: true
+```
+
+
+## Contribution
 
 Either if you have a vulnerability to test in mind, or if you want to improve the quality of an existing one, templates are the best way to contribute to this repo! Open a PR to add your template to the built-ins.
 
 [How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates)
 
 We'd love to assist with writing your first template, and provide guidance.
-
-
 
 Check out the [Wiki](https://github.com/auditware/radar/wiki) for more details. For support reach out to the Audit Wizard [Discord](https://discord.gg/8PTTMd96p4).
