@@ -3,6 +3,11 @@ set -e
 
 RADAR_BASE_DIR="${XDG_CONFIG_HOME:-$HOME}/.radar"
 
+arm_specific_flag=""
+if [[ "$(uname -m)" == "arm64" ]] || [[ "$(uname -m)" == "aarch64" ]]; then
+    arm_specific_flag="--platform linux/amd64"
+fi
+
 check_docker() {
     local timeout_duration=5
 
@@ -26,7 +31,7 @@ check_image_update() {
     local registry="$2"
     local registry_digest
 
-    registry_digest=$(docker pull "$registry" > /dev/null && docker inspect --format="{{index .RepoDigests 0}}" "$registry")
+    registry_digest=$(docker pull $arm_specific_flag "$registry" > /dev/null && docker inspect --format="{{index .RepoDigests 0}}" "$registry")
 
     if [ -z "$registry_digest" ]; then
         echo "[e] Could not retrieve the digest for $registry. Skipping update check."
@@ -38,7 +43,7 @@ check_image_update() {
 
     if [ "$local_digest" != "$registry_digest" ]; then
         echo "[i] Updating $image to $registry_digest"
-        docker pull "$registry"
+        docker pull $arm_specific_flag "$registry"
         docker compose up -d
     else
         echo "[i] $image is up to date."
