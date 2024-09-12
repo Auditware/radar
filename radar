@@ -20,21 +20,33 @@ usage() {
 
 check_docker() {
     local timeout_duration=5
+    local max_retries=3
+    local retry_count=0
 
-    docker compose version &> /dev/null &
-    pid=$!
+    while [ $retry_count -lt $max_retries ]; do
+        docker compose version &> /dev/null &
+        pid=$!
 
-    ( sleep $timeout_duration && kill -0 "$pid" 2>/dev/null && kill -9 "$pid" && echo "[w] Docker availability check timed out" && exit 1 ) &
+        ( sleep $timeout_duration && kill -0 "$pid" 2>/dev/null && kill -9 "$pid" && echo "[w] Docker availability check timed out" && exit 1 ) &
 
-    wait $pid
+        wait $pid
 
-    local status=$?
+        local status=$?
 
-    if [ $status -ne 0 ]; then
-        echo "[e] Docker is not available. Please ensure Docker is installed and running. If further problems arise consider restarting the Docker service."
-        exit 1
-    fi
+        if [ $status -eq 0 ]; then
+            echo "[i] Docker is available."
+            return 0
+        else
+            echo "[w] Docker is not available. Retry attempt $((retry_count + 1))/$max_retries"
+            retry_count=$((retry_count + 1))
+            sleep 2
+        fi
+    done
+
+    echo "[e] Docker is not available after $max_retries attempts. Please ensure Docker is installed and running. If further problems arise, consider restarting the Docker service."
+    exit 1
 }
+
 
 adjust_source_path_for_docker() {
     local base="$1"
