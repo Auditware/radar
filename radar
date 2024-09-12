@@ -20,7 +20,7 @@ usage() {
 
 check_docker() {
     local timeout_duration=5
-    local retries=3
+    local retries=10
 
     for ((i=1; i<=retries; i++)); do
       if docker info > /dev/null 2>&1; then
