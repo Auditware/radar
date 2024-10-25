@@ -38,7 +38,8 @@ def handle_response(response):
                 print("[e] Failed to parse response from API")
                 sys.exit(0)
         else:
-            print(f"[e] {response.status_code} error response from API")
+            print(f"[e] Unexpectedly errored out with {response.status_code} response from API")
+            print(e)
         sys.exit(0)
 
 
