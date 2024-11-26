@@ -3,7 +3,7 @@ author: forefy
 name: Missing Owner Check
 severity: Low
 certainty: Low
-description: The Account struct includes an owner field indicating the key associated with that account's owner. This field should be used to ensure a caller of an owner-only intended functionality, is infact the owner.
+description: The Account struct includes an owner field indicating the key associated with that account's owner. This field should be used to ensure a caller of an owner-only intended functionality, is in fact the owner.
 rule: |
   for source, nodes in ast:
       try:

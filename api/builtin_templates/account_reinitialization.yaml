@@ -3,7 +3,7 @@ author: forefy
 name: Account Reinitialization
 severity: Medium
 certainty: Low
-description: When account initialization is not properly validated against reinitialization attempts, callers of the program may try to reinitialize an existing account to manipulate it's data and state.
+description: When account initialization is not properly validated against reinitialization attempts, callers of the program may try to reinitialize an existing account to manipulate its data and state.
 rule: |
   for source, nodes in ast:
       try:
