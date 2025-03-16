@@ -27,7 +27,7 @@ jobs:
         run: pip install poetry
 
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --no-root
 
       - name: Run pytest
         run: poetry run pytest -m "not active_runtime"
