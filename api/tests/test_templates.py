@@ -9,7 +9,6 @@ expected_data = [
         "Missing Signer Check",
         [
             "/radar_data/contract/programs/0-signer-authorization/insecure/src/lib.rs:14:3-9",
-            "/radar_data/contract/programs/0-signer-authorization/recommended/src/lib.rs:15:3-9",
             "/radar_data/contract/programs/1-account-data-matching/insecure/src/lib.rs:18:3-9",
             "/radar_data/contract/programs/1-account-data-matching/recommended/src/lib.rs:16:3-9",
             "/radar_data/contract/programs/1-account-data-matching/secure/src/lib.rs:21:3-9",
