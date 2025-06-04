@@ -8,8 +8,9 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+setuptools = ">=78.1.1"
 django = "^5.0.8"
-psycopg2-binary = "^2.9.9"
+psycopg2-binary = ">=2.9.10"
 python-dotenv = "^1.0.1"
 gunicorn = "^22.0.0"
 django-jazzmin = "^3.0.0"
