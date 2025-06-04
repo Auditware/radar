@@ -47,7 +47,7 @@ expected_data = [
         "Duplicate Mutable Accounts",
         [
             "/radar_data/contract/programs/6-duplicate-mutable-accounts/insecure/src/lib.rs:10:13-19",
-            "/radar_data/contract/programs/6-duplicate-mutable-accounts/insecure/src/lib.rs:11:13-19"
+            "/radar_data/contract/programs/6-duplicate-mutable-accounts/insecure/src/lib.rs:11:13-19",
         ],
     ),
     (
@@ -124,7 +124,9 @@ def test_templates_consistency(rule_name, expected_locations):
         with open("tests/mocks/ast_mock.json", "r") as file:
             generated_ast = json.load(file)
 
-        modified_code = inject_code_lines(code, [f"ast = parse_ast({generated_ast}).items()"])
+        modified_code = inject_code_lines(
+            code, [f"ast = parse_ast({generated_ast}).items()"]
+        )
 
         template_outputs = wrapped_exec(modified_code)
         res = process_template_outputs(template_outputs, yaml_data)
