@@ -45,6 +45,8 @@ git clone https://github.com/coral-xyz/sealevel-attacks
 radar -p sealevel-attacks
 ```
 
+To run a non-builtin template place a yaml file anywhere and reference it via `radar -p . -t <path_to_templats_dir>`
+
 ## 🔂 GitHub Action !
 
 In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditware/radar-action) and be alerted with radar's insights continuously through your contract repository.
@@ -74,7 +76,6 @@ repos:
       pass_filenames: false
       always_run: true
 ```
-
 
 ## Contribution
 
