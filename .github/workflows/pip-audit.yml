@@ -10,19 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: python:3.11
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Install pip-audit
-        run: pip install pip-audit
+        run: |
+          pip install pip-audit
 
-      - name: Audit Python Dependencies in api
+      - name: Prepare and audit Python dependencies in api
         run: |
           cd api
+          pip install poetry
+          poetry install --no-interaction --no-ansi
           pip-audit
-      
-      - name: Audit Python Dependencies in controller
+
+      - name: Prepare and audit Python dependencies in controller
         run: |
           cd controller
+          pip install poetry
+          poetry install --no-interaction --no-ansi
           pip-audit
