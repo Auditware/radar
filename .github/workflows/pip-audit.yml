@@ -21,12 +21,12 @@ jobs:
         run: |
           cd api
           pip install poetry
-          poetry install --no-interaction --no-ansi
+          poetry install --no-root --no-interaction --no-ansi
           pip-audit
 
       - name: Prepare and audit Python dependencies in controller
         run: |
           cd controller
           pip install poetry
-          poetry install --no-interaction --no-ansi
+          poetry install --no-root --no-interaction --no-ansi
           pip-audit
