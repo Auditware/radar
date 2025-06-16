@@ -8,7 +8,7 @@ name = "rust_syn"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.16", features = ["extension-module"] }
+pyo3 = { version = "0.24", features = ["extension-module"] }
 syn-serde = { version = "0.3", features = ["json"] }
 syn = { version = "2", features = ["full"] }
 
