@@ -8,6 +8,8 @@
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use pyo3::types::PyModule;
+use pyo3::types::PyModule as _PyModule;
 use syn::{parse_str, File};
 use syn_serde::json;
 
@@ -21,7 +23,7 @@ fn parse_rust_to_ast(rust_code: String) -> PyResult<String> {
 
 
 #[pymodule]
-fn rust_syn(_py: Python, m: &PyModule) -> PyResult<()> {
+fn rust_syn(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(parse_rust_to_ast, m)?)?;
     Ok(())
 }
