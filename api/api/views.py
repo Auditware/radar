@@ -130,7 +130,11 @@ class RunScanView(APIView):
             )
 
         if templates_path:
-            templates_path = Path("/radar_data") / Path(templates_path).relative_to("/")
+            # Handle both absolute and relative template paths
+            if Path(templates_path).is_absolute():
+                templates_path = Path("/radar_data") / Path(templates_path).relative_to("/")
+            else:
+                templates_path = Path("/radar_data") / templates_path
             if not templates_path.exists() or not templates_path.is_dir():
                 return Response(
                     {"error": "Invalid templates path"},

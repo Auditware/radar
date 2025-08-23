@@ -1,16 +1,27 @@
 # Rust builder
-FROM rust:slim as rust-builder
+FROM python:3.11-slim as rust-builder
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        build-essential \
+        curl \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && . "$HOME/.cargo/env"
+
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /api/rust_syn_wrapper
 
 COPY rust_syn_wrapper .
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        python3 \
+        python3-dev \
         python3-venv \
         python3-pip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+ENV PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
 RUN cargo build --release
 
 # Main image

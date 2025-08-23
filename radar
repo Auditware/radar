@@ -5,7 +5,7 @@ INITIAL_DIR=$(pwd)
 RADAR_BASE_DIR="${XDG_CONFIG_HOME:-$HOME}/.radar"
 
 usage() {
-    echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-i <severities_to_ignore>] [-o <output_directory>] [-a] [-d] [-h]"
+    echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-i <severities_to_ignore>] [-o <output_directory>] [-a] [-d] [--dev] [-h]"
     echo "Options:"
     echo "  -p, --path       Path to the contract on the host"
     echo "  -s, --source     Specific source within the contract path (optional) (default - project root)"
@@ -14,6 +14,7 @@ usage() {
     echo "  -o, --output     Output file path (optional) (default - current directory) (change file extension to control output type - .json/.md/.sarif)"
     echo "  -a, --ast        Copy generated AST alongside the report (optional)"
     echo "  -d, --down       Shut down radar containers (optional)"
+    echo "  --dev            Use development docker-compose file for local builds (optional)"
     echo "  -h, --help       Help message (optional)"
     exit 1
 }
@@ -58,6 +59,7 @@ ignore_severities=""
 output_directory="$INITIAL_DIR"
 generate_ast=false
 shutdown_containers=false
+use_dev_compose=false
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -68,16 +70,26 @@ while [[ "$#" -gt 0 ]]; do
         -i|--ignore) ignore_severities="$2"; shift ;;
         -o|--output) output_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -d|--down) shutdown_containers=true ;;
+        --dev) use_dev_compose=true ;;
         -h|--help) usage ;;
         *) echo "[e] Unknown argument: $1"; usage ;;
     esac
     shift
 done
 
+# Determine which docker-compose file to use
+cd "$RADAR_BASE_DIR"
+compose_file="docker-compose.yml"
+if [ "$use_dev_compose" = true ] && [ -d "controller" ] && [ -f "docker-compose-dev.yml" ]; then
+    compose_file="docker-compose-dev.yml"
+    echo "[i] Using development docker-compose file for local builds"
+fi
+cd "$INITIAL_DIR"
 
 if [ "$shutdown_containers" = true ] && [ -z "$path" ]; then
     echo "[i] Shutting down radar containers"
-    docker compose down
+    cd "$RADAR_BASE_DIR"
+    docker compose -f "$compose_file" down
     exit 0
 fi
 
@@ -96,21 +108,21 @@ fi
 cd "$RADAR_BASE_DIR"
 
 checksum_file="docker_checksum.sha"
-current_checksum=$(cat docker-compose.yml | shasum -a 256 | cut -d" " -f1)
+current_checksum=$(cat "$compose_file" | shasum -a 256 | cut -d" " -f1)
 
 if [ -f "$checksum_file" ]; then
     stored_checksum=$(cat "$checksum_file")
     if [ "$current_checksum" != "$stored_checksum" ]; then
         echo "[i] Configuration changed, building images.. (if frozen - make sure Docker is available)"
-        docker compose up -d --build
+        docker compose -f "$compose_file" up -d --build
         echo "$current_checksum" > "$checksum_file"
     else
         echo "[i] Running images.. (if frozen - make sure Docker is available)" 
-        docker compose up -d --no-build
+        docker compose -f "$compose_file" up -d --no-build
     fi
 else
     echo "[i] First run, building images.. (if frozen - make sure Docker is available)"
-    docker compose up -d --build
+    docker compose -f "$compose_file" up -d --build
     echo "$current_checksum" > "$checksum_file"
 fi
 
@@ -119,13 +131,18 @@ if [ -n "$source_directory_or_file" ]; then
     container_path+="/${source_directory_or_file}"
 fi
 
-docker_command="docker compose run --rm -T -v \"${path}\":/contract"
+docker_command="docker compose -f \"$compose_file\" run --rm -T -v \"${path}\":/contract"
 if [ -n "$templates_directory" ]; then
     docker_command+=" -v \"${templates_directory}\":/templates"
 fi
 docker_command+=" controller --path \"${path}\" --container-path \"${container_path}\""
 if [ -n "$templates_directory" ]; then
     docker_command+=" --templates /templates"
+    # If templates_directory is a file, pass the original filename
+    if [ -f "$templates_directory" ]; then
+        original_filename=$(basename "$templates_directory")
+        docker_command+=" --templates-filename \"${original_filename}\""
+    fi
 fi
 if [ "$generate_ast" = true ]; then
     docker_command+=" --ast"
@@ -143,7 +160,9 @@ eval "$docker_command"
 
 if [ "$shutdown_containers" = true ]; then
     echo "[i] Shutting down radar containers"
-    docker compose down
+    cd "$RADAR_BASE_DIR"
+    docker compose -f "$compose_file" down
+    cd "$INITIAL_DIR"
 fi
 
 cd "$INITIAL_DIR"
