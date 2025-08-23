@@ -35,12 +35,41 @@ def main():
                 f"[e] Provided custom templates folder path {templates_path} is invalid"
             )
             raise FileNotFoundError
-        copy_to_docker_mount(
-            Path("/templates"),
-            Path("/radar_data" / templates_path.relative_to("/")),
-            "folder",
-        )
-        print(f"[i] Using custom provided templates folder.")
+        
+        # Determine if templates is a file or folder
+        templates_type = check_path(Path("/templates"))
+        
+        if templates_type == "file":
+            # For a single file, create templates directory and copy the file into it
+            templates_dir = Path("/radar_data/templates")
+            
+            # Ensure the templates directory exists and is clean
+            if templates_dir.exists():
+                if templates_dir.is_dir():
+                    import shutil
+                    shutil.rmtree(templates_dir)
+                else:
+                    templates_dir.unlink()
+            
+            templates_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Copy the single file into the templates directory
+            original_filename = args.templates_filename if args.templates_filename else "template.yaml"
+            copy_to_docker_mount(
+                Path("/templates"),
+                templates_dir / original_filename,
+                "file",
+            )
+            templates_path = Path("templates")
+            print(f"[i] Using custom provided template file.")
+        else:
+            copy_to_docker_mount(
+                Path("/templates"),
+                Path("/radar_data/templates"),
+                "folder",
+            )
+            templates_path = Path("templates")
+            print(f"[i] Using custom provided templates folder.")
 
     local_path = None
     if args.path:

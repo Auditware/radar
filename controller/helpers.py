@@ -44,6 +44,12 @@ def parse_arguments() -> argparse.Namespace:
         help="Path to the templates directory (optional) (default - builtin_templates folder)",
     )
     parser.add_argument(
+        "--templates-filename",
+        type=str,
+        required=False,
+        help="Original filename when a single template file is provided",
+    )
+    parser.add_argument(
         "--ast",
         required=False,
         action="store_true",
@@ -93,7 +99,10 @@ def copy_to_docker_mount(
         raise FileNotFoundError(f"No such {path_type}: {radar_src_path}")
 
     if api_dst_path.exists():
-        shutil.rmtree(api_dst_path)
+        if api_dst_path.is_dir():
+            shutil.rmtree(api_dst_path)
+        else:
+            api_dst_path.unlink()
 
     try:
         if path_type == "file":
