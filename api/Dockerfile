@@ -95,10 +95,7 @@ ENV DEBUG=${DEBUG} \
 RUN pip install --no-cache-dir poetry
 COPY pyproject.toml poetry.lock* /api/
 RUN poetry config virtualenvs.create false \
-    && poetry config virtualenvs.in-project false \
-    && poetry config installer.parallel true \
-    && poetry install --no-root --no-ansi \
-    && poetry cache clear pypi --all \
+    && poetry install --no-root \
     && rm -rf $POETRY_CACHE_DIR
 
 # Copy application files and set ownership
