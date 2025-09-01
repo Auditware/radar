@@ -1,9 +1,5 @@
 # Rust builder
-FROM --platform=$BUILDPLATFORM python:3.11-slim as rust-builder
-
-# Set up build arguments for cross-compilation
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
+FROM python:3.11-slim as rust-builder
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -30,10 +26,6 @@ RUN cargo build --release
 
 # Main image
 FROM python:3.11-slim
-
-# Set up build arguments for cross-compilation
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
 
 RUN useradd --user-group --system --create-home --no-log-init radar
 
@@ -88,15 +80,13 @@ ENV DEBUG=${DEBUG} \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
-    POETRY_VENV_IN_PROJECT=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache
+    POETRY_VENV_IN_PROJECT=1
 
 # Install poetry and dependencies as root
 RUN pip install --no-cache-dir poetry
 COPY pyproject.toml poetry.lock* /api/
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-root \
-    && rm -rf $POETRY_CACHE_DIR
+    && poetry install --no-root
 
 # Copy application files and set ownership
 COPY . /api/
