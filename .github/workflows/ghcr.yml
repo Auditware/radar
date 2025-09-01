@@ -10,7 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: auditware/radar
 
 jobs:
   build:
@@ -22,10 +22,16 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    env:
+      IMAGE_NAME_LOWER: ${{ github.repository }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      
+      - name: Convert repository name to lowercase
+        run: |
+          echo "IMAGE_NAME_LOWER=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
@@ -44,7 +50,7 @@ jobs:
         id: meta-api
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}-api
           tags: |
             type=ref,event=branch,suffix=-${{ matrix.platform }}
             type=ref,event=tag,suffix=-${{ matrix.platform }}
@@ -54,7 +60,7 @@ jobs:
         id: meta-controller
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-controller
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}-controller
           tags: |
             type=ref,event=branch,suffix=-${{ matrix.platform }}
             type=ref,event=tag,suffix=-${{ matrix.platform }}
@@ -90,6 +96,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Convert repository name to lowercase
+        run: |
+          echo "IMAGE_NAME_LOWER=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+          
       - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@v3
         with:
@@ -105,9 +115,9 @@ jobs:
             TAG="main"
           fi
           
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:$TAG \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:$TAG-linux/amd64 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:$TAG-linux/arm64
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}-api:$TAG \
+            ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}-api:$TAG-linux/amd64 \
+            ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}-api:$TAG-linux/arm64
 
       - name: Create and push multi-platform manifest for controller
         run: |
@@ -117,6 +127,6 @@ jobs:
             TAG="main"
           fi
           
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-controller:$TAG \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-controller:$TAG-linux/amd64 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-controller:$TAG-linux/arm64
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}-controller:$TAG \
+            ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}-controller:$TAG-linux/amd64 \
+            ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}-controller:$TAG-linux/arm64
