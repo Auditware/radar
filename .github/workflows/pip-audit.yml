@@ -14,6 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Upgrade pip
+        run: pip install --upgrade pip
       - name: Install pip-audit
         run: pip install pip-audit
       - name: Upgrade setuptools
