@@ -174,17 +174,28 @@ def print_write_outputs(
                 json.dump(no_results_sarif, outfile, indent=4)
         sys.exit(0)
 
+    # Color codes for severities
+    color_map = {
+        'High': '\033[91m',    # Red
+        'Medium': '\033[94m',  # Blue
+        'Low': '\033[92m'      # Green
+    }
+    reset_color = '\033[0m'  # Reset to default color
+
     for finding in results:
         print()
         locations = finding["locations"]
         locations_length = len(locations)
+        severity = finding['severity']
+        color = color_map.get(severity, '')
+        
         if locations_length < 8:
-            print(f"[ {finding['severity']} ] {finding['name']} found at:")
+            print(f"[ {color}{severity}{reset_color} ] {finding['name']} found at:")
             for location in locations:
                 print(f" * {location}")
         else:
             print(
-                f"[ {finding['severity']} ] {finding['name']} found at {locations_length} locations, see output file for more details."
+                f"[ {color}{severity}{reset_color} ] {finding['name']} found at {locations_length} locations, see output file for more details."
             )
         print()
 

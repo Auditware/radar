@@ -1,5 +1,5 @@
 # Rust builder
-FROM python:3.11-slim as rust-builder
+FROM python:3.12-slim as rust-builder
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -25,7 +25,7 @@ ENV PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
 RUN cargo build --release
 
 # Main image
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 RUN useradd --user-group --system --create-home --no-log-init radar
 
@@ -80,12 +80,14 @@ ENV DEBUG=${DEBUG} \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
-    POETRY_VENV_IN_PROJECT=1
+    POETRY_VENV_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=false
 
 # Install poetry and dependencies as root
 RUN pip install --no-cache-dir poetry
 COPY pyproject.toml poetry.lock* /api/
 RUN poetry config virtualenvs.create false \
+    && poetry config virtualenvs.in-project false \
     && poetry install --no-root
 
 # Copy application files and set ownership

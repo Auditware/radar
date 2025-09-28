@@ -45,7 +45,33 @@ git clone https://github.com/coral-xyz/sealevel-attacks
 radar -p sealevel-attacks
 ```
 
+Or you can quickly test on local mocks (from root dir) `./radar --dev -p ./api/tests/mocks/anchor-test-2`
+
 To run a non-builtin template place a yaml file anywhere and reference it via `radar -p . -t <path_to_templats_dir>`
+
+
+## 🛠️ Development & Local Testing
+
+For developers working on radar or testing local changes, use the `--dev` flag to build from your local source code instead of using pre-built images
+
+### Development Mode
+
+```bash
+# Build and run from local source
+./radar --dev -p <your-contract-folder>
+```
+
+### Quick testing
+
+Use the included test contracts for development:
+
+```bash
+# Test with anchor-test contract
+./radar --dev -p ./api/tests/mocks/anchor-test
+
+# Test with multi-program contract
+./radar --dev -p ./api/tests/mocks/anchor-test-2
+```
 
 ## 🔂 GitHub Action !
 

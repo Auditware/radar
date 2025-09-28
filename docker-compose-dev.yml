@@ -11,6 +11,7 @@ services:
         condition: service_healthy
     volumes:
       - radar_data:/radar_data
+      - ./controller:/radar
 
   api:
     container_name: "radar-api"
@@ -36,6 +37,7 @@ services:
       - "8000:8000"
     volumes:
       - radar_data:/radar_data
+      - ./api:/api
     depends_on:
       postgres:
         condition: service_healthy
