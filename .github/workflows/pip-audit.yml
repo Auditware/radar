@@ -1,5 +1,8 @@
 name: Pip Audit
 
+# TODO: Remove --ignore-vuln GHSA-4xh5-x5gv-qwph once pip 25.3 is released
+# This vulnerability affects pip itself and the fix is available but not yet in a numbered release
+
 on:
   push:
     branches:
@@ -9,13 +12,15 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     container:
-      image: python:3.11
+      image: python:3.12
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Upgrade pip
+      - name: Upgrade pip to latest version
         run: pip install --upgrade pip
+      - name: Check pip version
+        run: pip --version
       - name: Install pip-audit
         run: pip install pip-audit
       - name: Upgrade setuptools
@@ -23,9 +28,13 @@ jobs:
       - name: Audit Python Dependencies in api
         run: |
           cd api
-          pip-audit
+          # Temporarily ignore GHSA-4xh5-x5gv-qwph (pip vulnerability) until pip 25.3 is released
+          # This vulnerability affects pip itself, not project dependencies
+          pip-audit --ignore-vuln GHSA-4xh5-x5gv-qwph
 
       - name: Audit Python Dependencies in controller
         run: |
           cd controller
-          pip-audit
+          # Temporarily ignore GHSA-4xh5-x5gv-qwph (pip vulnerability) until pip 25.3 is released
+          # This vulnerability affects pip itself, not project dependencies
+          pip-audit --ignore-vuln GHSA-4xh5-x5gv-qwph
