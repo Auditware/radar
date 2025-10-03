@@ -20,7 +20,8 @@ RUN apt-get update \
         python3-venv \
         python3-pip \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && pip3 install --no-cache-dir --upgrade pip
 ENV PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
 RUN cargo build --release
 
@@ -84,7 +85,8 @@ ENV DEBUG=${DEBUG} \
     POETRY_VIRTUALENVS_CREATE=false
 
 # Install poetry and dependencies as root
-RUN pip install --no-cache-dir poetry
+# Upgrade pip to latest version to address security vulnerability GHSA-4xh5-x5gv-qwph
+RUN pip install --no-cache-dir --upgrade pip poetry
 COPY pyproject.toml poetry.lock* /api/
 RUN poetry config virtualenvs.create false \
     && poetry config virtualenvs.in-project false \
