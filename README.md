@@ -15,6 +15,9 @@ A static analysis tool for anchor rust programs.
 
 > `radar` allows you to write, share, and utilize [templates](https://github.com/auditware/radar/tree/main/api/builtin_templates) to identify security issues in rust-based smart contracts using a powerful python based rule engine that enables automating detection of vulnerable code patterns through logical expressions.
 
+
+https://github.com/user-attachments/assets/62435714-cc5b-43f3-a213-96d28481a6d7
+
 ## ⚙️ Installation
 
 1. Install and start docker
