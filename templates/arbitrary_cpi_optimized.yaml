@@ -1,0 +1,54 @@
+version: 0.1.0
+author: avraham
+name: Arbitrary CPI - Optimized Detection
+severity: High
+certainty: High
+description: |
+  Detects Arbitrary Cross-Program Invocation without proper target program validation.
+  Covers invoke and invoke_signed. Exits when safe patterns are found.
+
+rule: |
+  for source, nodes in ast:
+      # invoke()
+      try:
+          invoke_groups = nodes.find_chained_calls("solana_program", "program", "invoke").exit_on_none()
+
+          # Safe patterns - exit if any are present
+          nodes.find_comparisons("spl_token", "id").exit_on_value()
+          nodes.find_comparisons("spl_token", "token_program").exit_on_value()
+          nodes.find_comparisons("spl_token_2022", "id").exit_on_value()
+          nodes.find_comparisons("spl_token_2022", "token_program").exit_on_value()
+          nodes.find_comparisons("system_program", "id").exit_on_value()
+          nodes.find_comparisons("system_program", "ID").exit_on_value()
+          nodes.find_comparisons("associated_token_account", "id").exit_on_value()
+          nodes.find_comparisons("associated_token", "ID").exit_on_value()
+          nodes.find_by_names("Program").exit_on_value()
+          nodes.find_by_names("CpiContext").exit_on_value()
+          nodes.find_macro_attribute_by_names("constraint").exit_on_value()
+
+          for call in invoke_groups:
+              print(call.first().parent.to_result())
+      except:
+          pass
+
+      # invoke_signed()
+      try:
+          signed_groups = nodes.find_chained_calls("solana_program", "program", "invoke_signed").exit_on_none()
+
+          # Same safe patterns
+          nodes.find_comparisons("spl_token", "id").exit_on_value()
+          nodes.find_comparisons("spl_token", "token_program").exit_on_value()
+          nodes.find_comparisons("spl_token_2022", "id").exit_on_value()
+          nodes.find_comparisons("spl_token_2022", "token_program").exit_on_value()
+          nodes.find_comparisons("system_program", "id").exit_on_value()
+          nodes.find_comparisons("system_program", "ID").exit_on_value()
+          nodes.find_comparisons("associated_token_account", "id").exit_on_value()
+          nodes.find_comparisons("associated_token", "ID").exit_on_value()
+          nodes.find_by_names("Program").exit_on_value()
+          nodes.find_by_names("CpiContext").exit_on_value()
+          nodes.find_macro_attribute_by_names("constraint").exit_on_value()
+
+          for call in signed_groups:
+              print(call.first().parent.to_result())
+      except:
+          pass
