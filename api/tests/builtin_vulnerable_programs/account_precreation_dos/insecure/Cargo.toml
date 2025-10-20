@@ -1,0 +1,22 @@
+[package]
+name = "account-precreation-dos-insecure"
+version = "0.1.0"
+description = "Test program demonstrating insecure account precreation patterns"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "account_precreation_dos_insecure"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.29.0"
+
+[target.'cfg(not(target_arch = "bpf"))'.dependencies]
+solana-sdk = "~1.16.0"

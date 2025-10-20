@@ -1,0 +1,22 @@
+[package]
+name = "integer-overflow-underflow-secure"
+version = "0.1.0"
+description = "Test program demonstrating secure integer arithmetic patterns"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "integer_overflow_underflow_secure"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.29.0"
+
+[target.'cfg(not(target_arch = "bpf"))'.dependencies]
+solana-sdk = "~1.16.0"
