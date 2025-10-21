@@ -83,14 +83,14 @@ ENV DEBUG=${DEBUG} \
     PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VENV_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=false
+    POETRY_VIRTUALENVS_CREATE=true
 
 # Install poetry and dependencies as root
 # Upgrade pip to latest version to address security vulnerability GHSA-4xh5-x5gv-qwph
 RUN pip install --no-cache-dir --upgrade pip poetry
 COPY pyproject.toml poetry.lock* /api/
-RUN poetry config virtualenvs.create false \
-    && poetry config virtualenvs.in-project false \
+RUN poetry config virtualenvs.create true \
+    && poetry config virtualenvs.in-project true \
     && poetry install --no-root
 
 # Copy application files and set ownership

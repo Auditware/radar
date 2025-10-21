@@ -6,6 +6,8 @@
 .gitattributes
 .vscode/
 .idea/
+.venv/
+__pycache__/
 *.swp
 *.swo
 .DS_Store

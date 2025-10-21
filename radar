@@ -77,6 +77,21 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+# Check if radar directory exists and reinstall if missing
+if [ ! -d "$RADAR_BASE_DIR" ]; then
+    echo "[w] Radar directory not found at $RADAR_BASE_DIR"
+    echo "[i] Running installation to set up radar directory..."
+    
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    
+    if [ -f "$SCRIPT_DIR/install-radar.sh" ]; then
+        bash "$SCRIPT_DIR/install-radar.sh"
+    else
+        echo "[e] Install script not found. Please run the install script manually."
+        exit 1
+    fi
+fi
+
 # Determine which docker-compose file to use
 cd "$RADAR_BASE_DIR"
 compose_file="docker-compose.yml"
