@@ -2,7 +2,7 @@
 
 - [What is radar for](https://github.com/auditware/radar/wiki/What-is-Radar)
 - [How to use](https://github.com/auditware/radar/wiki/How-to-Use)
-- [All the ways to run radar](https://github.com/auditware/radar/wiki/Running-Options).
+- [All the ways to run radar](https://github.com/auditware/radar/wiki/Running-Options)
 
 ---
 
