@@ -13,8 +13,7 @@ usage() {
     echo "  -i, --ignore     Comma-separated severities to ignore in the scan (optional) (e.g. low,medium)"
     echo "  -o, --output     Output file path (optional) (default - current directory) (change file extension to control output type - .json/.md/.sarif)"
     echo "  -a, --ast        Copy generated AST alongside the report (optional)"
-    echo "  -d, --down       Shut down radar containers (optional)"
-    echo "  --dev            Use development docker-compose file for local builds (optional)"
+    echo "  -d, --dev        Use development docker-compose file for local builds and enable debug output (optional)"
     echo "  -h, --help       Help message (optional)"
     exit 1
 }
@@ -69,8 +68,8 @@ while [[ "$#" -gt 0 ]]; do
         -a|--ast) generate_ast=true ;;
         -i|--ignore) ignore_severities="$2"; shift ;;
         -o|--output) output_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
-        -d|--down) shutdown_containers=true ;;
-        --dev) use_dev_compose=true ;;
+        -k|--kill-after) shutdown_containers=true ;;
+        -d|--dev) use_dev_compose=true ;;
         -h|--help) usage ;;
         *) echo "[e] Unknown argument: $1"; usage ;;
     esac
@@ -189,6 +188,9 @@ fi
 if [ -n "$ignore_severities" ]; then
     docker_command+=" --ignore \"${ignore_severities}\""
 fi
+if [ "$use_dev_compose" = true ]; then
+    docker_command+=" --debug"
+fi
 
 
 echo "[i] Executing command: $docker_command"
@@ -212,5 +214,6 @@ else
 fi
 
 if [ "$generate_ast" = true ]; then
+    echo "[i] Generating AST file at $output_directory/ast.json"
     docker cp radar-api:/radar_data/ast.json "$output_directory" >/dev/null 2>&1
 fi
