@@ -1,7 +1,10 @@
 services:
   controller:
+    platform: linux/amd64
     build:
       context: controller
+      platforms:
+        - linux/amd64
       args:
         DJANGO_HOST: ${DJANGO_HOST}
         DJANGO_HOST_LOCAL: ${DJANGO_HOST_LOCAL}
@@ -15,8 +18,11 @@ services:
 
   api:
     container_name: "radar-api"
+    platform: linux/amd64
     build:
       context: api
+      platforms:
+        - linux/amd64
       args:
         DEBUG: ${DEBUG}
         POSTGRES_DB: ${POSTGRES_DB}
@@ -37,7 +43,11 @@ services:
       - "8000:8000"
     volumes:
       - radar_data:/radar_data
-      - ./api:/api
+      - ./api/api:/api/api
+      - ./api/builtin_templates:/api/builtin_templates
+      - ./api/tests:/api/tests
+      - ./api/manage.py:/api/manage.py
+      - ./api/pyproject.toml:/api/pyproject.toml
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,8 +61,11 @@ services:
       retries: 20
 
   celeryworker:
+    platform: linux/amd64
     build:
       context: api
+      platforms:
+        - linux/amd64
     command: poetry run celery -A api worker -l info
     stdin_open: true
     tty: true

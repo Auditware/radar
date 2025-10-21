@@ -69,7 +69,7 @@ class GenerateRustASTView(APIView):
                     logger.error(e)
                     return Response(
                         {
-                            "error": "Failed to parse AST from provided program source code"
+                            "error": f"Failed to parse AST from provided program source code: {str(e)}"
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
@@ -81,7 +81,7 @@ class GenerateRustASTView(APIView):
                     logger.error(e)
                     return Response(
                         {
-                            "error": "Failed to parse AST from provided program source code"
+                            "error": f"Failed to parse AST from provided program source code: {str(e)}"
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
@@ -98,7 +98,7 @@ class GenerateRustASTView(APIView):
                     logger.error(e)
                     return Response(
                         {
-                            "error": f"Failed to find Anchor.toml or Xargo.toml in the source path {source_file_path}."
+                            "error": f"Failed to process source path {source_file_path}: {str(e)}"
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )

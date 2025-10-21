@@ -55,4 +55,6 @@ By default, only templates within the [`api/builtin_templates/`] folder will run
 radar -p sealevel-attacks -t my_yaml_templates_folder
 ```
 
+To explore more running options, see [All the ways to run radar](https://github.com/auditware/radar/wiki/Running-Options).
+
 To create custom logical rules of your own, see [How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates).
