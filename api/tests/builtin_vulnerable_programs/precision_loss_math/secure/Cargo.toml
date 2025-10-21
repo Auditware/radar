@@ -1,0 +1,19 @@
+[package]
+name = "precision-loss-math-secure"
+version = "0.1.0"
+description = "Test program demonstrating secure precision-preserving patterns"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "precision_loss_math_secure"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.29.0"
