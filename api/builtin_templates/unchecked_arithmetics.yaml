@@ -1,0 +1,30 @@
+version: 0.1.0
+author: forefy
+name: Unchecked Arithmetic Operations on Stylus
+severity: Low
+certainty: High
+description: Unchecked arithmetic operations in Stylus contracts can lead to integer overflow/underflow issues, as U256 arithmetic in stylus wraps on overflow instead of reverting.
+rule: |
+    for source, nodes in ast:
+        try:
+            # Check if this source file uses U256 type
+            u256_nodes = nodes.find_by_names("U256")
+            if not u256_nodes.nodes:
+                continue
+                
+            binary_ops = nodes.find_by_access_path("binary")
+            
+            # Look for checked arithmetic method calls
+            checked_mul = nodes.find_by_names("checked_mul")
+            checked_add = nodes.find_by_names("checked_add")  
+            checked_sub = nodes.find_by_names("checked_sub")
+            
+            # If we have U256 and binary operations but no checked methods, report each binary op
+            if (binary_ops.nodes and u256_nodes.nodes and 
+                not checked_mul.nodes and not checked_add.nodes and not checked_sub.nodes):
+                
+                for binary_op in binary_ops:
+                    print(binary_op.to_result())
+                    
+        except:
+            continue

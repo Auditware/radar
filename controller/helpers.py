@@ -67,6 +67,12 @@ def parse_arguments() -> argparse.Namespace:
         required=False,
         help="Comma-separated severities to ignore in the scan (e.g. low,medium)",
     )
+    parser.add_argument(
+        "--debug",
+        required=False,
+        action="store_true",
+        help="Enable debug output including AST information",
+    )
     return parser.parse_args()
 
 
@@ -151,6 +157,7 @@ def print_write_outputs(
     path: Path,
     output_type: str,
     ignore_severities: str | None,
+    debug: bool = False,
 ):
     container_output_file_path = Path(f"/radar_data/output.{output_type}")
     container_output_path_ast = Path("/radar_data/ast.json")
@@ -170,14 +177,26 @@ def print_write_outputs(
         filenames = [Path(file_path).name for file_path in ast["sources"].keys()]
         filenames_str = ",".join(filenames)
         print(f"[i] Scanned {file_count} file{'s' if file_count != 1 else ''} ({filenames_str})")
+        
+        if debug:
+            for i, result in enumerate(results):
+                if 'debug' in result:
+                    print()
+                    print(f"[d] Debug output from template \"{result.get('name', 'Unknown')}\"")
+                    print(f"[d]  {result['debug']}")
 
     if len(results) == 0:
-        print("[i] Radar completed successfully. No results found.")
         if output_type == "sarif":
             print("[i] Writing empty SARIF to indicate no results.")
             output_file = Path(container_output_file_path)
             with output_file.open("w") as outfile:
                 json.dump(no_results_sarif, outfile, indent=4)
+        
+        if write_ast:
+            with open(container_output_path_ast, "w") as f:
+                json.dump(ast, f, indent=4)
+        
+        print("[i] Radar completed successfully. No results found.")
         sys.exit(0)
 
     # Color codes for severities

@@ -61,7 +61,7 @@ def main():
                 "file",
             )
             templates_path = Path("templates")
-            print(f"[i] Using custom provided template file.")
+            print(f"[i] Using custom provided template file: {original_filename}")
         else:
             copy_to_docker_mount(
                 Path("/templates"),
@@ -80,7 +80,7 @@ def main():
     results = poll_results(container_path, path_type, local_path)
     
     print_write_outputs(
-        results, ast["ast"], args.ast, local_path, output_type, args.ignore
+        results, ast["ast"], args.ast, local_path, output_type, args.ignore, args.debug if hasattr(args, 'debug') else False
     )
 
 if __name__ == "__main__":
