@@ -165,6 +165,12 @@ def print_write_outputs(
         finding for finding in results if finding["severity"].lower() not in ignored
     ]
 
+    if ast and "sources" in ast:
+        file_count = len(ast["sources"])
+        filenames = [Path(file_path).name for file_path in ast["sources"].keys()]
+        filenames_str = ",".join(filenames)
+        print(f"[i] Scanned {file_count} file{'s' if file_count != 1 else ''} ({filenames_str})")
+
     if len(results) == 0:
         print("[i] Radar completed successfully. No results found.")
         if output_type == "sarif":
