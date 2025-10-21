@@ -40,7 +40,7 @@ bash install-radar.sh
 ./radar -p <your-contract-folder>
 ```
 
-## 👀 First run
+## ▶️ First run
 
 A good contract to first test radar against is the beautiful repo [sealevel-attacks](https://github.com/coral-xyz/sealevel-attacks)
 ```bash
@@ -52,31 +52,10 @@ Or you can quickly test on local mocks (from root dir) `./radar --dev -p ./api/t
 
 To run a non-builtin template place a yaml file anywhere and reference it via `radar -p . -t <path_to_templats_dir>`
 
+To explore more running options, see [All the ways to run radar](https://github.com/auditware/radar/wiki/Running-Options).
 
-## 🛠️ Development & Local Testing
 
-For developers working on radar or testing local changes, use the `--dev` flag to build from your local source code instead of using pre-built images
-
-### Development Mode
-
-```bash
-# Build and run from local source
-./radar --dev -p <your-contract-folder>
-```
-
-### Quick testing
-
-Use the included test contracts for development:
-
-```bash
-# Test with anchor-test contract
-./radar --dev -p ./api/tests/mocks/anchor-test
-
-# Test with multi-program contract
-./radar --dev -p ./api/tests/mocks/anchor-test-2
-```
-
-## 🔂 GitHub Action !
+## 🔂 GitHub Action
 
 In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditware/radar-action) and be alerted with radar's insights continuously through your contract repository.
 
@@ -84,15 +63,10 @@ In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditw
   <img src="./static/gh-action.png" alt="Radar GitHub Action">
 </p>
 
-After fixing issues, you could share that the action completes successfully each run by pasting a link similar to this in your repo's `README.md`:
-
-```html
-<img src="https://img.shields.io/github/actions/workflow/status/<USER>/<REPO>/<RADAR-WORKFLOW-NAME>.yaml">
-```
 
 ## 🔙 Pre-commit hook
 
-If you're using `pre-commit`, you could also add radar to your workflow by adding radar to your `.pre-commit-config.yaml` configuration like so:
+If you're using [pre-commit](https://pre-commit.com), you could also add radar to your workflow by adding radar to your `.pre-commit-config.yaml` configuration like so:
 ```yaml
 repos:
 - repo: local

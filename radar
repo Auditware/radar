@@ -107,10 +107,31 @@ if [[ -n "$templates" ]]; then
 fi
 cd "$RADAR_BASE_DIR"
 
+# In dev mode, sync local code changes to ~/.radar/
+if [ "$use_dev_compose" = true ]; then
+    echo "[i] Syncing local code changes to $RADAR_BASE_DIR..."
+        
+    rsync_opts="-av"
+    if [ -f "$INITIAL_DIR/.rsyncignore" ]; then
+        rsync_opts="$rsync_opts --exclude-from=$INITIAL_DIR/.rsyncignore"
+    fi
+    
+    if [ -d "$INITIAL_DIR/api" ]; then
+        rsync $rsync_opts "$INITIAL_DIR/api/" "$RADAR_BASE_DIR/api/"
+    fi
+    if [ -d "$INITIAL_DIR/controller" ]; then
+        rsync $rsync_opts "$INITIAL_DIR/controller/" "$RADAR_BASE_DIR/controller/"
+    fi
+fi
+
 checksum_file="docker_checksum.sha"
 current_checksum=$(cat "$compose_file" | shasum -a 256 | cut -d" " -f1)
 
-if [ -f "$checksum_file" ]; then
+# Force rebuild in dev mode to pick up code changes
+if [ "$use_dev_compose" = true ]; then
+    echo "[i] Development mode: building images.. (if frozen - make sure Docker is available)"
+    docker compose -f "$compose_file" up -d --build
+elif [ -f "$checksum_file" ]; then
     stored_checksum=$(cat "$checksum_file")
     if [ "$current_checksum" != "$stored_checksum" ]; then
         echo "[i] Configuration changed, building images.. (if frozen - make sure Docker is available)"

@@ -1,0 +1,4 @@
+FROM test-rust as source
+FROM python:3.12-slim as target
+COPY --from=source /api/rust_syn_wrapper/target/release/librust_syn.so /test_rust_syn.so
+RUN ls -la /test_rust_syn.so

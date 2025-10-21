@@ -44,6 +44,7 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /api/utils
 COPY --from=rust-builder /api/rust_syn_wrapper/target/release/librust_syn.so /api/utils/rust_syn.so
 RUN chmod 644 /api/utils/rust_syn.so
 
