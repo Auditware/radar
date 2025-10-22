@@ -11,3 +11,5 @@ output.md
 *checksum*
 radar.wiki
 **/.DS_Store
+outputs
+api/builtin_templates/*debug*

@@ -9,14 +9,14 @@
 <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/auditware/radar/pytest.yml">
 <a href="https://github.com/auditware/radar/issues/new/choose"><img alt="Issues" title="Issues" src="https://img.shields.io/github/issues-raw/auditware/radar"></a>
 <a href="https://github.com/auditware/radar/tree/main/api/builtin_templates"><img alt="Templates" title="Templates" src="https://img.shields.io/github/directory-file-count/auditware/radar/api/builtin_templates?label=templates"></a>
-<a href="https://mybinder.org/v2/gh/auditware/radar/HEAD?labpath=demo.ipynb"><img alt="Radar Jupyter Notebook Rule Running Playground" title="Radar Jupyter Notebook Rule Running Playground" src="https://img.shields.io/badge/launch-notebook-blue?link=https%3A%2F%2Fimg.shields.io%2Fbadge%2Ftext&logo=jupyter"></a>
+<a href="https://mybinder.org/v2/gh/auditware/radar/HEAD?labpath=demo.ipynb"><img alt="radar Jupyter Notebook Rule Running Playground" title="radar Jupyter Notebook Rule Running Playground" src="https://img.shields.io/badge/launch-notebook-blue?link=https%3A%2F%2Fimg.shields.io%2Fbadge%2Ftext&logo=jupyter"></a>
 <a href="https://discord.gg/8PTTMd96p4"><img alt="Audit Wizard Discord" title="Audit Wizard Discord" src="https://img.shields.io/discord/962101971081392128.svg?logo=discord"></a>
 <a href="https://github.com/auditware/radar/wiki"><img alt="Wiki" title="Wiki" src="https://img.shields.io/badge/radar-Wiki-blue"></a>
 </p>
 
 <br>
 
-A static analysis tool for rust programs 🦀
+A static analysis tool for rust smart contracts 🦀
 
 https://github.com/user-attachments/assets/62435714-cc5b-43f3-a213-96d28481a6d7
 
@@ -73,7 +73,7 @@ To explore more running options, see [All the ways to run radar](https://github.
 In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditware/radar-action) and be alerted with radar's insights continuously through your contract repository.
 
 <p>
-  <img src="./static/gh-action.png" alt="Radar GitHub Action">
+  <img src="./static/gh-action.png" alt="radar GitHub Action">
 </p>
 
 <br>
@@ -87,7 +87,7 @@ repos:
   - repo: local
     hooks:
       - id: run-radar
-        name: Run Radar Static Analysis
+        name: Run radar Static Analysis
         entry: radar -p . --ignore low
         language: system
         stages: [commit]
@@ -99,42 +99,41 @@ repos:
 
 ## Contributors
 
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top" width="14.28%">
-        <a href="https://github.com/forefy">
-          <img src="https://avatars.githubusercontent.com/u/166978930?v=4?s=100" width="100px;" alt="forefy"/>
-          <br/>
-          <sub>
-            <b>forefy</b>
-          </sub>
-        </a>
-        <br/>
-      </td>
-      <td align="center" valign="top" width="14.28%">
-        <a href="https://github.com/avigaildanesh">
-          <img src="https://avatars.githubusercontent.com/u/118690295?v=4?s=100" width="100px;" alt="avigaildanesh"/>
-          <br/>
-          <sub>
-            <b>avigaildanesh</b>
-          </sub>
-        </a>
-        <br/>
-      </td>
-      <td align="center" valign="top" width="14.28%">
-        <a href="https://github.com/brittcyr">
-          <img src="https://avatars.githubusercontent.com/u/1320260?v=4?s=100" width="100px;" alt="brittcyr"/>
-          <br/>
-          <sub>
-            <b>brittcyr</b>
-          </sub>
-        </a>
-        <br/>
-      </td>
-    </tr>
-    </tbody>
-  </table>
+<div align="center" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+  <div style="text-align: center;">
+    <a href="https://github.com/forefy">
+      <img src="https://avatars.githubusercontent.com/u/166978930?v=4&s=100"
+           width="100" height="100"
+           style="border-radius:50%; object-fit:cover; display:block; margin:auto;"
+           alt="forefy"/>
+      <br/>
+      <sub><b>forefy</b></sub>
+    </a>
+  </div>
+
+  <div style="text-align: center;">
+    <a href="https://github.com/avigaildanesh">
+      <img src="https://avatars.githubusercontent.com/u/118690295?v=4&s=100"
+           width="100" height="100"
+           style="border-radius:50%; object-fit:cover; display:block; margin:auto;"
+           alt="avigaildanesh"/>
+      <br/>
+      <sub><b>avigaildanesh</b></sub>
+    </a>
+  </div>
+
+  <div style="text-align: center;">
+    <a href="https://github.com/brittcyr">
+      <img src="https://avatars.githubusercontent.com/u/1320260?v=4&s=100"
+           width="100" height="100"
+           style="border-radius:50%; object-fit:cover; display:block; margin:auto;"
+           alt="brittcyr"/>
+      <br/>
+      <sub><b>brittcyr</b></sub>
+    </a>
+  </div>
+</div>
+
 
 <br>
 
@@ -142,7 +141,7 @@ Either if you have a vulnerability to test in mind, or if you want to improve th
 
 ### How to contribute
 
-Open a PR to add your template to the built-ins. (See [How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates) )
+Open a PR to add your template to the built-ins ( See [How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates) ).
 
 
 ### We can help you to help!

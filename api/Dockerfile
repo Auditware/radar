@@ -1,5 +1,5 @@
 # Rust builder
-FROM python:3.12-slim as rust-builder
+FROM python:3.12-slim AS rust-builder
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \

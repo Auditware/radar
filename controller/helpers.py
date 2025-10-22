@@ -131,7 +131,6 @@ def copy_to_docker_mount(
         else:
             raise ValueError("Invalid path_type: Must be 'file' or 'folder'")
 
-        print(f"[i] Successfully copied {path_type}")
     except Exception as e:
         raise Exception(f"[e] Failed to copy {path_type} to volume: {str(e)}")
 
@@ -196,7 +195,7 @@ def print_write_outputs(
             with open(container_output_path_ast, "w") as f:
                 json.dump(ast, f, indent=4)
         
-        print("[i] Radar completed successfully. No results found.")
+        print("[i] radar completed successfully. No results found.")
         sys.exit(0)
 
     # Color codes for severities
@@ -238,7 +237,7 @@ def print_write_outputs(
             json.dump(ast, f, indent=4)
 
     print(
-        f"[i] Radar completed successfully. {output_type} results were saved to disk."
+        f"[i] radar completed successfully. {output_type} results were saved to disk."
     )
 
 
@@ -400,7 +399,7 @@ def write_sarif_output(output_file_path: Path, findings: list, arg_path: Path):
 
 
 def save_markdown_output(container_output_file_path: Path, findings: list):
-    markdown = "# Radar Static Analysis Report\n\n"
+    markdown = "# radar Static Analysis Report\n\n"
     markdown += f"This report was generated on {datetime.now().strftime('%d.%m.%Y at %H:%M')}. The results are provided for informational purposes only and should not replace thorough audits or expert evaluations. Users are responsible for conducting their own assessments and ensuring accuracy before making decisions.\n\n"
     markdown += "## Alert Summary\n\n"
     markdown += "| Alert       | Severity    | Certainty   | Locations   |\n"
