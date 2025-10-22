@@ -99,39 +99,21 @@ repos:
 
 ## Contributors
 
-<div align="center" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
-  <div style="text-align: center;">
-    <a href="https://github.com/forefy">
-      <img src="https://avatars.githubusercontent.com/u/166978930?v=4&s=100"
-           width="100" height="100"
-           style="border-radius:50%; object-fit:cover; display:block; margin:auto;"
-           alt="forefy"/>
-      <br/>
-      <sub><b>forefy</b></sub>
-    </a>
-  </div>
+<div align="center">
 
-  <div style="text-align: center;">
-    <a href="https://github.com/avigaildanesh">
-      <img src="https://avatars.githubusercontent.com/u/118690295?v=4&s=100"
-           width="100" height="100"
-           style="border-radius:50%; object-fit:cover; display:block; margin:auto;"
-           alt="avigaildanesh"/>
-      <br/>
-      <sub><b>avigaildanesh</b></sub>
-    </a>
-  </div>
+<a href="https://github.com/forefy" style="display: inline-block; text-align: center; margin: 15px;">
+  <img src="https://avatars.githubusercontent.com/u/166978930?v=4" width="80" height="80" alt="forefy" style="border-radius: 50%; display: block; margin-bottom: 5px;"/>
+  <sub><b>forefy</b></sub>
+</a>
+<a href="https://github.com/avigaildanesh" style="display: inline-block; text-align: center; margin: 15px;">
+  <img src="https://avatars.githubusercontent.com/u/118690295?v=4" width="80" height="80" alt="avigaildanesh" style="border-radius: 50%; display: block; margin-bottom: 5px;"/>
+  <sub><b>avigaildanesh</b></sub>
+</a>
+<a href="https://github.com/brittcyr" style="display: inline-block; text-align: center; margin: 15px;">
+  <img src="https://avatars.githubusercontent.com/u/1320260?v=4" width="80" height="80" alt="brittcyr" style="border-radius: 50%; display: block; margin-bottom: 5px;"/>
+  <sub><b>brittcyr</b></sub>
+</a>
 
-  <div style="text-align: center;">
-    <a href="https://github.com/brittcyr">
-      <img src="https://avatars.githubusercontent.com/u/1320260?v=4&s=100"
-           width="100" height="100"
-           style="border-radius:50%; object-fit:cover; display:block; margin:auto;"
-           alt="brittcyr"/>
-      <br/>
-      <sub><b>brittcyr</b></sub>
-    </a>
-  </div>
 </div>
 
 
