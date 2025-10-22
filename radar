@@ -5,16 +5,18 @@ INITIAL_DIR=$(pwd)
 RADAR_BASE_DIR="${XDG_CONFIG_HOME:-$HOME}/.radar"
 
 usage() {
-    echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-i <severities_to_ignore>] [-o <output_directory>] [-a] [-d] [--dev] [-h]"
+    echo "Usage: $0 [-p <path> [-s <source_directory_or_file>] [-t <templates_directory>]] [-i <severities_to_ignore>] [-o <output_directory>] [-a] [-d] [--dev] [-ss] [--no-update] [-h]"
     echo "Options:"
-    echo "  -p, --path       Path to the contract on the host"
-    echo "  -s, --source     Specific source within the contract path (optional) (default - project root)"
-    echo "  -t, --templates  Path to the templates directory (optional) (default - builtin_templates folder)"
-    echo "  -i, --ignore     Comma-separated severities to ignore in the scan (optional) (e.g. low,medium)"
-    echo "  -o, --output     Output file path (optional) (default - current directory) (change file extension to control output type - .json/.md/.sarif)"
-    echo "  -a, --ast        Copy generated AST alongside the report (optional)"
-    echo "  -d, --dev        Use development docker-compose file for local builds and enable debug output (optional)"
-    echo "  -h, --help       Help message (optional)"
+    echo "  -p, --path            Path to the target contract on the local filesystem                                           (required)"
+    echo "  -s, --source          Specific source/scope within the contract path                                                (optional) (default - project root)"
+    echo "  -t, --templates       Path to the templates directory                                                               (optional) (default - builtin_templates folder)"
+    echo "  -i, --ignore          Comma-separated severities to ignore in the scan (e.g. low,medium)                            (optional)"
+    echo "  -o, --output          Results output file path (output type controlled by extension e.g. .json/.md/.sarif)          (optional) (default - current directory)"
+    echo "  -a, --ast             Additionally output the scanned contract's parsed AST                                         (optional)"
+    echo "  -d, --dev             Use development docker-compose file for local builds and enable debug output                  (optional)"
+    echo "  -ss, --store-sarif    Store and accumulate SARIF results from previous runs                                         (optional) (default - clean slate)"
+    echo "  -nu, --no-update      Skip automatic update check for Docker images                                                 (optional)"
+    echo "  -h, --help            Show this help message                                                                        (optional)"
     exit 1
 }
 
@@ -59,6 +61,8 @@ output_directory="$INITIAL_DIR"
 generate_ast=false
 shutdown_containers=false
 use_dev_compose=false
+store_sarif=false
+skip_update=false
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -70,6 +74,8 @@ while [[ "$#" -gt 0 ]]; do
         -o|--output) output_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -k|--kill-after) shutdown_containers=true ;;
         -d|--dev) use_dev_compose=true ;;
+        -nu|--no-update) skip_update=true ;;
+        -ss|--store-sarif) store_sarif=true ;;
         -h|--help) usage ;;
         *) echo "[e] Unknown argument: $1"; usage ;;
     esac
@@ -109,6 +115,61 @@ fi
 
 check_docker
 
+arm_specific_flag=""
+if [[ "$(uname -m)" == "arm64" ]] || [[ "$(uname -m)" == "aarch64" ]]; then
+    arm_specific_flag="--platform linux/amd64"
+fi
+
+check_image_update() {
+    local image="$1"
+    local registry="$2"
+    local registry_digest
+
+    registry_digest=$(docker pull $arm_specific_flag "$registry" > /dev/null 2>&1 && docker inspect --format="{{index .RepoDigests 0}}" "$registry" 2>/dev/null)
+
+    if [ -z "$registry_digest" ]; then
+        echo "[w] Could not retrieve the digest for $registry. Skipping update check."
+        return 1
+    fi
+
+    local local_digest
+    local_digest=$(docker images --format "{{.Repository}}@{{.Digest}}" "$image" 2>/dev/null | head -n 1)
+
+    if [ "$local_digest" != "$registry_digest" ]; then
+        echo "[i] Updating $image to latest version"
+        docker pull $arm_specific_flag "$registry" > /dev/null 2>&1
+        return 0
+    else
+        echo "[i] $image is up to date."
+        return 1
+    fi
+}
+
+# Check for image updates unless --no-update flag is used
+if [ "$skip_update" = false ] && [ "$use_dev_compose" = false ]; then
+    echo "[i] Checking for Docker image updates..."
+    cd "$RADAR_BASE_DIR"
+    
+    updated=false
+    if check_image_update "ghcr.io/auditware/radar-controller" "ghcr.io/auditware/radar-controller:main"; then
+        updated=true
+    fi
+    if check_image_update "ghcr.io/auditware/radar-api" "ghcr.io/auditware/radar-api:main"; then
+        updated=true
+    fi
+    
+    if [ "$updated" = true ]; then
+        echo "[i] Restarting services with updated images..."
+        docker compose -f "$compose_file" up -d > /dev/null 2>&1
+    fi
+    
+    cd "$INITIAL_DIR"
+elif [ "$use_dev_compose" = true ]; then
+    echo "[i] Skipping update check (development mode)"
+elif [ "$skip_update" = true ]; then
+    echo "[i] Skipping update check (--no-update flag used)"
+fi
+
 if [ -z "$path" ]; then
     usage
 fi
@@ -140,6 +201,22 @@ fi
 
 checksum_file="docker_checksum.sha"
 current_checksum=$(cat "$compose_file" | shasum -a 256 | cut -d" " -f1)
+
+# Clean up previous runs unless --store-sarif flag is used
+if [ "$store_sarif" = false ]; then
+    echo "[i] Cleaning up previous scan results"
+    
+    # Stop containers before removing volumes
+    docker compose -f "$compose_file" down >/dev/null 2>&1 || true
+    
+    # Remove data volumes to ensure clean state
+    docker volume rm radar_radar_data >/dev/null 2>&1 || true
+    docker volume rm radar_postgres_data >/dev/null 2>&1 || true
+    
+    echo "[i] Previous scan data cleaned"
+else
+    echo "[i] Storing SARIF results - will accumulate with previous runs"
+fi
 
 # Force rebuild in dev mode to pick up code changes
 if [ "$use_dev_compose" = true ]; then

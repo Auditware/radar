@@ -243,7 +243,7 @@ def print_write_outputs(
 
 
 def convert_severity_to_sarif_level(severity: str) -> str:
-    severity_mapping = {"High": "error", "Medium": "warning", "Low": "note"}
+    severity_mapping = {"High": "error", "Medium": "warning", "Low": "warning"} # 'note' sometimes is being hidden by sarif supported tools
     sarif_level = severity_mapping.get(severity)
     if sarif_level is None:
         print("[e] Could not convert severity to SARIF level")
