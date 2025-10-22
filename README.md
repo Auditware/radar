@@ -99,22 +99,39 @@ repos:
 
 ## Contributors
 
-<div align="center">
-
-<a href="https://github.com/forefy" style="display: inline-block; text-align: center; margin: 15px;">
-  <img src="https://avatars.githubusercontent.com/u/166978930?v=4" width="80" height="80" alt="forefy" style="border-radius: 50%; display: block; margin-bottom: 5px;"/>
-  <sub><b>forefy</b></sub>
-</a>
-<a href="https://github.com/avigaildanesh" style="display: inline-block; text-align: center; margin: 15px;">
-  <img src="https://avatars.githubusercontent.com/u/118690295?v=4" width="80" height="80" alt="avigaildanesh" style="border-radius: 50%; display: block; margin-bottom: 5px;"/>
-  <sub><b>avigaildanesh</b></sub>
-</a>
-<a href="https://github.com/brittcyr" style="display: inline-block; text-align: center; margin: 15px;">
-  <img src="https://avatars.githubusercontent.com/u/1320260?v=4" width="80" height="80" alt="brittcyr" style="border-radius: 50%; display: block; margin-bottom: 5px;"/>
-  <sub><b>brittcyr</b></sub>
-</a>
-
-</div>
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%">
+        <a href="https://github.com/forefy">
+          <img src="https://avatars.githubusercontent.com/u/166978930?v=4" width="100" alt="forefy"/>
+        </a>
+        <br />
+        <a href="https://github.com/forefy">
+          <sub><b>forefy</b></sub>
+        </a>
+      </td>
+      <td align="center" valign="top" width="14.28%">
+        <a href="https://github.com/avigaildanesh">
+          <img src="https://avatars.githubusercontent.com/u/118690295?v=4" width="100" alt="avigaildanesh"/>
+        </a>
+        <br />
+        <a href="https://github.com/avigaildanesh">
+          <sub><b>avigaildanesh</b></sub>
+        </a>
+      </td>
+      <td align="center" valign="top" width="14.28%">
+        <a href="https://github.com/brittcyr">
+          <img src="https://avatars.githubusercontent.com/u/1320260?v=4" width="100" alt="brittcyr"/>
+        </a>
+        <br />
+        <a href="https://github.com/brittcyr">
+          <sub><b>brittcyr</b></sub>
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 
 <br>
