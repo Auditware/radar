@@ -1,3 +1,6 @@
+<br>
+<br>
+
 <p align="center">
   <img src="./static/radar.png" alt="radar">
 </p>
@@ -11,20 +14,26 @@
 <a href="https://github.com/auditware/radar/wiki"><img alt="Wiki" title="Wiki" src="https://img.shields.io/badge/radar-Wiki-blue"></a>
 </p>
 
-A static analysis tool for anchor rust programs.
+<br>
 
-> `radar` allows you to write, share, and utilize [templates](https://github.com/auditware/radar/tree/main/api/builtin_templates) to identify security issues in rust-based smart contracts using a powerful python based rule engine that enables automating detection of vulnerable code patterns through logical expressions.
-
+A static analysis tool for rust programs 🦀
 
 https://github.com/user-attachments/assets/62435714-cc5b-43f3-a213-96d28481a6d7
 
-## ⚙️ Installation
+`radar` allows you to write, share, and utilize [templates](https://github.com/auditware/radar/tree/main/api/builtin_templates) to identify security issues in rust-based smart contracts using a powerful rule engine that enables automating detection of vulnerable code patterns, at scale, via simple python queries.
 
-1. Install and start docker
+- [How to install](#installation)
+- [How to run](#how-to-run)
+- [Features](#-github-action)
+  - [GitHub Action](#-github-action)
+  - [Pre-commit Hook](#-pre-commit-hook)
+- [Contributors](#contributors)
 
-2. Install git
+## Installation
 
-3. Install radar either from install script or from source
+1. Install and start [docker](https://docs.docker.com/get-started/get-docker/)
+
+2. Install radar either from install script or from source
 
 ```bash
 curl -L https://raw.githubusercontent.com/auditware/radar/main/install-radar.sh | bash
@@ -40,9 +49,12 @@ bash install-radar.sh
 ./radar -p <your-contract-folder>
 ```
 
-## ▶️ First run
+<br>
+
+## How to run
 
 A good contract to first test radar against is the beautiful repo [sealevel-attacks](https://github.com/coral-xyz/sealevel-attacks)
+
 ```bash
 git clone https://github.com/coral-xyz/sealevel-attacks
 radar -p sealevel-attacks
@@ -54,8 +66,9 @@ To run a non-builtin template place a yaml file anywhere and reference it via `r
 
 To explore more running options, see [All the ways to run radar](https://github.com/auditware/radar/wiki/Running-Options).
 
+<br>
 
-## 🔂 GitHub Action
+## GitHub Action
 
 In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditware/radar-action) and be alerted with radar's insights continuously through your contract repository.
 
@@ -63,29 +76,81 @@ In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditw
   <img src="./static/gh-action.png" alt="Radar GitHub Action">
 </p>
 
+<br>
 
-## 🔙 Pre-commit hook
+## Pre-commit hook
 
 If you're using [pre-commit](https://pre-commit.com), you could also add radar to your workflow by adding radar to your `.pre-commit-config.yaml` configuration like so:
+
 ```yaml
 repos:
-- repo: local
-  hooks:
-    - id: run-radar
-      name: Run Radar Static Analysis
-      entry: radar -p . --ignore low
-      language: system
-      stages: [commit]
-      pass_filenames: false
-      always_run: true
+  - repo: local
+    hooks:
+      - id: run-radar
+        name: Run Radar Static Analysis
+        entry: radar -p . --ignore low
+        language: system
+        stages: [commit]
+        pass_filenames: false
+        always_run: true
 ```
 
-## Contribution
+<br>
 
-Either if you have a vulnerability to test in mind, or if you want to improve the quality of an existing one, templates are the best way to contribute to this repo! Open a PR to add your template to the built-ins.
+## Contributors
 
-[How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates)
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%">
+        <a href="https://github.com/forefy">
+          <img src="https://avatars.githubusercontent.com/u/166978930?v=4?s=100" width="100px;" alt="forefy"/>
+          <br/>
+          <sub>
+            <b>forefy</b>
+          </sub>
+        </a>
+        <br/>
+      </td>
+      <td align="center" valign="top" width="14.28%">
+        <a href="https://github.com/avigaildanesh">
+          <img src="https://avatars.githubusercontent.com/u/118690295?v=4?s=100" width="100px;" alt="avigaildanesh"/>
+          <br/>
+          <sub>
+            <b>avigaildanesh</b>
+          </sub>
+        </a>
+        <br/>
+      </td>
+      <td align="center" valign="top" width="14.28%">
+        <a href="https://github.com/brittcyr">
+          <img src="https://avatars.githubusercontent.com/u/1320260?v=4?s=100" width="100px;" alt="brittcyr"/>
+          <br/>
+          <sub>
+            <b>brittcyr</b>
+          </sub>
+        </a>
+        <br/>
+      </td>
+    </tr>
+    </tbody>
+  </table>
 
-We'd love to assist with writing your first template, and provide guidance.
+<br>
 
-Check out the [Wiki](https://github.com/auditware/radar/wiki) for more details. For support reach out to the Audit Wizard [Discord](https://discord.gg/8PTTMd96p4).
+Either if you have a vulnerability to test in mind, or if you want to improve the quality of an existing one, templates are the best way to contribute to this repo!
+
+### How to contribute
+
+Open a PR to add your template to the built-ins. (See [How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates) )
+
+
+### We can help you to help!
+
+We'd love to assist with writing your first template, and provide full guidance and support.
+
+<br>
+
+Check out the [Wiki](https://github.com/auditware/radar/wiki) for more details.
+
+For support reach out to the Audit Wizard [Discord](https://discord.gg/8PTTMd96p4).
