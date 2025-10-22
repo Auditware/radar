@@ -99,39 +99,33 @@ repos:
 
 ## Contributors
 
+<!-- readme: contributors -start -->
 <table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top" width="33.33%">
+<tr>
+    <td align="center">
         <a href="https://github.com/forefy">
-          <img src="https://avatars.githubusercontent.com/u/166978930?v=4" width="80" height="80" alt="forefy"/>
+            <img src="https://avatars.githubusercontent.com/u/166978930?v=4" width="100;" alt="forefy"/>
+            <br />
+            <sub><b>forefy</b></sub>
         </a>
-        <br />
-        <a href="https://github.com/forefy">
-          <sub><b>forefy</b></sub>
-        </a>
-      </td>
-      <td align="center" valign="top" width="33.33%">
+    </td>
+    <td align="center">
         <a href="https://github.com/avigaildanesh">
-          <img src="https://avatars.githubusercontent.com/u/118690295?v=4" width="80" height="80" alt="avigaildanesh"/>
+            <img src="https://avatars.githubusercontent.com/u/118690295?v=4" width="100;" alt="avigaildanesh"/>
+            <br />
+            <sub><b>avigaildanesh</b></sub>
         </a>
-        <br />
-        <a href="https://github.com/avigaildanesh">
-          <sub><b>avigaildanesh</b></sub>
-        </a>
-      </td>
-      <td align="center" valign="top" width="33.33%">
+    </td>
+    <td align="center">
         <a href="https://github.com/brittcyr">
-          <img src="https://avatars.githubusercontent.com/u/1320260?v=4" width="80" height="80" alt="brittcyr"/>
+            <img src="https://avatars.githubusercontent.com/u/1320260?v=4" width="100;" alt="brittcyr"/>
+            <br />
+            <sub><b>brittcyr</b></sub>
         </a>
-        <br />
-        <a href="https://github.com/brittcyr">
-          <sub><b>brittcyr</b></sub>
-        </a>
-      </td>
-    </tr>
-  </tbody>
+    </td>
+</tr>
 </table>
+<!-- readme: contributors -end -->
 
 
 <br>
