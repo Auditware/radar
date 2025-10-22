@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export COMPOSE_BAKE=true
+
 INITIAL_DIR=$(pwd)
 RADAR_BASE_DIR="${XDG_CONFIG_HOME:-$HOME}/.radar"
 
@@ -26,7 +28,6 @@ check_docker() {
 
     for ((i=1; i<=retries; i++)); do
       if docker info > /dev/null 2>&1; then
-        echo "[i] Docker is available."
         return
       else
         echo "[w] Docker is not available. Retrying in $timeout_duration seconds..."
@@ -60,7 +61,7 @@ ignore_severities=""
 output_directory="$INITIAL_DIR"
 generate_ast=false
 shutdown_containers=false
-use_dev_compose=false
+development_mode=false
 store_sarif=false
 skip_update=false
 
@@ -73,7 +74,7 @@ while [[ "$#" -gt 0 ]]; do
         -i|--ignore) ignore_severities="$2"; shift ;;
         -o|--output) output_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -k|--kill-after) shutdown_containers=true ;;
-        -d|--dev) use_dev_compose=true ;;
+        -d|--dev) development_mode=true ;;
         -nu|--no-update) skip_update=true ;;
         -ss|--store-sarif) store_sarif=true ;;
         -h|--help) usage ;;
@@ -84,7 +85,7 @@ done
 
 # Check if radar directory exists and reinstall if missing
 if [ ! -d "$RADAR_BASE_DIR" ]; then
-    echo "[w] Radar directory not found at $RADAR_BASE_DIR"
+    echo "[w] radar directory not found at $RADAR_BASE_DIR"
     echo "[i] Running installation to set up radar directory..."
     
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -100,16 +101,16 @@ fi
 # Determine which docker-compose file to use
 cd "$RADAR_BASE_DIR"
 compose_file="docker-compose.yml"
-if [ "$use_dev_compose" = true ] && [ -d "controller" ] && [ -f "docker-compose-dev.yml" ]; then
+if [ "$development_mode" = true ] && [ -d "controller" ] && [ -f "docker-compose-dev.yml" ]; then
+    echo "[i] Running in development mode"
     compose_file="docker-compose-dev.yml"
-    echo "[i] Using development docker-compose file for local builds"
 fi
 cd "$INITIAL_DIR"
 
 if [ "$shutdown_containers" = true ] && [ -z "$path" ]; then
     echo "[i] Shutting down radar containers"
     cd "$RADAR_BASE_DIR"
-    docker compose -f "$compose_file" down
+    docker compose -f "$compose_file" down --quiet
     exit 0
 fi
 
@@ -146,7 +147,7 @@ check_image_update() {
 }
 
 # Check for image updates unless --no-update flag is used
-if [ "$skip_update" = false ] && [ "$use_dev_compose" = false ]; then
+if [ "$skip_update" = false ] && [ "$development_mode" = false ]; then
     echo "[i] Checking for Docker image updates..."
     cd "$RADAR_BASE_DIR"
     
@@ -164,10 +165,10 @@ if [ "$skip_update" = false ] && [ "$use_dev_compose" = false ]; then
     fi
     
     cd "$INITIAL_DIR"
-elif [ "$use_dev_compose" = true ]; then
-    echo "[i] Skipping update check (development mode)"
+elif [ "$development_mode" = true ]; then
+    echo "[i] Skipping image update check on development mode"
 elif [ "$skip_update" = true ]; then
-    echo "[i] Skipping update check (--no-update flag used)"
+    echo "[i] Skipping image update check (--no-update flag used)"
 fi
 
 if [ -z "$path" ]; then
@@ -183,10 +184,10 @@ fi
 cd "$RADAR_BASE_DIR"
 
 # In dev mode, sync local code changes to ~/.radar/
-if [ "$use_dev_compose" = true ]; then
-    echo "[i] Syncing local code changes to $RADAR_BASE_DIR..."
+if [ "$development_mode" = true ]; then
+    echo "[i] Syncing local code changes to $RADAR_BASE_DIR"
         
-    rsync_opts="-av"
+    rsync_opts="-aq"
     if [ -f "$INITIAL_DIR/.rsyncignore" ]; then
         rsync_opts="$rsync_opts --exclude-from=$INITIAL_DIR/.rsyncignore"
     fi
@@ -206,10 +207,7 @@ current_checksum=$(cat "$compose_file" | shasum -a 256 | cut -d" " -f1)
 if [ "$store_sarif" = false ]; then
     echo "[i] Cleaning up previous scan results"
     
-    # Stop containers before removing volumes
-    docker compose -f "$compose_file" down >/dev/null 2>&1 || true
-    
-    # Remove data volumes to ensure clean state
+    docker compose -f "$compose_file" down >/dev/null 2>&1 || true    
     docker volume rm radar_radar_data >/dev/null 2>&1 || true
     docker volume rm radar_postgres_data >/dev/null 2>&1 || true
     
@@ -219,8 +217,8 @@ else
 fi
 
 # Force rebuild in dev mode to pick up code changes
-if [ "$use_dev_compose" = true ]; then
-    echo "[i] Development mode: building images.. (if frozen - make sure Docker is available)"
+if [ "$development_mode" = true ]; then
+    echo "[i] Building images from source code (if frozen - make sure Docker is available)"
     docker compose -f "$compose_file" up -d --build
 elif [ -f "$checksum_file" ]; then
     stored_checksum=$(cat "$checksum_file")
@@ -265,32 +263,51 @@ fi
 if [ -n "$ignore_severities" ]; then
     docker_command+=" --ignore \"${ignore_severities}\""
 fi
-if [ "$use_dev_compose" = true ]; then
+if [ "$development_mode" = true ]; then
     docker_command+=" --debug"
 fi
 
 
-echo "[i] Executing command: $docker_command"
+# echo "[d] Executing command: $docker_command"
 eval "$docker_command"
 
 if [ "$shutdown_containers" = true ]; then
     echo "[i] Shutting down radar containers"
     cd "$RADAR_BASE_DIR"
-    docker compose -f "$compose_file" down
+    docker compose -f "$compose_file" down --quiet
     cd "$INITIAL_DIR"
 fi
 
 cd "$INITIAL_DIR"
 
-if [[ "$output_directory" == *".sarif"* ]]; then
-  docker cp radar-api:/radar_data/output.sarif "$output_directory" >/dev/null 2>&1
-elif [[ "$output_directory" == *".md"* ]]; then
-  docker cp radar-api:/radar_data/output.md "$output_directory" >/dev/null 2>&1
+# Determine output file paths based on whether output_directory is a file or directory
+if [[ "$output_directory" == *".sarif" ]]; then
+    output_file="$output_directory"
+    docker cp radar-api:/radar_data/output.sarif "$output_file" >/dev/null 2>&1
+    echo "[i] Results written to $output_file"
+elif [[ "$output_directory" == *".md" ]]; then
+    output_file="$output_directory"
+    docker cp radar-api:/radar_data/output.md "$output_file" >/dev/null 2>&1
+    echo "[i] Results written to $output_file"
+elif [[ "$output_directory" == *".json" ]]; then
+    output_file="$output_directory"
+    docker cp radar-api:/radar_data/output.json "$output_file" >/dev/null 2>&1
+    echo "[i] Results written to $output_file"
 else
-  docker cp radar-api:/radar_data/output.json "$output_directory" >/dev/null 2>&1
+    mkdir -p "$output_directory"
+    output_dir="${output_directory%/}"
+    output_file="$output_dir/output.json"
+    docker cp radar-api:/radar_data/output.json "$output_file" >/dev/null 2>&1
+    echo "[i] Results written to $output_file"
 fi
 
 if [ "$generate_ast" = true ]; then
-    echo "[i] Generating AST file at $output_directory/ast.json"
-    docker cp radar-api:/radar_data/ast.json "$output_directory" >/dev/null 2>&1
+    if [[ "$output_directory" == *.* ]]; then
+        ast_output="$(dirname "$output_directory")/ast.json"
+    else
+        output_dir="${output_directory%/}"
+        ast_output="$output_dir/ast.json"
+    fi
+    echo "[i] Generating AST file at $ast_output"
+    docker cp radar-api:/radar_data/ast.json "$ast_output" >/dev/null 2>&1
 fi
