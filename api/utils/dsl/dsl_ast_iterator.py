@@ -1,5 +1,45 @@
+import os
+from functools import wraps
 from dataclasses import dataclass, field
 from typing import List, Optional
+
+
+def dsl_log(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        func_name = func.__name__
+        args_str = ", ".join(
+            str(arg)[:50] + "..." if len(str(arg)) > 50 else str(arg)
+            for arg in args[1:]
+        )
+        kwargs_str = ", ".join(
+            f"{k}={str(v)[:30] + '...' if len(str(v)) > 30 else str(v)}"
+            for k, v in kwargs.items()
+        )
+        params = ", ".join(filter(None, [args_str, kwargs_str]))
+
+        try:
+            result = func(*args, **kwargs)
+
+            node_count = 0
+            if hasattr(result, '__len__'):
+                node_count = len(result)
+            elif result is not None:
+                node_count = 1
+            
+            # Special handling for exit methods
+            if func_name == "exit_on_none":
+                print(f"[dsl_log] {func_name}({params}) -> continued ({node_count} nodes)") # should always be >1
+            elif func_name == "exit_on_value":
+                print(f"[dsl_log] {func_name}({params}) -> continued ({node_count} nodes)") # should always be 0
+            else:    
+                print(f"[dsl_log] {func_name}({params}) -> {node_count} nodes")
+            return result
+        except StopIteration as e:
+            print(f"[dsl_log] {func_name}({params}) -> StopIteration: {e}")
+            raise
+
+    return wrapper
 
 
 class ASTNodeListGroup:
@@ -33,11 +73,13 @@ class ASTNodeListGroup:
     def first(self):
         return self.node_lists[0] if self.node_lists else self.exit_on_none()
 
+    @dsl_log
     def exit_on_none(self):
         if not self.node_lists:
             raise StopIteration("No node lists found")
         return self
 
+    @dsl_log
     def exit_on_value(self):
         if self.node_lists:
             raise StopIteration("Node lists found")
@@ -71,17 +113,20 @@ class ASTNodeList:
     def __len__(self):
         return len(self.nodes)
 
+    @dsl_log
     def to_result(self):
         return [node.to_result() for node in self.nodes]
 
     def first(self):
         return self.nodes[0] if self.nodes else self.exit_on_none()
 
+    @dsl_log
     def exit_on_none(self):
         if not self.nodes:
             raise StopIteration("No nodes found")
         return self
 
+    @dsl_log
     def exit_on_value(self):
         if self.nodes:
             raise StopIteration("Nodes found")
@@ -111,6 +156,7 @@ class ASTNode:
         child.parent = self
         self.children.append(child)
 
+    @dsl_log
     def to_result(self):
         return {
             "src": self.src,
@@ -132,6 +178,7 @@ class RustASTNode(ASTNode):
             self.ident = "root"
             self.root = True
 
+    @dsl_log
     def to_result(self):
         result = super().to_result()
         result.update(
@@ -142,6 +189,7 @@ class RustASTNode(ASTNode):
         )
         return result
 
+    @dsl_log
     def find_by_parent(self, parent_ident: str) -> ASTNodeList:
         results = []
         if self.parent and self.parent.ident == parent_ident:
@@ -150,6 +198,7 @@ class RustASTNode(ASTNode):
             results.extend(child.find_by_parent(parent_ident))
         return ASTNodeList(results)
 
+    @dsl_log
     def find_by_child(self, child_ident: str) -> ASTNodeList:
         matches = []
 
@@ -162,6 +211,7 @@ class RustASTNode(ASTNode):
         recurse(self)
         return ASTNodeList(matches)
 
+    @dsl_log
     def find_chained_calls(self, *idents: tuple[str, ...]) -> ASTNodeListGroup:
         matches = []
 
@@ -177,8 +227,8 @@ class RustASTNode(ASTNode):
         recurse(self, idents)
         return ASTNodeListGroup(matches)
 
+    @dsl_log
     def find_by_access_path(self, access_path_part: str) -> ASTNodeList:
-
         matching_nodes = []
 
         def recurse(node):
@@ -190,6 +240,7 @@ class RustASTNode(ASTNode):
         recurse(self)
         return ASTNodeList(matching_nodes)
 
+    @dsl_log
     def find_macro_attribute_by_names(self, *idents: tuple[str, ...]) -> ASTNodeList:
         matching_nodes = []
 
@@ -210,6 +261,7 @@ class RustASTNode(ASTNode):
         search_nodes(self)
         return ASTNodeList(matching_nodes)
 
+    @dsl_log
     def find_by_similar_access_path(
         self, access_path: str, stop_keyword: str
     ) -> ASTNodeList:
@@ -233,6 +285,7 @@ class RustASTNode(ASTNode):
         recurse(self)
         return ASTNodeList(matching_nodes)
 
+    @dsl_log
     def find_comparisons(self, ident1: str, ident2: str):
         comparisons = []
 
@@ -295,6 +348,7 @@ class RustASTNode(ASTNode):
         traverse(self)
         return ASTNodeList(comparisons)
 
+    @dsl_log
     def find_comparison_to_any(self, ident: str):
         comparisons = []
 
@@ -326,6 +380,7 @@ class RustASTNode(ASTNode):
         traverse(self)
         return ASTNodeList(comparisons)
 
+    @dsl_log
     def find_negative_of_operation(
         self, operation_name: str, *args: tuple
     ) -> ASTNodeList:
@@ -343,6 +398,7 @@ class RustASTNode(ASTNode):
         traverse(self)
         return ASTNodeList(non_operation_nodes)
 
+    @dsl_log
     def find_functions_by_names(self, *function_names: tuple[str, ...]) -> ASTNodeList:
         matching_nodes = []
 
@@ -362,6 +418,7 @@ class RustASTNode(ASTNode):
         find_function(self)
         return ASTNodeList(matching_nodes)
 
+    @dsl_log
     def find_by_names(self, *idents: tuple[str, ...]) -> ASTNodeList:
         matching_nodes = []
 
@@ -382,6 +439,7 @@ class RustASTNode(ASTNode):
         search_nodes(self)
         return ASTNodeList(matching_nodes)
 
+    @dsl_log
     def find_method_calls(self, caller: str, method: str) -> ASTNodeList:
         matching_nodes = []
 
@@ -402,6 +460,7 @@ class RustASTNode(ASTNode):
         recurse(self)
         return ASTNodeList(matching_nodes)
 
+    @dsl_log
     def find_assignments(self, ident: str, value_ident: str) -> ASTNodeList:
         assignments = []
 
@@ -442,6 +501,7 @@ class RustASTNode(ASTNode):
         traverse(self)
         return ASTNodeList(assignments)
 
+    @dsl_log
     def find_mutables(self) -> ASTNodeList:
         mutables = []
 
@@ -462,6 +522,7 @@ class RustASTNode(ASTNode):
         traverse(self)
         return ASTNodeList(mutables)
 
+    @dsl_log
     def find_account_typed_nodes(self, ident: str) -> ASTNodeList:
         matches = []
 
@@ -498,6 +559,7 @@ class RustASTNode(ASTNode):
         traverse(self)
         return ASTNodeList(matches)
 
+    @dsl_log
     def find_member_accesses(self, ident: str) -> ASTNodeList:
         member_accesses = []
 

@@ -83,6 +83,8 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+export RADAR_DEV_MODE=$development_mode
+
 # Check if radar directory exists and reinstall if missing
 if [ ! -d "$RADAR_BASE_DIR" ]; then
     echo "[w] radar directory not found at $RADAR_BASE_DIR"
@@ -187,7 +189,7 @@ cd "$RADAR_BASE_DIR"
 if [ "$development_mode" = true ]; then
     echo "[i] Syncing local code changes to $RADAR_BASE_DIR"
         
-    rsync_opts="-aq"
+    rsync_opts="-aq --delete"
     if [ -f "$INITIAL_DIR/.rsyncignore" ]; then
         rsync_opts="$rsync_opts --exclude-from=$INITIAL_DIR/.rsyncignore"
     fi

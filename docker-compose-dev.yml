@@ -1,6 +1,5 @@
 services:
   controller:
-    platform: linux/amd64
     build:
       context: controller
       args:
