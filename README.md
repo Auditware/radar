@@ -99,7 +99,6 @@ repos:
 
 ## Contributors
 
-<!-- readme: contributors -start -->
 <table>
 <tr>
     <td align="center">
@@ -125,8 +124,6 @@ repos:
     </td>
 </tr>
 </table>
-<!-- readme: contributors -end -->
-
 
 <br>
 
@@ -135,7 +132,6 @@ Either if you have a vulnerability to test in mind, or if you want to improve th
 ### How to contribute
 
 Open a PR to add your template to the built-ins ( See [How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates) ).
-
 
 ### We can help you to help!
 

@@ -17,4 +17,3 @@ staticfiles/
 dist/
 build/
 rust_syn_wrapper/target/
-utils/

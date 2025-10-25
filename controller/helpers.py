@@ -182,7 +182,8 @@ def print_write_outputs(
                 if 'debug' in result:
                     print()
                     print(f"[d] Debug output from template \"{result.get('name', 'Unknown')}\"")
-                    print(f"[d]  {result['debug']}")
+                    for i in range(0, len(result['debug'])):
+                        print(f"[d]  {result['debug'][i]}")
 
     if len(results) == 0:
         if output_type == "sarif":
