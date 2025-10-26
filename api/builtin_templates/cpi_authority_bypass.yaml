@@ -1,6 +1,6 @@
 version: 0.1.0
 author: avigaildanesh
-name: random_authority_generation
+name: Random Authority Generation
 severity: Low
 certainty: Low
 description: Detects generation of random/unique Pubkey for authority which bypasses proper authority validation

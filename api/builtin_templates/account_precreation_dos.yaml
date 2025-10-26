@@ -1,6 +1,6 @@
 version: 0.1.0
 author: avigaildanesh
-name: account_precreation_dos
+name: Account Precreation Dos
 severity: Low
 certainty: Low
 description: Detects unsafe account owner assignments without prior validation
