@@ -1,11 +1,9 @@
 version: 0.1.0
 author: avigaildanesh
-name: Unvalidated Fee Assignment (require check)
+name: Unvalidated Fee Assignment
 severity: Medium
 certainty: Medium
-description: |
-  Detects direct assignments of fee configuration fields (like ctx.accounts.config.fee_rate = new_rate)
-  when there is NO preceding require! (or equivalent) check in the same function.
+description: Detects direct assignments of fee configuration fields when there is no preceding require check in the same function.
 rule: |
   for source, nodes in ast:
       try:
