@@ -1,3 +1,6 @@
+<br>
+<br>
+
 <p align="center">
   <img src="./static/radar.png" alt="radar">
 </p>
@@ -6,25 +9,31 @@
 <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/auditware/radar/pytest.yml">
 <a href="https://github.com/auditware/radar/issues/new/choose"><img alt="Issues" title="Issues" src="https://img.shields.io/github/issues-raw/auditware/radar"></a>
 <a href="https://github.com/auditware/radar/tree/main/api/builtin_templates"><img alt="Templates" title="Templates" src="https://img.shields.io/github/directory-file-count/auditware/radar/api/builtin_templates?label=templates"></a>
-<a href="https://mybinder.org/v2/gh/auditware/radar/HEAD?labpath=demo.ipynb"><img alt="Radar Jupyter Notebook Rule Running Playground" title="Radar Jupyter Notebook Rule Running Playground" src="https://img.shields.io/badge/launch-notebook-blue?link=https%3A%2F%2Fimg.shields.io%2Fbadge%2Ftext&logo=jupyter"></a>
+<a href="https://mybinder.org/v2/gh/auditware/radar/HEAD?labpath=demo.ipynb"><img alt="radar Jupyter Notebook Rule Running Playground" title="radar Jupyter Notebook Rule Running Playground" src="https://img.shields.io/badge/launch-notebook-blue?link=https%3A%2F%2Fimg.shields.io%2Fbadge%2Ftext&logo=jupyter"></a>
 <a href="https://discord.gg/8PTTMd96p4"><img alt="Audit Wizard Discord" title="Audit Wizard Discord" src="https://img.shields.io/discord/962101971081392128.svg?logo=discord"></a>
 <a href="https://github.com/auditware/radar/wiki"><img alt="Wiki" title="Wiki" src="https://img.shields.io/badge/radar-Wiki-blue"></a>
 </p>
 
-A static analysis tool for anchor rust programs.
+<br>
 
-> `radar` allows you to write, share, and utilize [templates](https://github.com/auditware/radar/tree/main/api/builtin_templates) to identify security issues in rust-based smart contracts using a powerful python based rule engine that enables automating detection of vulnerable code patterns through logical expressions.
-
+A static analysis tool for rust smart contracts 🦀
 
 https://github.com/user-attachments/assets/62435714-cc5b-43f3-a213-96d28481a6d7
 
-## ⚙️ Installation
+`radar` allows you to write, share, and utilize [templates](https://github.com/auditware/radar/tree/main/api/builtin_templates) to identify security issues in rust-based smart contracts using a powerful rule engine that enables automating detection of vulnerable code patterns, at scale, via simple python queries.
 
-1. Install and start docker
+- [How to install](#installation)
+- [How to run](#how-to-run)
+- [Features](#-github-action)
+  - [GitHub Action](#-github-action)
+  - [Pre-commit Hook](#-pre-commit-hook)
+- [Contributors](#contributors)
 
-2. Install git
+## Installation
 
-3. Install radar either from install script or from source
+1. Install and start [docker](https://docs.docker.com/get-started/get-docker/)
+
+2. Install radar either from install script or from source
 
 ```bash
 curl -L https://raw.githubusercontent.com/auditware/radar/main/install-radar.sh | bash
@@ -40,9 +49,12 @@ bash install-radar.sh
 ./radar -p <your-contract-folder>
 ```
 
-## 👀 First run
+<br>
+
+## How to run
 
 A good contract to first test radar against is the beautiful repo [sealevel-attacks](https://github.com/coral-xyz/sealevel-attacks)
+
 ```bash
 git clone https://github.com/coral-xyz/sealevel-attacks
 radar -p sealevel-attacks
@@ -52,66 +64,81 @@ Or you can quickly test on local mocks (from root dir) `./radar --dev -p ./api/t
 
 To run a non-builtin template place a yaml file anywhere and reference it via `radar -p . -t <path_to_templats_dir>`
 
+To explore more running options, see [All the ways to run radar](https://github.com/auditware/radar/wiki/Running-Options).
 
-## 🛠️ Development & Local Testing
+<br>
 
-For developers working on radar or testing local changes, use the `--dev` flag to build from your local source code instead of using pre-built images
-
-### Development Mode
-
-```bash
-# Build and run from local source
-./radar --dev -p <your-contract-folder>
-```
-
-### Quick testing
-
-Use the included test contracts for development:
-
-```bash
-# Test with anchor-test contract
-./radar --dev -p ./api/tests/mocks/anchor-test
-
-# Test with multi-program contract
-./radar --dev -p ./api/tests/mocks/anchor-test-2
-```
-
-## 🔂 GitHub Action !
+## GitHub Action
 
 In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditware/radar-action) and be alerted with radar's insights continuously through your contract repository.
 
 <p>
-  <img src="./static/gh-action.png" alt="Radar GitHub Action">
+  <img src="./static/gh-action.png" alt="radar GitHub Action">
 </p>
 
-After fixing issues, you could share that the action completes successfully each run by pasting a link similar to this in your repo's `README.md`:
+<br>
 
-```html
-<img src="https://img.shields.io/github/actions/workflow/status/<USER>/<REPO>/<RADAR-WORKFLOW-NAME>.yaml">
-```
+## Pre-commit hook
 
-## 🔙 Pre-commit hook
+If you're using [pre-commit](https://pre-commit.com), you could also add radar to your workflow by adding radar to your `.pre-commit-config.yaml` configuration like so:
 
-If you're using `pre-commit`, you could also add radar to your workflow by adding radar to your `.pre-commit-config.yaml` configuration like so:
 ```yaml
 repos:
-- repo: local
-  hooks:
-    - id: run-radar
-      name: Run Radar Static Analysis
-      entry: radar -p . --ignore low
-      language: system
-      stages: [commit]
-      pass_filenames: false
-      always_run: true
+  - repo: local
+    hooks:
+      - id: run-radar
+        name: Run radar Static Analysis
+        entry: radar -p . --ignore low
+        language: system
+        stages: [commit]
+        pass_filenames: false
+        always_run: true
 ```
 
-## Contribution
+<br>
 
-Either if you have a vulnerability to test in mind, or if you want to improve the quality of an existing one, templates are the best way to contribute to this repo! Open a PR to add your template to the built-ins.
+## Contributors
 
-[How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates)
+<table>
+<tr>
+    <td align="center">
+        <a href="https://github.com/forefy">
+            <img src="https://avatars.githubusercontent.com/u/166978930?v=4" width="100;" alt="forefy"/>
+            <br />
+            <sub><b>forefy</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/avigaildanesh">
+            <img src="https://avatars.githubusercontent.com/u/118690295?v=4" width="100;" alt="avigaildanesh"/>
+            <br />
+            <sub><b>avigaildanesh</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/brittcyr">
+            <img src="https://avatars.githubusercontent.com/u/1320260?v=4" width="100;" alt="brittcyr"/>
+            <br />
+            <sub><b>brittcyr</b></sub>
+        </a>
+    </td>
+</tr>
+</table>
 
-We'd love to assist with writing your first template, and provide guidance.
+<br>
 
-Check out the [Wiki](https://github.com/auditware/radar/wiki) for more details. For support reach out to the Audit Wizard [Discord](https://discord.gg/8PTTMd96p4).
+Either if you have a vulnerability to test in mind, or if you want to improve the quality of an existing one, templates are the best way to contribute to this repo!
+
+### How to contribute
+
+Open a PR to add your template to the built-ins ( See [How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates) ).
+
+### We can help you to help!
+
+We'd love to assist with writing your first template, and provide full guidance and support.
+
+<br>
+
+Check out the [Wiki](https://github.com/auditware/radar/wiki) for more details.
+
+For support reach out to the Audit Wizard [Discord](https://discord.gg/8PTTMd96p4).

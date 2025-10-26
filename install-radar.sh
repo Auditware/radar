@@ -16,7 +16,7 @@ mkdir -p "$RADAR_DIR"
 if [ ! -d "$RADAR_DIR/.git" ]; then
     git clone "$REPO_URL" "$RADAR_DIR"
 else
-    echo "Radar repository already exists. Pulling the latest changes.."
+    echo "radar repository already exists. Pulling the latest changes.."
     git -C "$RADAR_DIR" reset --hard HEAD
     git -C "$RADAR_DIR" pull
 fi
@@ -25,7 +25,7 @@ chmod +x "$SCRIPT_PATH"
 
 if ln -sf "$SCRIPT_PATH" "$LINK_PATH"; then
     chmod +x "$LINK_PATH"
-    echo "Radar installed. You can run it by typing 'radar' in your terminal."
+    echo "radar installed. You can run it by typing 'radar' in your terminal."
 else
     echo "Adding radar directory to PATH."
 
@@ -56,5 +56,5 @@ else
         fi
     fi
 
-    echo "Radar installed. Please run 'source $PROFILE' or restart your terminal session before running radar."
+    echo "radar installed. Please run 'source $PROFILE' or restart your terminal session before running radar."
 fi

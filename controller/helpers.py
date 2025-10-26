@@ -67,6 +67,12 @@ def parse_arguments() -> argparse.Namespace:
         required=False,
         help="Comma-separated severities to ignore in the scan (e.g. low,medium)",
     )
+    parser.add_argument(
+        "--debug",
+        required=False,
+        action="store_true",
+        help="Enable debug output including AST information",
+    )
     return parser.parse_args()
 
 
@@ -125,7 +131,6 @@ def copy_to_docker_mount(
         else:
             raise ValueError("Invalid path_type: Must be 'file' or 'folder'")
 
-        print(f"[i] Successfully copied {path_type}")
     except Exception as e:
         raise Exception(f"[e] Failed to copy {path_type} to volume: {str(e)}")
 
@@ -151,6 +156,7 @@ def print_write_outputs(
     path: Path,
     output_type: str,
     ignore_severities: str | None,
+    debug: bool = False,
 ):
     container_output_file_path = Path(f"/radar_data/output.{output_type}")
     container_output_path_ast = Path("/radar_data/ast.json")
@@ -165,13 +171,32 @@ def print_write_outputs(
         finding for finding in results if finding["severity"].lower() not in ignored
     ]
 
+    if ast and "sources" in ast:
+        file_count = len(ast["sources"])
+        filenames = [Path(file_path).name for file_path in ast["sources"].keys()]
+        filenames_str = ",".join(filenames)
+        print(f"[i] Scanned {file_count} file{'s' if file_count != 1 else ''} ({filenames_str})")
+        
+        if debug:
+            for i, result in enumerate(results):
+                if 'debug' in result:
+                    print()
+                    print(f"[d] Debug output from template \"{result.get('name', 'Unknown')}\"")
+                    for i in range(0, len(result['debug'])):
+                        print(f"[d]  {result['debug'][i]}")
+
     if len(results) == 0:
-        print("[i] Radar completed successfully. No results found.")
         if output_type == "sarif":
             print("[i] Writing empty SARIF to indicate no results.")
             output_file = Path(container_output_file_path)
             with output_file.open("w") as outfile:
                 json.dump(no_results_sarif, outfile, indent=4)
+        
+        if write_ast:
+            with open(container_output_path_ast, "w") as f:
+                json.dump(ast, f, indent=4)
+        
+        print("[i] radar completed successfully. No results found.")
         sys.exit(0)
 
     # Color codes for severities
@@ -213,12 +238,12 @@ def print_write_outputs(
             json.dump(ast, f, indent=4)
 
     print(
-        f"[i] Radar completed successfully. {output_type} results were saved to disk."
+        f"[i] radar completed successfully. {output_type} results were saved to disk."
     )
 
 
 def convert_severity_to_sarif_level(severity: str) -> str:
-    severity_mapping = {"High": "error", "Medium": "warning", "Low": "note"}
+    severity_mapping = {"High": "error", "Medium": "warning", "Low": "warning"} # 'note' sometimes is being hidden by sarif supported tools
     sarif_level = severity_mapping.get(severity)
     if sarif_level is None:
         print("[e] Could not convert severity to SARIF level")
@@ -375,7 +400,7 @@ def write_sarif_output(output_file_path: Path, findings: list, arg_path: Path):
 
 
 def save_markdown_output(container_output_file_path: Path, findings: list):
-    markdown = "# Radar Static Analysis Report\n\n"
+    markdown = "# radar Static Analysis Report\n\n"
     markdown += f"This report was generated on {datetime.now().strftime('%d.%m.%Y at %H:%M')}. The results are provided for informational purposes only and should not replace thorough audits or expert evaluations. Users are responsible for conducting their own assessments and ensuring accuracy before making decisions.\n\n"
     markdown += "## Alert Summary\n\n"
     markdown += "| Alert       | Severity    | Certainty   | Locations   |\n"

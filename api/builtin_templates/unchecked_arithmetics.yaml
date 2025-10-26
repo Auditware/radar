@@ -1,0 +1,14 @@
+version: 0.1.0
+author: forefy
+name: Unchecked Arithmetic Operations
+severity: Low
+certainty: High
+description: Unchecked arithmetic operations can lead to integer overflow/underflow issues, as U256 arithmetic may wrap on overflow instead of reverting.
+rule: |
+    for source, nodes in ast:
+        try:
+            method_call_binary_ops = nodes.find_by_access_path("method_call.args[0].binary")
+            nodes.find_by_names("checked_mul", "checked_add", "checked_add", "checked_sub", "checked_div", "checked_rem").exit_on_value()
+            print(nodes.find_by_names("U256").exit_on_none().first().to_result())
+        except:
+            continue

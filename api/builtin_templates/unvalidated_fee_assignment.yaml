@@ -1,0 +1,63 @@
+version: 0.1.0
+author: avigaildanesh
+name: Unvalidated Fee Assignment (require check)
+severity: Medium
+certainty: Medium
+description: |
+  Detects direct assignments of fee configuration fields (like ctx.accounts.config.fee_rate = new_rate)
+  when there is NO preceding require! (or equivalent) check in the same function.
+rule: |
+  for source, nodes in ast:
+      try:
+          assigns = nodes.find_by_access_path("assign")
+
+          for a in assigns:
+              if a.ident != "fee_rate":
+                  continue
+
+              found_config = False
+              found_accounts = False
+              found_ctx = False
+
+              for c in a.children:
+                  if c.ident == "config":
+                      found_config = True
+                      for g in c.children:
+                          if g.ident == "accounts":
+                              found_accounts = True
+                              for h in g.children:
+                                  if h.ident == "ctx":
+                                      found_ctx = True
+
+              if not (found_config and found_accounts and found_ctx):
+                  continue
+
+              func_node = a.parent
+              if not func_node:
+                  continue
+
+              require_found = False
+              for child in func_node.children:
+                  if child.ident == "require" or child.ident == "require!":
+                      require_found = True
+                      break
+                  for c2 in child.children:
+                      if c2.ident == "require" or c2.ident == "require!":
+                          require_found = True
+                          break
+                      for c3 in c2.children:
+                          if c3.ident == "require" or c3.ident == "require!":
+                              require_found = True
+                              break
+                      if require_found:
+                          break
+                  if require_found:
+                      break
+
+              # Report only if no require! was found in the function
+              if not require_found:
+                  print(a.to_result())
+
+      except:
+          continue
+

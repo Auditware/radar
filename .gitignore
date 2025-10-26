@@ -5,10 +5,11 @@
 **/.vscode
 **/target
 Makefile.local
-output.json
 output.md
 *.sarif
-ast.json
+*.json
 *checksum*
 radar.wiki
 **/.DS_Store
+outputs
+api/builtin_templates/*debug*

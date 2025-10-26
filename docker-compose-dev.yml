@@ -15,6 +15,7 @@ services:
 
   api:
     container_name: "radar-api"
+    platform: linux/amd64
     build:
       context: api
       args:
@@ -37,7 +38,9 @@ services:
       - "8000:8000"
     volumes:
       - radar_data:/radar_data
-      - ./api:/api
+      - ./api/api:/api/api
+      - ./api/builtin_templates:/api/builtin_templates
+      - ./api/tests:/api/tests
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,6 +54,7 @@ services:
       retries: 20
 
   celeryworker:
+    platform: linux/amd64
     build:
       context: api
     command: poetry run celery -A api worker -l info

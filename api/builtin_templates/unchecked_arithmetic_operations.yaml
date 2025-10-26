@@ -1,0 +1,43 @@
+version: 0.1.0
+author: avigaildanesh
+name: Unchecked Arithmetic Operations  
+severity: Medium
+certainty: Medium
+description: Detects direct arithmetic operations on lamports or critical fields without checked math.
+rule: |
+  for source, nodes in ast:
+      try:
+          account_access = nodes.find_by_names("accounts")
+          if list(account_access) == []:
+              continue
+          checked_methods = nodes.find_by_names("checked_add", "checked_sub", "checked_mul")
+          if list(checked_methods) != []:
+              continue
+          reported_lines = set()
+          def visit_node(node):
+              if node == None:
+                  return False
+              if "binary" in node.access_path:
+                  def contains_mutation(n):
+                      if n == None:
+                          return False
+                      if "method_call" in n.access_path and n.ident != None:
+                          if "lamports" in n.ident or "borrow" in n.ident:
+                              return True
+                      if "field" in n.access_path and n.ident != None:
+                          keywords = ["balance","amount","token","total","withdrawn","reward","stake","pending","adjusted","fee"]
+                          for kw in keywords:
+                              if kw in n.ident:
+                                  return True
+                      for c in n.children:
+                          if contains_mutation(c):
+                              return True
+                      return False
+                  if contains_mutation(node) and node.src != None:
+                      print(node.to_result())
+                      reported_lines.add(node.to_result())
+              for child in node.children:
+                  visit_node(child)
+          visit_node(nodes)
+      except:
+          continue
