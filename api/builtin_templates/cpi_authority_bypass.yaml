@@ -3,14 +3,10 @@ author: avigaildanesh
 name: Random Authority Generation
 severity: Low
 certainty: Low
-description: Detects generation of random/unique Pubkey for authority which bypasses proper authority validation
+description: Detects generation of random/unique Pubkey for authority which bypasses proper authority validation.
 rule: |
   for source, nodes in ast:
       try:
-          # Find any nodes with "new_unique" identifier
-          new_unique_calls = nodes.find_by_names("new_unique").exit_on_none()
-          
-          # Report all random authority generations
-          print(new_unique_calls.first().to_result())
+          print(nodes.find_by_names("new_unique").exit_on_none().first().to_result())
       except:
           continue

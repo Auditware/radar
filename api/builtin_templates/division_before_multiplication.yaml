@@ -1,12 +1,9 @@
 version: 0.1.0
 author: avigaildanesh
-name: Precision Loss - Division Before Multiplication
+name: Division Before Multiplication Precision Loss
 severity: Low
 certainty: Low
-description: |
-  Detects math expressions where division occurs before multiplication in the same
-  arithmetic expression (e.g., `amount / 10000 * config.fee_rate`), leading to integer
-  truncation and precision loss. Ignores safe cases like `amount * config.fee_rate / 10000`.
+description: Detects math expressions where division occurs before multiplication in the same arithmetic expression, leading to integer truncation and precision loss.
 rule: |
   for source, nodes in ast:
       try:

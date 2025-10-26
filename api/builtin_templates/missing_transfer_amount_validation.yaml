@@ -8,9 +8,9 @@ rule: |
   for source, nodes in ast:
       try:
           transfer_calls = nodes.find_chained_calls("token", "transfer").exit_on_none()
+          nodes.find_comparisons("amount", call.first().access_path).exit_on_value()
+          
           for call in transfer_calls:
-              amount_checked = nodes.find_comparisons("amount", call.first().access_path).exit_on_value()
-              if not amount_checked:
-                  print(call.first().to_result())
+              print(call.first().to_result())
       except:
           continue
