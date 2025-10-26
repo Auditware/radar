@@ -11,6 +11,10 @@
 - `/controller/` container is an orchestrator bridging between user filesystem and the api container, handling CLI args, file mounting, and result formatting
 - `/api/rust_syn_wrapper/` is being compiled to the api container as a shared library, providing python bindings to rust's syn parser for AST generation
 - radar templates are YAML files defining security checks to be made by the radar engine. existing ones are in `/api/builtin_templates/`
+- radar templates are written in a DSL defined in `/api/utils/dsl/`
+- radar template rules operate on AST nodes provided by rust's syn parser via rust_syn_wrapper
+- radar template rules inherit from a base set of functions defined in `/api/utils/dsl/dsl_ast_iterator.py`
+- radar template rule indicate a found issue by calling `print()` on a node (the node or nodes list that represent the issue and should be marked as the core problem), and specifically `print(node.to_result())` to get structured output that radar can parse into a structured finding
 - `radar -p <contract-path>` runs the analysis on the specified smart contract path
 - to run in dev mode (building from local source), use `radar -d -p <contract-path>`
 
