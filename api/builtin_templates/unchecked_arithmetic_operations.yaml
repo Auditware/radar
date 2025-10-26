@@ -1,0 +1,27 @@
+version: 0.1.0
+author: avigaildanesh
+name: unchecked_balance_operations
+severity: Medium
+certainty: Medium
+description: Detects unchecked arithmetic on balance fields that can overflow or underflow
+rule: |
+  for source, nodes in ast:
+      try:
+          # Check if checked math exists
+          checked_math = nodes.find_by_names("checked_add", "checked_sub", "checked_mul", "checked_div")
+          if checked_math:
+              continue
+          
+          # Find binary operations
+          binary_ops = nodes.find_by_access_path("binary").exit_on_none()
+          
+          # Find balance field accesses
+          balance_fields = nodes.find_by_names("token_balance", "total_withdrawn", "pending_rewards", "adjusted_rewards")
+          
+          if not balance_fields:
+              continue
+          
+          # If we have both binary operations and balance fields, report the binary ops
+          print(binary_ops.first().to_result())
+      except:
+          continue

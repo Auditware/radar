@@ -1,0 +1,22 @@
+version: 0.1.0
+author: avigaildanesh
+name: account_precreation_dos
+severity: Low
+certainty: Low
+description: Detects unsafe account owner assignments without prior validation
+rule: |
+  for source, nodes in ast:
+      try:
+          # Find assignments to "owner" field
+          owner_assigns = nodes.find_assignments("owner", "key").exit_on_none()
+          
+          # Check for require macros
+          require_exists = nodes.find_by_names("require")
+          
+          # If no require exists, it's vulnerable
+          if not require_exists:
+              # Use to_result() to get the proper location format
+              print(owner_assigns.first().first().to_result())
+              
+      except:
+          continue
