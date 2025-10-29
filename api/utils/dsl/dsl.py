@@ -22,7 +22,7 @@ def print_try_jsonify(*args, **kwargs):
     print(*new_args, **kwargs)
 
 
-allowed_builtins = {"print", "len", "range", "dict", "list", "tuple", "set"}
+allowed_builtins = {"print", "len", "range", "dict", "list", "tuple", "set", "type"}
 allowed_imports = {}
 sandbox_globals = {
     "__builtins__": {"__import__": __import__},
@@ -112,12 +112,24 @@ def process_template_outputs(template_outputs, yaml_data):
     for output in template_outputs:
         valid_output = extract_json_output(output)
         if valid_output is not None:
-            # print("[i] Finding-valid printed output detected")
-            src = valid_output["src"]
-            location = (
-                f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
-            )
-            finding_data["locations"].append(location)
+            # Handle single node case
+            if isinstance(valid_output, dict):
+                # print("[i] Finding-valid printed output detected")
+                src = valid_output["src"]
+                location = (
+                    f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
+                )
+                finding_data["locations"].append(location)
+            
+            # Handle list of nodes case
+            elif isinstance(valid_output, list):
+                # print(f"[i] Finding-valid printed output list detected with {len(valid_output)} nodes")
+                for node in valid_output:
+                    src = node["src"]
+                    location = (
+                        f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
+                    )
+                    finding_data["locations"].append(location)
         else:
             finding_data["debug"].append(output)
 
@@ -127,13 +139,28 @@ def process_template_outputs(template_outputs, yaml_data):
     return finding_data
 
 
-def extract_json_output(data: str) -> Optional[dict]:
+def extract_json_output(data: str) -> Optional[dict | list]:
     node_data = None
     try:
         node_data = json.loads(data)
-        if "ident" not in node_data or "src" not in node_data:
-            # print(f"[w] Dropping output node data without ident/src: {data}")
+        
+        # Handle single node case
+        if isinstance(node_data, dict):
+            if "ident" not in node_data or "src" not in node_data:
+                # print(f"[w] Dropping output node data without ident/src: {data}")
+                raise ValueError
+        
+        # Handle list of nodes case
+        elif isinstance(node_data, list):
+            for node in node_data:
+                if not isinstance(node, dict) or "ident" not in node or "src" not in node:
+                    # print(f"[w] Dropping output list containing invalid node data: {data}")
+                    raise ValueError
+        
+        else:
+            # print(f"[w] Dropping output that is neither dict nor list: {data}")
             raise ValueError
+            
     except json.JSONDecodeError:
         # print(f"[w] Dropping output not json serializeable: {data}")
         return None

@@ -1,7 +1,7 @@
-import os
 from functools import wraps
 from dataclasses import dataclass, field
 from typing import List, Optional
+import json
 
 
 def dsl_log(func):
@@ -22,21 +22,25 @@ def dsl_log(func):
             result = func(*args, **kwargs)
 
             node_count = 0
-            if hasattr(result, '__len__'):
+            if hasattr(result, "__len__"):
                 node_count = len(result)
             elif result is not None:
                 node_count = 1
-            
+
             # Special handling for exit methods
             if func_name == "exit_on_none":
-                print(f"[dsl_log] {func_name}({params}) -> continued ({node_count} nodes)") # should always be >1
+                print(
+                    f"[d] [dsl_log] {func_name}({params}) -> continued ({node_count} nodes)"
+                )  # should always be >1
             elif func_name == "exit_on_value":
-                print(f"[dsl_log] {func_name}({params}) -> continued ({node_count} nodes)") # should always be 0
-            else:    
-                print(f"[dsl_log] {func_name}({params}) -> {node_count} nodes")
+                print(
+                    f"[d] [dsl_log] {func_name}({params}) -> continued ({node_count} nodes)"
+                )  # should always be 0
+            else:
+                print(f"[d] [dsl_log] {func_name}({params}) -> {node_count} nodes")
             return result
         except StopIteration as e:
-            print(f"[dsl_log] {func_name}({params}) -> StopIteration: {e}")
+            print(f"[d] [dsl_log] {func_name}({params}) -> StopIteration: {e}")
             raise
 
     return wrapper
@@ -67,9 +71,14 @@ class ASTNodeListGroup:
     def __len__(self):
         return len(self.node_lists)
 
+    def __getitem__(self, index):
+        return self.node_lists[index]
+
+    @dsl_log
     def to_result(self):
         return [node_list.to_result() for node_list in self.node_lists]
 
+    @dsl_log
     def first(self):
         return self.node_lists[0] if self.node_lists else self.exit_on_none()
 
@@ -83,6 +92,20 @@ class ASTNodeListGroup:
     def exit_on_value(self):
         if self.node_lists:
             raise StopIteration("Node lists found")
+        return self
+
+    def to_raw_ast_debug(self):
+        result_data = []
+        for i, node_list in enumerate(self.node_lists):
+            group_data = []
+            for node in node_list.nodes:
+                group_data.append(node.to_result())
+            result_data.append(group_data)
+        
+        print()
+        print("Raw AST Node List Group Debug:")
+        print(json.dumps(result_data, indent=4, default=str))
+        print()
         return self
 
 
@@ -113,10 +136,14 @@ class ASTNodeList:
     def __len__(self):
         return len(self.nodes)
 
+    def __getitem__(self, index):
+        return self.nodes[index]
+
     @dsl_log
     def to_result(self):
         return [node.to_result() for node in self.nodes]
 
+    @dsl_log
     def first(self):
         return self.nodes[0] if self.nodes else self.exit_on_none()
 
@@ -130,6 +157,15 @@ class ASTNodeList:
     def exit_on_value(self):
         if self.nodes:
             raise StopIteration("Nodes found")
+        return self
+
+    def to_raw_ast_debug(self):
+        result_data = [node.to_result() for node in self.nodes]
+        
+        print()
+        print("Raw AST Node List Debug:")
+        print(json.dumps(result_data, indent=4, default=str))
+        print()
         return self
 
 
@@ -156,7 +192,6 @@ class ASTNode:
         child.parent = self
         self.children.append(child)
 
-    @dsl_log
     def to_result(self):
         return {
             "src": self.src,
@@ -178,7 +213,6 @@ class RustASTNode(ASTNode):
             self.ident = "root"
             self.root = True
 
-    @dsl_log
     def to_result(self):
         result = super().to_result()
         result.update(
@@ -188,6 +222,20 @@ class RustASTNode(ASTNode):
             }
         )
         return result
+
+    def to_raw_ast_debug(self):
+        result = super().to_result()
+        result.update(
+            {
+                "ident": self.ident,
+                "parent": self.parent.ident if self.parent else None,
+            }
+        )
+        print()
+        print("Raw AST Node Debug:")
+        print(json.dumps(result, indent=4, default=str))
+        print()
+        return self
 
     @dsl_log
     def find_by_parent(self, parent_ident: str) -> ASTNodeList:
