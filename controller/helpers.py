@@ -175,15 +175,19 @@ def print_write_outputs(
         file_count = len(ast["sources"])
         filenames = [Path(file_path).name for file_path in ast["sources"].keys()]
         filenames_str = ",".join(filenames)
-        print(f"[i] Scanned {file_count} file{'s' if file_count != 1 else ''} ({filenames_str})")
-        
+        print(
+            f"[i] Scanned {file_count} file{'s' if file_count != 1 else ''} ({filenames_str})"
+        )
+
         if debug:
             for i, result in enumerate(results):
-                if 'debug' in result:
+                if "debug" in result:
                     print()
-                    print(f"[d] Debug output from template \"{result.get('name', 'Unknown')}\"")
-                    for i in range(0, len(result['debug'])):
-                        print(f"[d]  {result['debug'][i]}")
+                    print(
+                        f"[d] Debug output from template \"{result.get('name', 'Unknown')}\""
+                    )
+                    for i in range(0, len(result["debug"])):
+                        print(result['debug'][i])
 
     if len(results) == 0:
         if output_type == "sarif":
@@ -191,38 +195,40 @@ def print_write_outputs(
             output_file = Path(container_output_file_path)
             with output_file.open("w") as outfile:
                 json.dump(no_results_sarif, outfile, indent=4)
-        
+
         if write_ast:
             with open(container_output_path_ast, "w") as f:
                 json.dump(ast, f, indent=4)
-        
+
         print("[i] radar completed successfully. No results found.")
         sys.exit(0)
 
     # Color codes for severities
     color_map = {
-        'High': '\033[91m',    # Red
-        'Medium': '\033[94m',  # Blue
-        'Low': '\033[92m'      # Green
+        "High": "\033[91m",  # Red
+        "Medium": "\033[94m",  # Blue
+        "Low": "\033[92m",  # Green
     }
-    reset_color = '\033[0m'  # Reset to default color
+    reset_color = "\033[0m"  # Reset to default color
 
     for finding in results:
-        print()
         locations = finding["locations"]
         locations_length = len(locations)
-        severity = finding['severity']
-        color = color_map.get(severity, '')
-        
-        if locations_length < 8:
-            print(f"[ {color}{severity}{reset_color} ] {finding['name']} found at:")
-            for location in locations:
-                print(f" * {location}")
-        else:
-            print(
-                f"[ {color}{severity}{reset_color} ] {finding['name']} found at {locations_length} locations, see output file for more details."
-            )
+        severity = finding["severity"]
+        color = color_map.get(severity, "")
+
         print()
+        if locations_length != 0:
+            
+            if locations_length < 20:
+                print(f"[ {color}{severity}{reset_color} ] {finding['name']} found at:")
+                for location in locations:
+                    print(f" * {location}")
+            else:
+                print(
+                    f"[ {color}{severity}{reset_color} ] {finding['name']} found at {locations_length} locations, see output file for more details."
+                )
+            print()
 
     container_output_file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -243,7 +249,11 @@ def print_write_outputs(
 
 
 def convert_severity_to_sarif_level(severity: str) -> str:
-    severity_mapping = {"High": "error", "Medium": "warning", "Low": "warning"} # 'note' sometimes is being hidden by sarif supported tools
+    severity_mapping = {
+        "High": "error",
+        "Medium": "warning",
+        "Low": "warning",
+    }  # 'note' sometimes is being hidden by sarif supported tools
     sarif_level = severity_mapping.get(severity)
     if sarif_level is None:
         print("[e] Could not convert severity to SARIF level")
