@@ -882,6 +882,44 @@ class RustASTNode(ASTNode):
         traverse(self)
         return ASTNodeList(member_accesses)
 
+    @dsl_log
+    def find_binary_operations(self, *operators: tuple[str, ...]) -> ASTNodeList:
+        """Find binary operations with specific operators.
+
+        Args:
+            *operators: Variable number of operator strings to search for (e.g., "*", "+", "-", "/").
+
+        Returns:
+            ASTNodeList of nodes that are involved in binary operations with the specified operators.
+        """
+        matching_nodes = []
+        search_path_prefix = self.access_path if not self.root else ""
+        
+        all_nodes = getattr(self, "_all_nodes", [])
+        if not all_nodes:
+            all_nodes = [self]
+        
+        seen_binary_paths = set()
+        for node in all_nodes:
+            if search_path_prefix and not node.access_path.startswith(search_path_prefix):
+                continue
+            
+            op = node.metadata.get("op")
+            if op and op in operators:
+                has_binary_child = False
+                for child in node.children:
+                    if child.access_path and ".binary." in child.access_path:
+                        has_binary_child = True
+                        break
+                
+                if has_binary_child:
+                    binary_base_path = node.access_path
+                    if binary_base_path not in seen_binary_paths:
+                        matching_nodes.append(node)
+                        seen_binary_paths.add(binary_base_path)
+
+        return ASTNodeList(matching_nodes)
+
 
 def serialize_rust_ast(ast, access_path="", parent=None) -> list:
     """Serialize a Rust AST into a list of RustASTNode objects.
@@ -940,6 +978,12 @@ def serialize_rust_ast(ast, access_path="", parent=None) -> list:
                 nodes.append(node)
                 parent = node
 
+        # Capture binary operator information
+        if "op" in ast and parent:
+            if not hasattr(parent, "metadata"):
+                parent.metadata = {}
+            parent.metadata["op"] = ast["op"]
+
         # Look deeper
         for key, value in ast.items():
             new_path = f"{access_path}.{key}" if access_path else key
@@ -988,7 +1032,9 @@ def parse_ast(ast: dict) -> dict:
                     break
                 parent_path = ".".join(parent_path.split(".")[:-1])
         root = RustASTNode()
+        root._all_nodes = nodes
         for node in nodes:
+            node._all_nodes = nodes
             if not node.parent:
                 root.add_child(node)
         roots[source] = root
