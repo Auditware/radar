@@ -8,7 +8,7 @@ rule: |
   for source, nodes in ast:
       try:
           transfer_calls = nodes.find_chained_calls("token", "transfer").exit_on_none()
-          nodes.find_comparisons("amount", call.first().access_path).exit_on_value()
+          nodes.find_comparisons_between("amount", call.first().access_path).exit_on_value()
           
           for call in transfer_calls:
               print(call.first().to_result())

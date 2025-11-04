@@ -33,6 +33,7 @@ sandbox_globals = {
     "list": list,
     "tuple": tuple,
     "set": set,
+    "type": type,
 }
 sandbox_globals.update(
     {

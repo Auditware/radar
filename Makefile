@@ -29,7 +29,7 @@ test-all:
 	cd api/ && poetry run pytest -s -v
 
 update-docs:
-	git clone https://github.com/auditware/radar.wiki.git
+	git clone https://github.com/Auditware/radar.wiki.git
 	cp -r docs/* radar.wiki/
 	cd radar.wiki/ && \
 	git add . && \

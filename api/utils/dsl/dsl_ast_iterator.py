@@ -5,6 +5,15 @@ import json
 
 
 def dsl_log(func):
+    """Decorator for logging DSL function calls and their results.
+
+    Args:
+        func: The function to be decorated.
+
+    Returns:
+        Wrapped function that logs its execution details.
+    """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         func_name = func.__name__
@@ -76,32 +85,63 @@ class ASTNodeListGroup:
 
     @dsl_log
     def to_result(self):
+        """Convert the node list group to result format.
+
+        Returns:
+            List of result dictionaries for each node list in the group.
+        """
         return [node_list.to_result() for node_list in self.node_lists]
 
     @dsl_log
     def first(self):
+        """Get the first node list in the group.
+
+        Returns:
+            The first node list in the group, or raises StopIteration if empty.
+        """
         return self.node_lists[0] if self.node_lists else self.exit_on_none()
 
     @dsl_log
     def exit_on_none(self):
+        """Exit with StopIteration if no node lists are found.
+
+        Returns:
+            Self if node lists exist.
+
+        Raises:
+            StopIteration: If no node lists are found.
+        """
         if not self.node_lists:
             raise StopIteration("No node lists found")
         return self
 
     @dsl_log
     def exit_on_value(self):
+        """Exit with StopIteration if node lists are found.
+
+        Returns:
+            Self if no node lists exist.
+
+        Raises:
+            StopIteration: If node lists are found.
+        """
         if self.node_lists:
             raise StopIteration("Node lists found")
         return self
 
     def to_raw_ast_debug(self):
+        """Print debug information for the node list group.
+
+        Returns:
+            Self for method chaining.
+        """
         result_data = []
         for i, node_list in enumerate(self.node_lists):
             group_data = []
             for node in node_list.nodes:
                 group_data.append(node.to_result())
             result_data.append(group_data)
-        
+
         print()
         print("Raw AST Node List Group Debug:")
         print(json.dumps(result_data, indent=4, default=str))
@@ -141,27 +181,58 @@ class ASTNodeList:
 
     @dsl_log
     def to_result(self):
+        """Convert the node list to result format.
+
+        Returns:
+            List of result dictionaries for each node in the list.
+        """
         return [node.to_result() for node in self.nodes]
 
     @dsl_log
     def first(self):
+        """Get the first node in the list.
+
+        Returns:
+            The first node in the list, or raises StopIteration if empty.
+        """
         return self.nodes[0] if self.nodes else self.exit_on_none()
 
     @dsl_log
     def exit_on_none(self):
+        """Exit with StopIteration if no nodes are found.
+
+        Returns:
+            Self if nodes exist.
+
+        Raises:
+            StopIteration: If no nodes are found.
+        """
         if not self.nodes:
             raise StopIteration("No nodes found")
         return self
 
     @dsl_log
     def exit_on_value(self):
+        """Exit with StopIteration if nodes are found.
+
+        Returns:
+            Self if no nodes exist.
+
+        Raises:
+            StopIteration: If nodes are found.
+        """
         if self.nodes:
             raise StopIteration("Nodes found")
         return self
 
     def to_raw_ast_debug(self):
+        """Print debug information for the node list.
+
+        Returns:
+            Self for method chaining.
+        """
         result_data = [node.to_result() for node in self.nodes]
-        
+
         print()
         print("Raw AST Node List Debug:")
         print(json.dumps(result_data, indent=4, default=str))
@@ -189,10 +260,20 @@ class ASTNode:
         self.access_path = access_path
 
     def add_child(self, child: "ASTNode"):
+        """Add a child node to this node.
+
+        Args:
+            child: The child ASTNode to add.
+        """
         child.parent = self
         self.children.append(child)
 
     def to_result(self):
+        """Convert the node to result format.
+
+        Returns:
+            Dictionary representation of the node including source, children, access path, and metadata.
+        """
         return {
             "src": self.src,
             "children": [child.to_result() for child in self.children],
@@ -214,6 +295,11 @@ class RustASTNode(ASTNode):
             self.root = True
 
     def to_result(self):
+        """Convert the Rust AST node to result format.
+
+        Returns:
+            Dictionary representation of the node including identifier and parent information.
+        """
         result = super().to_result()
         result.update(
             {
@@ -224,6 +310,11 @@ class RustASTNode(ASTNode):
         return result
 
     def to_raw_ast_debug(self):
+        """Print debug information for the Rust AST node.
+
+        Returns:
+            Self for method chaining.
+        """
         result = super().to_result()
         result.update(
             {
@@ -239,6 +330,14 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_by_parent(self, parent_ident: str) -> ASTNodeList:
+        """Find all nodes that have a specific parent identifier.
+
+        Args:
+            parent_ident: The identifier of the parent node to search for.
+
+        Returns:
+            ASTNodeList of nodes that have the specified parent identifier.
+        """
         results = []
         if self.parent and self.parent.ident == parent_ident:
             results.append(self)
@@ -248,6 +347,14 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_by_child(self, child_ident: str) -> ASTNodeList:
+        """Find all nodes that have a specific child identifier.
+
+        Args:
+            child_ident: The identifier of the child node to search for.
+
+        Returns:
+            ASTNodeList of nodes that have a child with the specified identifier.
+        """
         matches = []
 
         def recurse(node):
@@ -261,6 +368,14 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_chained_calls(self, *idents: tuple[str, ...]) -> ASTNodeListGroup:
+        """Find sequences of chained method calls with specific identifiers.
+
+        Args:
+            *idents: Variable number of identifiers that should appear in sequence as chained calls.
+
+        Returns:
+            ASTNodeListGroup containing lists of nodes that match the chained call pattern.
+        """
         matches = []
 
         def recurse(node, idents):
@@ -277,6 +392,14 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_by_access_path(self, access_path_part: str) -> ASTNodeList:
+        """Find nodes that contain a specific part in their access path.
+
+        Args:
+            access_path_part: The partial access path string to search for.
+
+        Returns:
+            ASTNodeList of nodes whose access path contains the specified part.
+        """
         matching_nodes = []
 
         def recurse(node):
@@ -290,6 +413,14 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_macro_attribute_by_names(self, *idents: tuple[str, ...]) -> ASTNodeList:
+        """Find macro attributes by their identifier names.
+
+        Args:
+            *idents: Variable number of identifiers to search for in macro attributes.
+
+        Returns:
+            ASTNodeList of nodes that are macro attributes with the specified identifiers.
+        """
         matching_nodes = []
 
         def search_nodes(node):
@@ -313,6 +444,15 @@ class RustASTNode(ASTNode):
     def find_by_similar_access_path(
         self, access_path: str, stop_keyword: str
     ) -> ASTNodeList:
+        """Find nodes with access paths similar to the given path, truncated at a stop keyword.
+
+        Args:
+            access_path: The base access path to compare against.
+            stop_keyword: The keyword where the path should be truncated for comparison.
+
+        Returns:
+            ASTNodeList of nodes with similar access paths to the truncated base path.
+        """
         index = access_path.rfind(stop_keyword)
         if index != -1:
             truncated_path = access_path[: index + len(stop_keyword)]
@@ -334,7 +474,16 @@ class RustASTNode(ASTNode):
         return ASTNodeList(matching_nodes)
 
     @dsl_log
-    def find_comparisons(self, ident1: str, ident2: str):
+    def find_comparisons_between(self, ident1: str, ident2: str):
+        """Find binary comparison operations between two specific identifiers.
+
+        Args:
+            ident1: The first identifier to look for in comparisons.
+            ident2: The second identifier to look for in comparisons.
+
+        Returns:
+            ASTNodeList of comparison nodes that involve both specified identifiers.
+        """
         comparisons = []
 
         def traverse(node):
@@ -397,7 +546,15 @@ class RustASTNode(ASTNode):
         return ASTNodeList(comparisons)
 
     @dsl_log
-    def find_comparison_to_any(self, ident: str):
+    def find_comparison_involving(self, ident: str):
+        """Find any comparison operations that involve a specific identifier.
+
+        Args:
+            ident: The identifier to search for in comparison operations.
+
+        Returns:
+            ASTNodeList of comparison nodes that involve the specified identifier.
+        """
         comparisons = []
 
         def traverse(node):
@@ -432,6 +589,15 @@ class RustASTNode(ASTNode):
     def find_negative_of_operation(
         self, operation_name: str, *args: tuple
     ) -> ASTNodeList:
+        """Find nodes that are NOT involved in a specific operation.
+
+        Args:
+            operation_name: The name of the operation method to exclude.
+            *args: Arguments to pass to the operation method.
+
+        Returns:
+            ASTNodeList of nodes that are not part of the specified operation results.
+        """
         operation = getattr(self, operation_name)
         operation_results = operation(*args)
         operation_nodes = {node for pair in operation_results for node in pair}
@@ -448,11 +614,47 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_functions_by_names(self, *function_names: tuple[str, ...]) -> ASTNodeList:
+        """Find function nodes by their names.
+
+        Args:
+            *function_names: Variable number of function names to search for.
+
+        Returns:
+            ASTNodeList of function nodes with the specified names.
+        """
         matching_nodes = []
 
         def find_function(node):
             if isinstance(node, ASTNode):
-                if node.ident in function_names:
+                # Check if this is a function node by looking for .fn at the end of access path
+                # and the ident matches one of the function names
+                if node.ident in function_names and node.access_path.endswith(".fn"):
+                    matching_nodes.append(node)
+                for child in node.children:
+                    find_function(child)
+            elif isinstance(node, dict):
+                for key, value in node.items():
+                    find_function(value)
+            elif isinstance(node, list):
+                for item in node:
+                    find_function(item)
+
+        find_function(self)
+        return ASTNodeList(matching_nodes)
+
+    @dsl_log
+    def find_all_functions(self) -> ASTNodeList:
+        """Find all function nodes in the AST.
+
+        Returns:
+            ASTNodeList of all function nodes found.
+        """
+        matching_nodes = []
+
+        def find_function(node):
+            if isinstance(node, ASTNode):
+                # Check if this is a function node by looking for .fn at the end of access path
+                if node.access_path.endswith(".fn"):
                     matching_nodes.append(node)
                 for child in node.children:
                     find_function(child)
@@ -468,6 +670,14 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_by_names(self, *idents: tuple[str, ...]) -> ASTNodeList:
+        """Find nodes by their identifier names.
+
+        Args:
+            *idents: Variable number of identifiers to search for.
+
+        Returns:
+            ASTNodeList of nodes with the specified identifiers.
+        """
         matching_nodes = []
 
         def search_nodes(node):
@@ -489,6 +699,15 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_method_calls(self, caller: str, method: str) -> ASTNodeList:
+        """Find method call nodes with specific caller and method names.
+
+        Args:
+            caller: The identifier of the object making the method call.
+            method: The name of the method being called.
+
+        Returns:
+            ASTNodeList of method call nodes matching the caller and method criteria.
+        """
         matching_nodes = []
 
         def recurse(node):
@@ -510,6 +729,15 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_assignments(self, ident: str, value_ident: str) -> ASTNodeList:
+        """Find assignment operations between specific identifiers.
+
+        Args:
+            ident: The identifier being assigned to (left side of assignment).
+            value_ident: The identifier being assigned from (right side of assignment).
+
+        Returns:
+            ASTNodeList of assignment nodes matching the specified identifiers.
+        """
         assignments = []
 
         def traverse(node):
@@ -551,6 +779,11 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_mutables(self) -> ASTNodeList:
+        """Find all nodes that are marked as mutable.
+
+        Returns:
+            ASTNodeList of nodes that have the 'mut' metadata flag set to True.
+        """
         mutables = []
 
         def traverse(node):
@@ -572,6 +805,14 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_account_typed_nodes(self, ident: str) -> ASTNodeList:
+        """Find nodes that are typed as accounts with a specific identifier.
+
+        Args:
+            ident: The identifier to search for in account type definitions.
+
+        Returns:
+            ASTNodeList of nodes that are account-typed with the specified identifier.
+        """
         matches = []
 
         def ends_with_ty_path_segments(access_path):
@@ -609,6 +850,14 @@ class RustASTNode(ASTNode):
 
     @dsl_log
     def find_member_accesses(self, ident: str) -> ASTNodeList:
+        """Find member access operations for a specific identifier.
+
+        Args:
+            ident: The identifier to search for in member access operations.
+
+        Returns:
+            ASTNodeList of nodes representing member accesses of the specified identifier.
+        """
         member_accesses = []
 
         def traverse(node):
@@ -635,6 +884,16 @@ class RustASTNode(ASTNode):
 
 
 def serialize_rust_ast(ast, access_path="", parent=None) -> list:
+    """Serialize a Rust AST into a list of RustASTNode objects.
+
+    Args:
+        ast: The AST data structure to serialize (dict or list).
+        access_path: The current access path for nested elements (default: "").
+        parent: The parent RustASTNode object (default: None).
+
+    Returns:
+        List of RustASTNode objects representing the serialized AST.
+    """
     nodes = []
     if isinstance(ast, dict):
         # Match - include nodes that has src and ident keys
@@ -696,6 +955,14 @@ def serialize_rust_ast(ast, access_path="", parent=None) -> list:
 
 
 def parse_ast(ast: dict) -> dict:
+    """Parse an AST dictionary into organized source-based node hierarchies.
+
+    Args:
+        ast: The AST dictionary to parse.
+
+    Returns:
+        Dictionary mapping source file names to their root RustASTNode objects.
+    """
     sources = {}
     nodes = serialize_rust_ast(ast)
 

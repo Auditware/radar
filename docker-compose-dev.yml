@@ -1,8 +1,12 @@
 services:
   controller:
+    platform: linux/amd64
     build:
       context: controller
+      cache_from:
+        - radar-controller:latest
       args:
+        BUILDKIT_INLINE_CACHE: 1
         DJANGO_HOST: ${DJANGO_HOST}
         DJANGO_HOST_LOCAL: ${DJANGO_HOST_LOCAL}
         DJANGO_PORT: ${DJANGO_PORT}
@@ -18,7 +22,10 @@ services:
     platform: linux/amd64
     build:
       context: api
+      cache_from:
+        - radar-api:latest
       args:
+        BUILDKIT_INLINE_CACHE: 1
         DEBUG: ${DEBUG}
         POSTGRES_DB: ${POSTGRES_DB}
         POSTGRES_USER: ${POSTGRES_USER}
@@ -38,9 +45,9 @@ services:
       - "8000:8000"
     volumes:
       - radar_data:/radar_data
-      - ./api/api:/api/api
-      - ./api/builtin_templates:/api/builtin_templates
-      - ./api/tests:/api/tests
+      - ./api/api:/api/api:cached
+      - ./api/builtin_templates:/api/builtin_templates:cached
+      - ./api/utils:/api/utils:cached
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,6 +64,10 @@ services:
     platform: linux/amd64
     build:
       context: api
+      cache_from:
+        - radar-celeryworker:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
     command: poetry run celery -A api worker -l info
     stdin_open: true
     tty: true
