@@ -129,7 +129,7 @@ for source, nodes in ast:
         cpi_groups = nodes.find_chained_calls("solana_program", "program", "invoke").exit_on_none()
 
         # Another call, exit if the comparison is existing, as this is no longer a candidate for a vulnerability in that case
-        nodes.find_comparisons("spl_token", "token_program").exit_on_value()
+        nodes.find_comparisons_between("spl_token", "token_program").exit_on_value()
         
 
         for cpi_group in cpi_groups:

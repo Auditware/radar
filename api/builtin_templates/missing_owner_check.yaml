@@ -9,8 +9,8 @@ rule: |
       try:
           derive_account_nodes = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
           if nodes.find_by_names("SplTokenAccount"):
-              nodes.find_comparisons("owner", "spl_token").exit_on_value()
-          elif nodes.find_comparison_to_any("owner") or nodes.find_member_accesses("owner"):
+              nodes.find_comparisons_between("owner", "spl_token").exit_on_value()
+          elif nodes.find_comparison_involving("owner") or nodes.find_member_accesses("owner"):
               continue
           print(derive_account_nodes.first().first().to_result())
       except:

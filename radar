@@ -185,7 +185,7 @@ if [[ -n "$templates" ]]; then
 fi
 cd "$RADAR_BASE_DIR"
 
-# In dev mode, sync local code changes to ~/.radar/
+# In dev mode, sync local code changes to ~/.radar/ BEFORE starting containers
 if [ "$development_mode" = true ]; then
     echo "[i] Syncing local code changes to $RADAR_BASE_DIR"
         
@@ -209,19 +209,41 @@ current_checksum=$(cat "$compose_file" | shasum -a 256 | cut -d" " -f1)
 if [ "$store_sarif" = false ]; then
     echo "[i] Cleaning up previous scan results"
     
-    docker compose -f "$compose_file" down >/dev/null 2>&1 || true    
-    docker volume rm radar_radar_data >/dev/null 2>&1 || true
-    docker volume rm radar_postgres_data >/dev/null 2>&1 || true
-    
-    echo "[i] Previous scan data cleaned"
+    # More efficient cleanup: stop containers and remove volumes in one command
+    timeout 30 docker compose -f "$compose_file" down -v --remove-orphans >/dev/null 2>&1 || {
+        echo "[w] Cleanup timed out, forcing cleanup..."
+        docker system prune -f --volumes >/dev/null 2>&1 || true
+    }    
 else
     echo "[i] Storing SARIF results - will accumulate with previous runs"
 fi
 
-# Force rebuild in dev mode to pick up code changes
+# Smart build detection for dev mode
+dev_build_needed=false
 if [ "$development_mode" = true ]; then
-    echo "[i] Building images from source code (if frozen - make sure Docker is available)"
-    docker compose -f "$compose_file" up -d --build
+    # Check if Docker-related files or source code have changed
+    dev_checksum_file="docker_dev_checksum.sha"
+    current_dev_checksum=$(find "$INITIAL_DIR" \( -name "Dockerfile" -o -name "pyproject.toml" -o -name "poetry.lock" -o -name "docker-compose-dev.yml" -o -path "*/api/*.py" -o -path "*/controller/*.py" \) | xargs cat 2>/dev/null | shasum -a 256 | cut -d" " -f1)
+    
+    if [ -f "$dev_checksum_file" ]; then
+        stored_dev_checksum=$(cat "$dev_checksum_file")
+        if [ "$current_dev_checksum" != "$stored_dev_checksum" ]; then
+            dev_build_needed=true
+            echo "[d] Docker files or source code changed, rebuilding images from source code"
+        else
+            echo "[d] No Docker file or source code changes detected, using existing images"
+        fi
+    else
+        dev_build_needed=true
+        echo "[d] First dev run, building images from source code"
+    fi
+    
+    if [ "$dev_build_needed" = true ]; then
+        docker compose -f "$compose_file" up -d --build
+        echo "$current_dev_checksum" > "$dev_checksum_file"
+    else
+        docker compose -f "$compose_file" up -d --no-build
+    fi
 elif [ -f "$checksum_file" ]; then
     stored_checksum=$(cat "$checksum_file")
     if [ "$current_checksum" != "$stored_checksum" ]; then

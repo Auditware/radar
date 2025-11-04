@@ -17,8 +17,8 @@ See [How to write templates](https://github.com/auditware/radar/wiki/How-to-Writ
   - [find_chained_calls()](#find_chained_calls)
   - [find_by_access_path()](#find_by_access_path)
   - [find_by_similar_access_path()](#find_by_similar_access_path)
-  - [find_comparisons()](#find_comparisons)
-  - [find_comparison_to_any()](#find_comparison_to_any)
+  - [find_comparisons_between()](#find_comparisons_between)
+  - [find_comparison_involving()](#find_comparison_involving)
   - [find_negative_of_operation()](#find_negative_of_operation)
   - [find_functions_by_names()](#find_functions_by_names)
   - [find_by_names()](#find_by_names)
@@ -91,7 +91,7 @@ Finds nodes whose access_path is identical to the one provided up until the stop
 <br />
 
 ```python
-find_comparisons(self, ident1: str, ident2: str)
+find_comparisons_between(self, ident1: str, ident2: str)
 ```
 
 Finds binary comparisons between the specified identifiers within the AST and returns them as an ASTNodeList.
@@ -99,7 +99,7 @@ Finds binary comparisons between the specified identifiers within the AST and re
 <br />
 
 ```python
-find_comparison_to_any(self, ident: str)
+find_comparison_involving(self, ident: str)
 ```
 
 Finds any node involved in a comparison with the specified identifier and returns them as an ASTNodeList.

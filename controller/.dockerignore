@@ -3,3 +3,13 @@
 **/target
 staticfiles
 .vscode
+.git
+.gitignore
+*.md
+README*
+docs/
+outputs/
+*.log
+.env*
+.DS_Store
+Thumbs.db

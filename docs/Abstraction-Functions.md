@@ -37,14 +37,14 @@ Finds nodes whose access_path contains the specified keyword within the specifie
 ***
 
 ```python
-find_comparisons(self, ident1: str, ident2: str)
+find_comparisons_between(self, ident1: str, ident2: str)
 ```
 Finds binary comparisons between the specified identifiers within the AST and returns them as an ASTNodeList.
 
 ***
 
 ```python
-find_comparison_to_any(self, ident: str)
+find_comparison_involving(self, ident: str)
 ```
 Finds any node involved in a comparison with the specified identifier and returns them as an ASTNodeList.
 

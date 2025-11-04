@@ -9,7 +9,7 @@ rule: |
       try:
           nodes.find_by_names("Signer").exit_on_value()
           derive_account_nodes = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
-          nodes.find_comparison_to_any("is_signer").exit_on_value()
+          nodes.find_comparison_involving("is_signer").exit_on_value()
           nodes.find_member_accesses("is_signer").exit_on_value()
           print(derive_account_nodes.first().first().to_result())
       except:
