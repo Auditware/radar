@@ -1,0 +1,32 @@
+version: 0.1.0
+author: forefy
+name: Incorrect Ceiling Division
+description: Financial calculations involving division should use ceiling division (div_ceil or checked_ceil_div) to avoid rounding errors that benefit attackers.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+      funcs = nodes.find_all_functions().exit_on_none()
+      for func in funcs:
+        access_path = func.access_path or ""
+        if ".impl." not in access_path:
+          continue
+        
+        has_financial_keywords = func.find_by_names("fee", "price", "amount", "balance", "supply")
+        if not has_financial_keywords.nodes:
+          continue
+        
+        has_div_op = func.find_binary_operations("/")
+        if not has_div_op:
+          continue
+        
+        has_ceil_div = func.find_by_names("div_ceil", "checked_ceil_div", "div_euclid")
+        if has_ceil_div.nodes:
+          continue
+        
+        for div_op in has_div_op:
+          print(div_op.parent.to_result())
+          break
+    except:
+      continue

@@ -1,0 +1,30 @@
+version: 0.1.0
+author: forefy
+name: Off-By-One Comparison Error
+description: Boundary conditions using >= or <= instead of > or < can lead to off-by-one errors in critical logic like liquidations, thresholds, or access control.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+      funcs = nodes.find_all_functions().exit_on_none()
+      for func in funcs:
+        access_path = func.access_path or ""
+        if ".impl." not in access_path:
+          continue
+        
+        has_critical_keywords = func.find_by_names("liquidat", "threshold", "limit", "min", "max", "require")
+        if not has_critical_keywords.nodes:
+          continue
+        
+        has_comparison = func.find_by_names("Ge", "Le", "Gt", "Lt")
+        if not has_comparison.nodes:
+          continue
+        
+        func_ident = func.find_by_names(func.ident).exit_on_none().first()
+        if func_ident.parent and func_ident.parent.metadata:
+          print(func_ident.parent.to_result())
+        else:
+          print(func_ident.to_result())
+    except:
+      continue

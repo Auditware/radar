@@ -1,0 +1,34 @@
+version: 0.1.0
+author: forefy
+name: Incorrect Token Amount Calculation
+description: Token amount calculations should use reserve values instead of balance queries to prevent manipulation through direct token transfers. Attackers can inflate balances without updating reserves.
+severity: High
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+      funcs = nodes.find_all_functions().exit_on_none()
+      for func in funcs:
+        access_path = func.access_path or ""
+        if ".impl." not in access_path:
+          continue
+        
+        has_swap_keywords = func.find_by_names("swap", "exchange", "trade", "liquidity")
+        if not has_swap_keywords.nodes:
+          continue
+        
+        has_balance = func.find_by_names("balance_of", "balance", "balanceOf")
+        if not has_balance.nodes:
+          continue
+        
+        has_reserve = func.find_by_names("reserve", "reserves")
+        if has_reserve.nodes:
+          continue
+        
+        func_ident = func.find_by_names(func.ident).exit_on_none().first()
+        if func_ident.parent and func_ident.parent.metadata:
+          print(func_ident.parent.to_result())
+        else:
+          print(func_ident.to_result())
+    except:
+      continue
