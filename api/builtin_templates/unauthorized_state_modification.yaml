@@ -1,0 +1,31 @@
+name: Unauthorized State Modification
+description: Functions that modify user-specific state should verify the caller is authorized to modify that user's data, preventing unauthorized balance or state manipulation.
+severity: High
+certainty: High
+rule: |
+  for source, nodes in ast:
+    try:
+      funcs = nodes.find_all_functions().exit_on_none()
+      for func in funcs:
+        access_path = func.access_path or ""
+        if ".impl." not in access_path:
+          continue
+        
+        has_address_param = func.find_by_names("Address")
+        if not has_address_param.nodes:
+          continue
+        
+        modifies_mapping = func.find_by_names("setter", "set")
+        if not modifies_mapping.nodes:
+          continue
+        
+        has_msg_sender = func.find_by_names("msg", "sender")
+        has_require = func.find_by_names("require", "assert", "ensure")
+        
+        if not has_msg_sender.nodes and not has_require.nodes:
+          body_nodes = func.find_by_names("setter", "set", "get")
+          if body_nodes.nodes:
+            func_ident = func.find_by_names(func.ident).exit_on_none()
+            print(func_ident.first().to_result())
+    except:
+      continue

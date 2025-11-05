@@ -14,3 +14,4 @@ Given referenced ast.json and radar template, read `api/utils/dsl/dsl_ast_iterat
 - To test, only use the referenced template file and referenced ast.
 - If you can't find on that specific data, reinspect what might go wrong.
 - You can flush out specific parts from the AST, in radar-AST format (with access_path and other refinements that might be done) via calling `to_raw_ast_debug()` from within the template.
+- Don't create a template that will duplicate the existing ones under `api/builtin_templates`, either rename to highlight the specific focus of the heuristic search, or add support in existing template - whichever makes more sense
