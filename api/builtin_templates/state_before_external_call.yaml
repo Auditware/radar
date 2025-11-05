@@ -1,0 +1,27 @@
+name: State Update Before External Call
+description: Functions that make external calls should only update critical state after the call succeeds to prevent inconsistent state if the call fails or to protect against reentrancy attacks.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+      funcs = nodes.find_all_functions().exit_on_none()
+      for func in funcs:
+        access_path = func.access_path or ""
+        if ".impl." not in access_path:
+          continue
+        
+        has_set_call = func.find_by_names("set")
+        if not has_set_call.nodes:
+          continue
+        
+        has_external_call = func.find_by_names("call")
+        if not has_external_call.nodes:
+          continue
+        
+        body_nodes = func.find_by_names("set", "executed")
+        if body_nodes.nodes:
+          func_ident = func.find_by_names(func.ident).exit_on_none()
+          print(func_ident.first().to_result())
+    except:
+      continue

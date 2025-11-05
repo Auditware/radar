@@ -1,0 +1,30 @@
+name: Unrestricted Token Minting
+description: Public mint functions without access control allow anyone to mint unlimited tokens, completely breaking the token economics and security model.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+      funcs = nodes.find_all_functions().exit_on_none()
+      for func in funcs:
+        if func.ident in ["mint", "mint_to"]:
+          access_path = func.access_path or ""
+          if ".impl." not in access_path:
+            continue
+          
+          calls_mint = func.find_by_names("mint")
+          if not calls_mint.nodes:
+            continue
+          
+          has_msg_sender = func.find_by_names("msg", "sender")
+          has_owner = func.find_by_names("is_owner")
+          has_minter = func.find_by_names("is_minter", "minter_role")
+          has_require = func.find_by_names("require", "assert", "ensure")
+          
+          if not has_msg_sender.nodes and not has_owner.nodes and not has_minter.nodes and not has_require.nodes:
+            body_nodes = func.find_by_names("mint", "set", "total_supply")
+            if body_nodes.nodes:
+              func_ident = func.find_by_names(func.ident).exit_on_none()
+              print(func_ident.first().to_result())
+    except:
+      continue
