@@ -4,6 +4,7 @@ name: Missing Bump Seed Canonicalization
 severity: Medium
 certainty: Low
 description: If a program is deriving a bump seed for a Program Derived Address (PDA) without ensuring its uniqueness, it could lead to collisions or unexpected insecure logical occurrences. Check for usage of program_id which is not part of Pubkey::find_program_address and there is a usage of "bump"
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_bump_seed_canonicalization/bad/lib.rs#L12-L17
 rule: |
   for source, nodes in ast:
       try:

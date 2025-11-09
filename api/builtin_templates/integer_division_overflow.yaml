@@ -1,9 +1,10 @@
 version: 0.1.0
 author: forefy
 name: Integer Division Overflow
-description: Division operations may result in unexpected behavior or panic when dividing by zero or dividing MIN by -1. Use checked_div() instead of direct division.
+description: Division operations without checked_div can cause panics on division by zero or overflow conditions.
 severity: Low
 certainty: Medium
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/integer_division_overflow/bad/lib.rs#L12
 rule: |
   for source, nodes in ast:
     try:

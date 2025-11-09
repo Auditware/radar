@@ -1,7 +1,8 @@
-name: State Update Before External Call
-description: Functions that make external calls should only update critical state after the call succeeds to prevent inconsistent state if the call fails or to protect against reentrancy attacks.
+name: State Updated Before External Call
+description: Updating state after external calls can lead to reentrancy vulnerabilities where the called contract can re-enter and exploit inconsistent state.
 severity: High
 certainty: Medium
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/state_before_external_call/bad/lib.rs#L17-L19
 rule: |
   for source, nodes in ast:
     try:

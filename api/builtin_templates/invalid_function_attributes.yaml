@@ -1,0 +1,33 @@
+name: Invalid Function Attributes
+description: Payable functions that don't handle the received value are likely bugs or can lead to locked funds.
+severity: Low
+certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/invalid_function_attributes/bad/lib.rs#L11-L13
+rule: |
+  for source, nodes in ast:
+    try:
+      funcs = nodes.find_all_functions().exit_on_none()
+      for func in funcs:
+        access_path = func.access_path or ""
+        if ".impl." not in access_path:
+          continue
+        
+        has_payable = func.find_by_names("payable")
+        if not has_payable.nodes:
+          continue
+        
+        has_value_handling = func.find_by_names("value", "msg::value")
+        if has_value_handling.nodes:
+          continue
+        
+        has_transfer = func.find_by_names("transfer", "send", "call")
+        if has_transfer.nodes:
+          continue
+        
+        func_ident = func.find_by_names(func.ident).exit_on_none().first()
+        if func_ident.parent and func_ident.parent.metadata:
+          print(func_ident.parent.to_result())
+        else:
+          print(func_ident.to_result())
+    except:
+      continue

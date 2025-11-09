@@ -1,9 +1,10 @@
 version: 0.1.0
 author: forefy
-name: Incorrect Token Amount Calculation
-description: Token amount calculations should use reserve values instead of balance queries to prevent manipulation through direct token transfers. Attackers can inflate balances without updating reserves.
+name: Incorrect Token Calculation
+description: Using balance_of instead of reserves in AMM calculations allows price manipulation attacks.
 severity: High
-certainty: Low
+certainty: Medium
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/incorrect_token_calculation/bad/lib.rs#L12-L14
 rule: |
   for source, nodes in ast:
     try:

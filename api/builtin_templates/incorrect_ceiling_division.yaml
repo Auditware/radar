@@ -4,6 +4,7 @@ name: Incorrect Ceiling Division
 description: Financial calculations involving division should use ceiling division (div_ceil or checked_ceil_div) to avoid rounding errors that benefit attackers.
 severity: Medium
 certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/incorrect_ceiling_division/bad/lib.rs#L12
 rule: |
   for source, nodes in ast:
     try:

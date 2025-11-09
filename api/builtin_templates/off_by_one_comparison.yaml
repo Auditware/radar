@@ -1,9 +1,10 @@
 version: 0.1.0
 author: forefy
-name: Off-By-One Comparison Error
-description: Boundary conditions using >= or <= instead of > or < can lead to off-by-one errors in critical logic like liquidations, thresholds, or access control.
-severity: Medium
+name: Off By One Comparison
+description: Incorrect boundary comparisons using < instead of <= or vice versa can allow values outside intended limits.
+severity: Low
 certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/off_by_one_comparison/bad/lib.rs#L13
 rule: |
   for source, nodes in ast:
     try:

@@ -4,6 +4,7 @@ name: Missing Transfer Amount Validation
 severity: Low
 certainty: Low
 description: Ensure that token transfers validate the amount being transferred. Transfers should not allow negative values or amounts exceeding the account balance.
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_transfer_amount_validation/bad/lib.rs#L13-L18
 rule: |
   for source, nodes in ast:
       try:
