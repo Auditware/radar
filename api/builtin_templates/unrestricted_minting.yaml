@@ -2,6 +2,7 @@ name: Unrestricted Token Minting
 description: Public mint functions without access control allow anyone to mint unlimited tokens, completely breaking the token economics and security model.
 severity: Medium
 certainty: Medium
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/unrestricted_minting/bad/lib.rs#L13-L18
 rule: |
   for source, nodes in ast:
     try:

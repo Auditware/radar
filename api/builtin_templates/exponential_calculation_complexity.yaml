@@ -1,9 +1,10 @@
 version: 0.1.0
 author: forefy
 name: Exponential Calculation Complexity
-description: Functions containing nested loops or recursive multiplications may have exponential time complexity, leading to DoS or excessive gas consumption.
-severity: Low
+description: Nested iterations with multiplication operations can cause exponential gas costs and DoS vulnerabilities.
+severity: Medium
 certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/exponential_calculation_complexity/bad/lib.rs#L13-L18
 rule: |
   for source, nodes in ast:
     try:

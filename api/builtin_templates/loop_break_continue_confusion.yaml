@@ -1,9 +1,10 @@
 version: 0.1.0
 author: forefy
-name: Loop Break/Continue Confusion
-description: Using break instead of continue (or vice versa) in loops can lead to incorrect logic, potentially causing vulnerabilities similar to the Jet Protocol exploit.
-severity: Low
+name: Loop Break Continue Confusion
+description: Using break in validation loops can skip critical checks, allowing invalid data to pass through.
+severity: Medium
 certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/loop_break_continue_confusion/bad/lib.rs#L14-L16
 rule: |
   for source, nodes in ast:
     try:

@@ -1,9 +1,10 @@
 version: 0.1.0
 author: radar
-name: Missing Access Control on Initialization
-description: Initialization functions should verify that only authorized addresses can call them to prevent unauthorized configuration. Note - May report sol_interface declarations; check impl blocks for actual vulnerabilities.
+name: Missing Access Control in Initialization
+description: Initialization functions without proper access control or reinitialization protection allow attackers to reset contract state and take ownership.
 severity: High
-certainty: High
+certainty: Medium
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_access_control_initialization/bad/lib.rs#L13-L16
 rule: |
   for source, nodes in ast:
     try:

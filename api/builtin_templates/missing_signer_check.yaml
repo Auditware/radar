@@ -4,6 +4,7 @@ name: Missing Signer Check
 severity: Low
 certainty: Low
 description: Signer checks verify whether an account owner has authorized the requested transaction. Failing to perform these checks might result in unintended operations executable by any account.
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_signer_check/bad/lib.rs#L13
 rule: |
   for source, nodes in ast:
       try:
