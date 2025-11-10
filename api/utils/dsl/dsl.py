@@ -117,20 +117,22 @@ def process_template_outputs(template_outputs, yaml_data):
             if isinstance(valid_output, dict):
                 # print("[i] Finding-valid printed output detected")
                 src = valid_output["src"]
-                location = (
-                    f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
-                )
-                finding_data["locations"].append(location)
+                if src is not None:
+                    location = (
+                        f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
+                    )
+                    finding_data["locations"].append(location)
             
             # Handle list of nodes case
             elif isinstance(valid_output, list):
                 # print(f"[i] Finding-valid printed output list detected with {len(valid_output)} nodes")
                 for node in valid_output:
                     src = node["src"]
-                    location = (
-                        f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
-                    )
-                    finding_data["locations"].append(location)
+                    if src is not None:
+                        location = (
+                            f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
+                        )
+                        finding_data["locations"].append(location)
         else:
             finding_data["debug"].append(output)
 
