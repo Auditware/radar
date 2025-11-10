@@ -217,9 +217,8 @@ def print_write_outputs(
         severity = finding["severity"]
         color = color_map.get(severity, "")
 
-        print()
         if locations_length != 0:
-            
+            print()
             if locations_length < 20:
                 print(f"[ {color}{severity}{reset_color} ] {finding['name']} found at:")
                 for location in locations:

@@ -8,9 +8,9 @@ from api.models import GeneratedAST
 from api.tasks import run_scan_task
 from utils.ast import (
     generate_aggregate_program_ast,
-    generate_anchor_project_ast,
-    generate_ast_for_anchor_file,
-    generate_anchor_program_ast,
+    generate_ast_for_anchor_project,
+    generate_ast_for_rust_file,
+    generate_ast_for_rust_program,
 )
 from celery.result import AsyncResult
 
@@ -46,7 +46,7 @@ class GenerateRustASTView(APIView):
         if source_type == "file":
             logger.info(f"Generating AST for {source_file_path}")
             try:
-                file_ast = generate_ast_for_anchor_file(source_file_path)
+                file_ast = generate_ast_for_rust_file(source_file_path)
                 ast_data = {"sources": {}, "metadata": {}}
                 ast_data["sources"][str(source_file_path)] = file_ast
             except Exception as e:
@@ -64,7 +64,7 @@ class GenerateRustASTView(APIView):
 
             if xargo_file.exists():
                 try:
-                    ast_data = generate_anchor_program_ast(source_file_path)
+                    ast_data = generate_ast_for_rust_program(source_file_path)
                 except Exception as e:
                     logger.error(e)
                     return Response(
@@ -76,7 +76,7 @@ class GenerateRustASTView(APIView):
 
             elif anchor_file.exists():
                 try:
-                    ast_data = generate_anchor_project_ast(source_file_path)
+                    ast_data = generate_ast_for_anchor_project(source_file_path)
                 except Exception as e:
                     logger.error(e)
                     return Response(
