@@ -1,8 +1,8 @@
 This is a reusable prompt to guide users on prompting new radar utility creation.
 
 Prompt inputs:
-- Reference to a relevant ast.json
-- Reference to a radar template
+- Reference to the relevant ast.json of a chosen contract
+- Reference to a radar template (or create a new one)
 
 If one of the prompt inputs are missing, stop to guide the user on how to fill the missing piece before continuing.
 
