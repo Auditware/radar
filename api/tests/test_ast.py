@@ -1,7 +1,7 @@
 from pathlib import Path
 from utils.ast import (
     generate_aggregate_program_ast,
-    generate_anchor_project_ast,
+    generate_ast_for_anchor_project,
     generate_anchor_project_derived_program_ast,
 )
 
@@ -11,13 +11,13 @@ mock_rust_syn_ast = {
 }
 
 
-def test_generate_anchor_project_ast(monkeypatch):
+def test_generate_ast_for_anchor_project(monkeypatch):
     monkeypatch.setattr(
-        "utils.ast.generate_ast_for_anchor_file",
+        "utils.ast.generate_ast_for_rust_file",
         lambda *args, **kwargs: mock_rust_syn_ast,
     )
     source_path = Path("tests/mocks/anchor-test")
-    result = generate_anchor_project_ast(source_path)
+    result = generate_ast_for_anchor_project(source_path)
 
     assert isinstance(result, dict)
     assert "sources" in result
@@ -28,7 +28,7 @@ def test_generate_anchor_project_ast(monkeypatch):
 
 def test_generate_anchor_project_derived_program_ast(monkeypatch):
     monkeypatch.setattr(
-        "utils.ast.generate_ast_for_anchor_file",
+        "utils.ast.generate_ast_for_rust_file",
         lambda *args, **kwargs: mock_rust_syn_ast,
     )
     program_path = Path("tests/mocks/anchor-test/programs/anchor-test")
@@ -44,7 +44,7 @@ def test_generate_anchor_project_derived_program_ast(monkeypatch):
 
 def test_generate_aggregate_program_ast(monkeypatch):
     monkeypatch.setattr(
-        "utils.ast.generate_ast_for_anchor_file",
+        "utils.ast.generate_ast_for_rust_file",
         lambda *args, **kwargs: mock_rust_syn_ast,
     )
     base_path = Path("tests/mocks/anchor-test-2/programs")

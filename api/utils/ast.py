@@ -28,7 +28,7 @@ def parse_toml_keys(toml_path: Path, keys: list) -> list:
     return results
 
 
-def generate_ast_for_anchor_file(
+def generate_ast_for_rust_file(
     source_file_path: Path, package_name: str = None, package_version: str = None
 ) -> dict:
     rust_code = source_file_path.read_text()
@@ -138,7 +138,7 @@ def find_anchor_program_paths(source_file_path, workspace_members):
     return program_paths
 
 
-def generate_anchor_program_ast(source_file_path: Path) -> dict:
+def generate_ast_for_rust_program(source_file_path: Path) -> dict:
     cargo_toml_path = source_file_path / "Cargo.toml"
     package_name, package_version = parse_toml_keys(
         cargo_toml_path, ["package.name", "package.version"]
@@ -148,7 +148,7 @@ def generate_anchor_program_ast(source_file_path: Path) -> dict:
 
     radar_ast = {"sources": {}, "metadata": {}}
     for rs_file in rs_files:
-        file_ast = generate_ast_for_anchor_file(rs_file, package_name, package_version)
+        file_ast = generate_ast_for_rust_file(rs_file, package_name, package_version)
         radar_ast["sources"][str(rs_file)] = file_ast
 
     sorted_sources = dict(sorted(radar_ast["sources"].items()))
@@ -167,7 +167,7 @@ def generate_anchor_project_derived_program_ast(program_path: Path) -> dict:
     program_ast = {"sources": {}, "metadata": {}}
 
     for rs_file in rs_files:
-        file_ast = generate_ast_for_anchor_file(rs_file, package_name, package_version)
+        file_ast = generate_ast_for_rust_file(rs_file, package_name, package_version)
         program_ast["sources"][str(rs_file)] = file_ast
         program_ast["metadata"][str(rs_file)] = {
             "package_name": package_name,
@@ -178,7 +178,7 @@ def generate_anchor_project_derived_program_ast(program_path: Path) -> dict:
     return program_ast
 
 
-def generate_anchor_project_ast(source_path: Path) -> dict:
+def generate_ast_for_anchor_project(source_path: Path) -> dict:
     anchor_toml_path = source_path / "Anchor.toml"
     anchor_version, solana_version = parse_toml_keys(
         anchor_toml_path, ["anchor_version", "solana_version"]
@@ -225,7 +225,7 @@ def generate_aggregate_program_ast(base_path: Path) -> dict | None:
             if subdir.is_dir():
                 if (subdir / "Cargo.toml").exists():
                     found_cargo_toml = True
-                    program_ast = generate_anchor_program_ast(subdir)
+                    program_ast = generate_ast_for_rust_program(subdir)
                     for file_path, ast in program_ast["sources"].items():
                         project_ast["sources"][file_path] = ast
                 process_directory(subdir)
