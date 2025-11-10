@@ -1,20 +1,31 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
-use stylus_sdk::prelude::*;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    vault: StorageMap<Address, U256>,
+#[program]
+pub mod pda_sharing {
+    use super::*;
+
+    pub fn transfer_tokens(ctx: Context<TransferTokens>, amount: u64) -> Result<()> {
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.from.to_account_info(),
+            to: ctx.accounts.to.to_account_info(),
+            authority: ctx.accounts.authority.to_account_info(),
+        };
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        token::transfer(cpi_ctx, amount)?;
+        Ok(())
+    }
 }
 
-#[public]
-impl Contract {
-    pub fn transfer(&mut self, from: Address, to: Address, amount: U256) { // VULN: No authority check on PDA-derived accounts
-        let from_balance = self.vault.get(from);
-        self.vault.insert(from, from_balance - amount);
-        let to_balance = self.vault.get(to);
-        self.vault.insert(to, to_balance + amount);
-    }
+#[derive(Accounts)]
+pub struct TransferTokens<'info> {
+    #[account(mut)]
+    pub from: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub to: Account<'info, TokenAccount>,
+    pub authority: AccountInfo<'info>,
+    pub token_program: Program<'info, Token>,
 }

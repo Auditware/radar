@@ -1,16 +1,22 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::clock;
 
-use stylus_sdk::prelude::*;
-use stylus_sdk::block;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {}
+#[program]
+pub mod unvalidated_sysvar_accounts {
+    use super::*;
 
-#[public]
-impl Contract {
-    pub fn get_timestamp(&self) -> U256 {
-        U256::from(block::timestamp()) // VULN: Using sysvar without validating source
+    pub fn get_timestamp(ctx: Context<GetTimestamp>) -> Result<()> {
+        let clock_data = &ctx.accounts.clock.data.borrow();
+        let clock_account = Clock::try_deserialize(&mut &clock_data[..])?;
+        
+        msg!("Timestamp: {}", clock_account.unix_timestamp);
+        Ok(())
     }
+}
+
+#[derive(Accounts)]
+pub struct GetTimestamp<'info> {
+    pub clock: AccountInfo<'info>,
 }

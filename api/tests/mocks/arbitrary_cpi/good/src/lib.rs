@@ -1,20 +1,37 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::{program::invoke, instruction::Instruction};
 
-use stylus_sdk::prelude::*;
-use stylus_sdk::call::Call;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    trusted_target: Address,
-}
+#[program]
+pub mod arbitrary_cpi {
+    use super::*;
 
-#[public]
-impl Contract {
-    pub fn invoke(&self, data: alloc::vec::Vec<u8>) -> Result<(), Vec<u8>> {
-        let target = self.trusted_target.get(); // FIX: Uses trusted target from storage
-        Call::new().call(target, &data)?;
+    pub fn proxy_invoke(ctx: Context<ProxyInvoke>, data: Vec<u8>) -> Result<()> {
+        require!(
+            ctx.accounts.target_program.key == &spl_token::ID ||
+            ctx.accounts.target_program.key == &spl_token_2022::ID,
+            ErrorCode::UntrustedProgram
+        );
+        
+        let ix = Instruction {
+            program_id: *ctx.accounts.target_program.key,
+            accounts: vec![],
+            data,
+        };
+        invoke(&ix, &[ctx.accounts.target_program.to_account_info()])?;
         Ok(())
     }
+}
+
+#[derive(Accounts)]
+pub struct ProxyInvoke<'info> {
+    pub target_program: AccountInfo<'info>,
+    pub signer: Signer<'info>,
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Untrusted program")]
+    UntrustedProgram,
 }

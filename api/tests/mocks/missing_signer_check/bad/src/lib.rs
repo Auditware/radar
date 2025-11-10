@@ -1,17 +1,25 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
 
-use stylus_sdk::prelude::*;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    value: U256,
+#[program]
+pub mod missing_signer_check {
+    use super::*;
+
+    pub fn update_authority(ctx: Context<UpdateAuthority>, new_authority: Pubkey) -> Result<()> {
+        ctx.accounts.config.authority = new_authority;
+        Ok(())
+    }
 }
 
-#[public]
-impl Contract {
-    pub fn set_value(&mut self, new_value: U256, caller: Address) { // VULN: Accepts caller as parameter instead of using msg::sender()
-        self.value.set(new_value);
-    }
+#[derive(Accounts)]
+pub struct UpdateAuthority<'info> {
+    #[account(mut)]
+    pub config: Account<'info, Config>,
+    pub authority: AccountInfo<'info>,
+}
+
+#[account]
+pub struct Config {
+    pub authority: Pubkey,
 }

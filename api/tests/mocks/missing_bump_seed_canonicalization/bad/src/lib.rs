@@ -1,20 +1,27 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
 
-use stylus_sdk::prelude::*;
-use alloy_primitives::keccak256;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {}
+#[program]
+pub mod missing_bump_seed_canonicalization {
+    use super::*;
 
-#[public]
-impl Contract {
-    pub fn derive_address(&self, seed: U256, bump: u8) -> Address {
-        let mut data = alloc::vec::Vec::new();
-        data.extend_from_slice(&seed.to_be_bytes::<32>());
-        data.push(bump); // VULN: Using arbitrary bump without canonicalization
-        let hash = keccak256(&data);
-        Address::from_slice(&hash[0..20])
+    pub fn create_pda(ctx: Context<CreatePDA>, bump: u8) -> Result<()> {
+        let seeds = &[
+            b"pda",
+            ctx.accounts.authority.key.as_ref(),
+            &[bump],
+        ];
+        let pda = Pubkey::create_program_address(seeds, ctx.program_id)?;
+        msg!("Created PDA: {:?}", pda);
+        Ok(())
     }
+}
+
+#[derive(Accounts)]
+pub struct CreatePDA<'info> {
+    #[account(mut)]
+    pub pda_account: AccountInfo<'info>,
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }

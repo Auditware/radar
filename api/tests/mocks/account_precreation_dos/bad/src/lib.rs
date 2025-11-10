@@ -1,17 +1,30 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
 
-use stylus_sdk::prelude::*;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    owners: StorageMap<Address, Address>,
+#[program]
+pub mod account_precreation_dos {
+    use super::*;
+
+    pub fn initialize_user(ctx: Context<InitializeUser>, owner: Pubkey) -> Result<()> {
+        let user_account = &mut ctx.accounts.user_account;
+        user_account.owner = owner;
+        user_account.key = *ctx.accounts.payer.key;
+        Ok(())
+    }
 }
 
-#[public]
-impl Contract {
-    pub fn assign_owner(&mut self, account: Address, owner: Address) { // VULN: No check if account already has owner
-        self.owners.insert(account, owner);
-    }
+#[derive(Accounts)]
+pub struct InitializeUser<'info> {
+    #[account(init, payer = payer, space = 8 + 64)]
+    pub user_account: Account<'info, UserAccount>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[account]
+pub struct UserAccount {
+    pub owner: Pubkey,
+    pub key: Pubkey,
 }

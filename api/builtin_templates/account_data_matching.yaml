@@ -7,10 +7,16 @@ description: Unpacking account structures without verifying authorization might 
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_data_matching/bad/lib.rs#L13-L17
 rule: |
   for source, nodes in ast:
-      try:
-          unpack_node = nodes.find_chained_calls("SplTokenAccount", "unpack").first().first()
-          unpack_assigned_var = nodes.find_by_similar_access_path(unpack_node.access_path, "stmts").first()
-          nodes.find_comparisons_between(unpack_assigned_var.ident, "authority").exit_on_value()
-          print(unpack_assigned_var.to_result())
-      except:
-          continue
+      for function in nodes.find_all_functions():
+          unpack_calls = function.find_chained_calls("SplTokenAccount", "unpack")
+          if not unpack_calls:
+              continue
+          
+          require_macros = function.find_by_names("require")
+          owner_access = function.find_member_accesses("owner")
+          
+          has_owner_validation = (require_macros and owner_access and len(owner_access) > 1)
+          
+          if not has_owner_validation:
+              for unpack_call in unpack_calls:
+                  print(unpack_call.to_result())

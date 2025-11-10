@@ -1,24 +1,37 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
+use anchor_spl::token::{Token, TokenAccount};
 
-use stylus_sdk::prelude::*;
-use stylus_sdk::msg;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    accounts: StorageMap<Address, U256>,
-}
+#[program]
+pub mod account_data_matching {
+    use super::*;
+    use spl_token::state::Account as SplTokenAccount;
 
-#[public]
-impl Contract {
-    pub fn transfer(&mut self, from: Address, to: Address, amount: U256) -> Result<(), Vec<u8>> {
-        if from != msg::sender() { // FIX: Validates sender authorization
-            return Err(vec![1]);
-        }
-        let balance = self.accounts.get(from);
-        self.accounts.insert(from, balance - amount);
-        self.accounts.insert(to, self.accounts.get(to) + amount);
+    pub fn process_transfer(ctx: Context<TransferAccounts>, expected_authority: Pubkey) -> Result<()> {
+        let token_account_info = &ctx.accounts.token_account.to_account_info();
+        let token_account = SplTokenAccount::unpack(&token_account_info.data.borrow())?;
+        
+        // FIX: Verify authority after unpacking
+        require!(
+            token_account.owner == expected_authority,
+            ErrorCode::UnauthorizedAuthority
+        );
+        
+        msg!("Token account owner: {:?}", token_account.owner);
         Ok(())
     }
+}
+
+#[derive(Accounts)]
+pub struct TransferAccounts<'info> {
+    #[account(mut)]
+    pub token_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Unauthorized authority")]
+    UnauthorizedAuthority,
 }
