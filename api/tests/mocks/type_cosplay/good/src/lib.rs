@@ -1,21 +1,26 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
 
-use stylus_sdk::prelude::*;
-use alloc::vec::Vec;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    expected_type: U256,
+#[program]
+pub mod type_cosplay {
+    use super::*;
+
+    pub fn process_account(ctx: Context<ProcessAccount>) -> Result<()> {
+        let user_data: Account<UserData> = Account::try_from(&ctx.accounts.user_account)?;
+        
+        msg!("Processing verified account data: {}", user_data.value);
+        Ok(())
+    }
 }
 
-#[public]
-impl Contract {
-    pub fn deserialize(&self, data: Vec<u8>, type_id: U256) -> Result<U256, Vec<u8>> {
-        if type_id != self.expected_type.get() { // FIX: Type discriminator validation
-            return Err(vec![1]);
-        }
-        U256::try_from_be_slice(&data).ok_or(vec![2])
-    }
+#[derive(Accounts)]
+pub struct ProcessAccount<'info> {
+    pub user_account: AccountInfo<'info>,
+    pub signer: Signer<'info>,
+}
+
+#[account]
+pub struct UserData {
+    pub value: u64,
 }

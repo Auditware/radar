@@ -1,22 +1,36 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
 
-use stylus_sdk::prelude::*;
-use stylus_sdk::msg;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    authority: Address,
-}
+#[program]
+pub mod cpi_authority_bypass {
+    use super::*;
 
-#[public]
-impl Contract {
-    pub fn set_authority(&mut self, new_authority: Address) -> Result<(), Vec<u8>> {
-        if msg::sender() != self.authority.get() { // FIX: Proper authority validation
-            return Err(vec![1]);
-        }
-        self.authority.set(new_authority);
+    pub fn set_authority(ctx: Context<SetAuthority>, new_authority: Pubkey) -> Result<()> {
+        require!(
+            ctx.accounts.admin.key() == ctx.accounts.config.authority,
+            ErrorCode::Unauthorized
+        );
+        ctx.accounts.config.authority = new_authority;
+        msg!("Updated authority to: {:?}", new_authority);
         Ok(())
     }
+}
+
+#[derive(Accounts)]
+pub struct SetAuthority<'info> {
+    #[account(mut)]
+    pub config: Account<'info, Config>,
+    pub admin: Signer<'info>,
+}
+
+#[account]
+pub struct Config {
+    pub authority: Pubkey,
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Unauthorized")]
+    Unauthorized,
 }

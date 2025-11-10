@@ -1,17 +1,25 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
+use anchor_spl::token::{Token, TokenAccount};
 
-use stylus_sdk::prelude::*;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    data: StorageMap<Address, U256>,
+#[program]
+pub mod missing_owner_check {
+    use super::*;
+    use spl_token::state::Account as SplTokenAccount;
+
+    pub fn process_token(ctx: Context<ProcessToken>) -> Result<()> {
+        let token_account_info = &ctx.accounts.token_account.to_account_info();
+        let token_account = SplTokenAccount::unpack(&token_account_info.data.borrow())?;
+        
+        msg!("Processing token account with owner: {:?}", token_account.owner);
+        Ok(())
+    }
 }
 
-#[public]
-impl Contract {
-    pub fn update(&mut self, account: Address, value: U256) { // VULN: No owner check before modifying account data
-        self.data.insert(account, value);
-    }
+#[derive(Accounts)]
+pub struct ProcessToken<'info> {
+    #[account(mut)]
+    pub token_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
 }

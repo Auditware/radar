@@ -1,24 +1,27 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
 
-use stylus_sdk::prelude::*;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    balances: StorageMap<Address, U256>,
-}
+#[program]
+pub mod duplicate_mutable_accounts {
+    use super::*;
 
-#[public]
-impl Contract {
-    pub fn transfer(&mut self, from: Address, to: Address, amount: U256) -> Result<(), Vec<u8>> {
-        if from == to { // FIX: Prevents duplicate account usage
-            return Err(vec![1]);
-        }
-        let bal_from = self.balances.get(from);
-        self.balances.insert(from, bal_from - amount);
-        let bal_to = self.balances.get(to);
-        self.balances.insert(to, bal_to + amount);
+    pub fn transfer(ctx: Context<Transfer>, amount: u64) -> Result<()> {
+        ctx.accounts.account_a.balance -= amount;
+        ctx.accounts.account_b.balance += amount;
         Ok(())
     }
+}
+
+#[derive(Accounts)]
+pub struct Transfer<'info> {
+    #[account(mut)]
+    pub account_a: Account<'info, UserAccount>,
+    #[account(mut, constraint = account_a.key() != account_b.key())]
+    pub account_b: Account<'info, UserAccount>,
+}
+
+#[account]
+pub struct UserAccount {
+    pub balance: u64,
 }

@@ -1,16 +1,22 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
 
-use stylus_sdk::prelude::*;
-use alloc::vec::Vec;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {}
+#[program]
+pub mod type_cosplay {
+    use super::*;
 
-#[public]
-impl Contract {
-    pub fn deserialize(&self, data: Vec<u8>) -> U256 {
-        U256::try_from_be_slice(&data).unwrap_or(U256::from(0)) // VULN: No discriminator check on deserialization
+    pub fn process_account(ctx: Context<ProcessAccount>) -> Result<()> {
+        let account_info = &ctx.accounts.user_account;
+        let data = account_info.try_borrow_data()?;
+        
+        msg!("Processing account data of length: {}", data.len());
+        Ok(())
     }
+}
+
+#[derive(Accounts)]
+pub struct ProcessAccount<'info> {
+    pub user_account: AccountInfo<'info>,
+    pub signer: Signer<'info>,
 }

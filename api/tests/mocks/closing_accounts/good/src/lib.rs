@@ -1,19 +1,28 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
 
-use stylus_sdk::prelude::*;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    balance: StorageMap<Address, U256>,
-    closed: StorageMap<Address, StorageBool>,
+#[program]
+pub mod closing_accounts {
+    use super::*;
+
+    pub fn close_account(ctx: Context<CloseAccount>) -> Result<()> {
+        let account_lamports = ctx.accounts.user_account.to_account_info().lamports();
+        **ctx.accounts.user_account.to_account_info().lamports.borrow_mut() -= account_lamports;
+        **ctx.accounts.destination.lamports.borrow_mut() += account_lamports;
+        Ok(())
+    }
 }
 
-#[public]
-impl Contract {
-    pub fn close_account(&mut self, account: Address) {
-        self.balance.insert(account, U256::from(0));
-        self.closed.setter(account).set(true); // FIX: Marks account as properly closed
-    }
+#[derive(Accounts)]
+pub struct CloseAccount<'info> {
+    #[account(mut, close = destination)]
+    pub user_account: Account<'info, UserData>,
+    #[account(mut)]
+    pub destination: AccountInfo<'info>,
+}
+
+#[account]
+pub struct UserData {
+    pub data: u64,
 }

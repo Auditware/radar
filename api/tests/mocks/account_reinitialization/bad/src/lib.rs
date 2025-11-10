@@ -1,19 +1,30 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
 
-use stylus_sdk::prelude::*;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    initialized: StorageBool,
-    owner: Address,
+#[program]
+pub mod account_reinitialization {
+    use super::*;
+
+    pub fn initialize(ctx: Context<Initialize>, owner: Pubkey) -> Result<()> {
+        let config = &mut ctx.accounts.config;
+        config.owner = owner;
+        config.initialized = true;
+        Ok(())
+    }
 }
 
-#[public]
-impl Contract {
-    pub fn initialize(&mut self, owner: Address) { // VULN: Can be called multiple times to reinitialize
-        self.owner.set(owner);
-        self.initialized.set(true);
-    }
+#[derive(Accounts)]
+pub struct Initialize<'info> {
+    #[account(init, payer = payer, space = 8 + 33)]
+    pub config: Account<'info, Config>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[account]
+pub struct Config {
+    pub owner: Pubkey,
+    pub initialized: bool,
 }

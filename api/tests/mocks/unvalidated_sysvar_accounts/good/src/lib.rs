@@ -1,21 +1,33 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::{clock, Sysvar};
 
-use stylus_sdk::prelude::*;
-use stylus_sdk::block;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {
-    trusted_timestamp_source: Address,
+#[program]
+pub mod unvalidated_sysvar_accounts {
+    use super::*;
+
+    pub fn get_timestamp(ctx: Context<GetTimestamp>) -> Result<()> {
+        require!(
+            ctx.accounts.clock.key() == &clock::ID,
+            ErrorCode::InvalidSysvar
+        );
+        
+        let clock_data = &ctx.accounts.clock.data.borrow();
+        let clock_account = Clock::try_deserialize(&mut &clock_data[..])?;
+        
+        msg!("Timestamp: {}", clock_account.unix_timestamp);
+        Ok(())
+    }
 }
 
-#[public]
-impl Contract {
-    pub fn get_timestamp(&self, source: Address) -> Result<U256, Vec<u8>> {
-        if source != self.trusted_timestamp_source.get() { // FIX: Validates sysvar source
-            return Err(vec![1]);
-        }
-        Ok(U256::from(block::timestamp()))
-    }
+#[derive(Accounts)]
+pub struct GetTimestamp<'info> {
+    pub clock: AccountInfo<'info>,
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Invalid sysvar account")]
+    InvalidSysvar,
 }

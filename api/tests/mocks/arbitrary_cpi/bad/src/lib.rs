@@ -1,17 +1,25 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::{program::invoke, instruction::Instruction};
 
-use stylus_sdk::prelude::*;
-use stylus_sdk::call::Call;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {}
+#[program]
+pub mod arbitrary_cpi {
+    use super::*;
 
-#[public]
-impl Contract {
-    pub fn invoke(&self, target: Address, data: alloc::vec::Vec<u8>) -> Result<(), Vec<u8>> {
-        Call::new().call(target, &data)?; // VULN: Arbitrary target address allows calling any contract
+    pub fn proxy_invoke(ctx: Context<ProxyInvoke>, data: Vec<u8>) -> Result<()> {
+        let ix = Instruction {
+            program_id: *ctx.accounts.target_program.key,
+            accounts: vec![],
+            data,
+        };
+        invoke(&ix, &[ctx.accounts.target_program.to_account_info()])?;
         Ok(())
     }
+}
+
+#[derive(Accounts)]
+pub struct ProxyInvoke<'info> {
+    pub target_program: AccountInfo<'info>,
+    pub signer: Signer<'info>,
 }
