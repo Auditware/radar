@@ -4,7 +4,7 @@ name: Account Reinitialization
 severity: Medium
 certainty: Low
 description: When account initialization is not properly validated against reinitialization attempts, callers of the program may try to reinitialize an existing account to manipulate its data and state.
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_reinitialization/bad/lib.rs#L13-L16
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_reinitialization/bad/src/lib.rs#L13-L16
 rule: |
   for source, nodes in ast:
       try:

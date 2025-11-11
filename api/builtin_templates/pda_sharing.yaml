@@ -4,7 +4,7 @@ name: PDA Sharing
 severity: Low
 certainty: Low
 description: Reuse of a PDA across multiple authority domains can lead to unauthorized data or funds access.
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/pda_sharing/bad/lib.rs#L13-L17
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/pda_sharing/bad/src/lib.rs#L13-L17
 rule: |
   for source, nodes in ast:
       try:

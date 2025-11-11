@@ -4,7 +4,7 @@ name: Duplicate Mutable Accounts
 severity: Medium
 certainty: Medium
 description: When there are two or more accounts with mutable data, a check must be in place to ensure mutation of each account is differentiated properly, to avoid unintended data modification of other accounts.
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/duplicate_mutable_accounts/bad/lib.rs#L13-L18
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/duplicate_mutable_accounts/bad/src/lib.rs#L18-L21
 rule: |
   for source, nodes in ast:
       try:

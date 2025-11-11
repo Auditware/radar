@@ -4,12 +4,21 @@ name: Account Precreation DoS
 severity: Low
 certainty: Low
 description: Detects unsafe account owner assignments without prior validation.
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_precreation_dos/bad/lib.rs#L13
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_precreation_dos/bad/src/lib.rs#L13
 rule: |
   for source, nodes in ast:
-      try:
-          owner_assigns = nodes.find_assignments("owner", "key").exit_on_none()
-          require_exists = nodes.find_by_names("require").exit_on_value()
-          print(owner_assigns.first().first().to_result())
-      except:
-          continue
+      for function in nodes.find_all_functions():
+          if "init" not in function.ident.lower():
+              continue
+          
+          owner_refs = function.find_by_names("owner")
+          if not owner_refs:
+              continue
+          
+          require_checks = function.find_by_names("require")
+          default_checks = function.find_by_names("default", "Default")
+          
+          has_validation = (require_checks and default_checks)
+          
+          if not has_validation:
+              print(function.to_result())

@@ -4,7 +4,7 @@ name: Division Before Multiplication
 description: Performing division before multiplication causes precision loss due to truncation, leading to incorrect calculations in financial operations.
 severity: Medium
 certainty: Medium
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/division_before_multiplication/bad/lib.rs#L12
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/division_before_multiplication/bad/src/lib.rs#L13
 rule: |
   for source, nodes in ast:
       try:
