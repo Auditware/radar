@@ -4,7 +4,7 @@ name: Missing Owner Check
 severity: Low
 certainty: Low
 description: The Account struct includes an owner field indicating the key associated with that account's owner. This field should be used to ensure a caller of an owner-only intended functionality, is in fact the owner.
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_owner_check/bad/lib.rs#L13
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_owner_check/bad/src/lib.rs#L13
 rule: |
   for source, nodes in ast:
       try:

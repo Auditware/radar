@@ -4,11 +4,11 @@ name: Account Data Matching
 severity: Low
 certainty: Low
 description: Unpacking account structures without verifying authorization might allow an attacker to view or modify account data unintentionally. Therefore, account unpack operations should be accompanied by appropriate ownership verification.
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_data_matching/bad/lib.rs#L13-L17
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_data_matching/bad/src/lib.rs#L13
 rule: |
   for source, nodes in ast:
       for function in nodes.find_all_functions():
-          unpack_calls = function.find_chained_calls("SplTokenAccount", "unpack")
+          unpack_calls = function.find_chained_calls("unpack")
           if not unpack_calls:
               continue
           
