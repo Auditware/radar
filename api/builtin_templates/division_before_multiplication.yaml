@@ -8,22 +8,13 @@ vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks
 rule: |
   for source, nodes in ast:
       try:
-          div_nodes = nodes.find_by_access_path("binary.left.binary.right.lit")
-          for div_node in div_nodes:
-              parent = div_node.parent
-              if not parent:
-                  continue
-              lit_in_left = "binary.left.binary.right.lit" in div_node.access_path
-              has_field_right = False
-              has_field_left = False
-              for c in parent.children:
-                  if "binary.right.field" in c.access_path:
-                      has_field_right = True
-                  if "binary.left.field" in c.access_path:
-                      has_field_left = True
-              if has_field_left and not lit_in_left:
-                  continue
-              if lit_in_left and has_field_right and not has_field_left:
-                  print(div_node.to_result())
+          funcs = nodes.find_all_functions().exit_on_none()
+          
+          mul_ops = funcs.find_binary_operations("*").exit_on_none()
+          
+          for mul_op in mul_ops:
+              mul_children = mul_op.find_binary_operations("/")
+              if len(mul_children) > 0:
+                  print(mul_op.to_result())
       except:
           continue

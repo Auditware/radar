@@ -1,18 +1,18 @@
 version: 0.1.0
 author: forefy
 name: Account Reinitialization
-severity: Medium
-certainty: Low
+severity: High
+certainty: High
 description: When account initialization is not properly validated against reinitialization attempts, callers of the program may try to reinitialize an existing account to manipulate its data and state.
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_reinitialization/bad/src/lib.rs#L13-L16
 rule: |
   for source, nodes in ast:
       try:
-          init_funcs = nodes.find_functions_by_names("initialize", "init")
-          init_funcs.find_by_names("authority").exit_on_none()
-          discriminator_impls = init_funcs.find_by_names("discriminator").exit_on_value()
-          if len(discriminator_impls) >= 2:
+          init_funcs = nodes.find_functions_by_names("initialize", "init").exit_on_none()
+          require_with_initialized = init_funcs.find_by_names("require", "initialized")
+          if len(require_with_initialized) >= 2:
               continue
-          print(init_funcs.first().to_result())
+          for func in init_funcs:
+              print(func.to_result())
       except:
           continue

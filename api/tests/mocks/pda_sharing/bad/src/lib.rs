@@ -15,7 +15,7 @@ pub mod pda_sharing {
         };
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-        token::transfer(cpi_ctx, amount)?;
+        token::transfer(cpi_ctx, amount)?; // Vulnerable: No PDA seeds/bump validation
         Ok(())
     }
 }

@@ -6,7 +6,7 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod account_reinitialization {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, owner: Pubkey) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, owner: Pubkey) -> Result<()> { // Vulnerable: No reinitialization check
         let config = &mut ctx.accounts.config;
         config.owner = owner;
         config.initialized = true;

@@ -9,7 +9,7 @@ pub mod account_reinitialization {
     pub fn initialize(ctx: Context<Initialize>, owner: Pubkey) -> Result<()> {
         let config = &mut ctx.accounts.config;
         
-        require!(!config.initialized, ErrorCode::AlreadyInitialized);
+        require!(!config.initialized, ErrorCode::AlreadyInitialized); // Fix: Check prevents reinitialization
         
         config.owner = owner;
         config.initialized = true;
