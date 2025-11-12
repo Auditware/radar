@@ -99,6 +99,7 @@ RUN poetry config virtualenvs.create true \
 COPY utils/ /api/utils/
 COPY api/ /api/api/
 COPY builtin_templates/ /api/builtin_templates/
+COPY scripts/ /api/scripts/
 COPY manage.py entrypoint.sh /api/
 
 # Set ownership after copying
