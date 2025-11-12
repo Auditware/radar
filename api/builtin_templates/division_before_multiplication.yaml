@@ -1,5 +1,6 @@
 version: 0.1.0
 author: avigaildanesh
+accent: anchor
 name: Division Before Multiplication
 description: Performing division before multiplication causes precision loss due to truncation, leading to incorrect calculations in financial operations.
 severity: Medium

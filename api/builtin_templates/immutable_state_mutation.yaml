@@ -1,3 +1,6 @@
+version: 0.1.0
+author: forefy
+accent: stylus
 name: Immutable State Mutation
 description: Attempting to mutate constant or immutable values indicates a logic error or potential security issue.
 severity: Low

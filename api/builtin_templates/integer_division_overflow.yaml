@@ -1,5 +1,6 @@
 version: 0.1.0
 author: forefy
+accent: stylus
 name: Integer Division Overflow
 description: Division operations without checked_div can cause panics on division by zero or overflow conditions.
 severity: Low

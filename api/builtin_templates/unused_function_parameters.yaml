@@ -1,3 +1,6 @@
+version: 0.1.0
+author: forefy
+accent: stylus
 name: Unused Function Parameters
 description: Unused function parameters indicate incomplete implementation or logic errors.
 severity: Low

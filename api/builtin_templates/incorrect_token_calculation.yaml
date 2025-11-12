@@ -1,5 +1,6 @@
 version: 0.1.0
 author: forefy
+accent: stylus
 name: Incorrect Token Calculation
 description: Using balance_of instead of reserves in AMM calculations allows price manipulation attacks.
 severity: High

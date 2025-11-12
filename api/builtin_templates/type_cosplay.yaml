@@ -1,9 +1,10 @@
 version: 0.1.0
 author: forefy
+accent: anchor
 name: Type Cosplay
+description: Type cosplay vulnerability occurs when a program fails to validate that an account is of the expected type, allowing malicious accounts to masquerade as legitimate program accounts.
 severity: Low
 certainty: Low
-description: When two account types can be deserialized with the exact same values, a malicious user could substitute between the account types, leading to unexpected execution and possible authorization bypass depending on how the data is used. Using try_from_slice does not check for the necessary discriminator.
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/type_cosplay/bad/lib.rs#L12-L14
 rule: |
   for source, nodes in ast:

@@ -1,3 +1,6 @@
+version: 0.1.0
+author: forefy
+accent: stylus
 name: Invalid Function Attributes
 description: Payable functions that don't handle the received value are likely bugs or can lead to locked funds.
 severity: Low

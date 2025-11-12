@@ -112,70 +112,38 @@ def run_template_on_ast(yaml_data, ast_file):
 
 
 @pytest.mark.parametrize("template_data", get_template_test_data(), ids=lambda x: x["template_name"])
-def test_template_detects_bad_contract(template_data):
+def test_template_accuracy(template_data):
+    """Comprehensive test: detects bad, no false positives, exact line matches."""
     if template_data["expected_bad_lines"] is None:
         pytest.skip(f"No expected detections defined for {template_data['template_name']}")
     
-    result = run_template_on_ast(template_data["yaml_data"], template_data["bad_ast"])
-    
-    assert result.get("locations") is not None and len(result["locations"]) > 0, \
-        f"Template '{template_data['template_name']}' FAILED to detect vulnerability in bad/{template_data['mock_folder']} contract"
-
-
-@pytest.mark.parametrize("template_data", get_template_test_data(), ids=lambda x: x["template_name"])
-def test_template_no_false_positives(template_data):
-    if template_data["expected_bad_lines"] is None:
-        pytest.skip(f"No expected detections defined for {template_data['template_name']}")
-    
-    result = run_template_on_ast(template_data["yaml_data"], template_data["good_ast"])
-    
-    locations = result.get("locations", [])
-    assert len(locations) == 0, \
-        f"Template '{template_data['template_name']}' has FALSE POSITIVE in good/{template_data['mock_folder']} contract.\n" \
-        f"Detected at: {locations}"
-
-
-@pytest.mark.parametrize("template_data", get_template_test_data(), ids=lambda x: x["template_name"])
-def test_template_line_accuracy(template_data):
-    if template_data["expected_bad_lines"] is None:
-        pytest.skip(f"No expected detections defined for {template_data['template_name']}")
-    
-    result = run_template_on_ast(template_data["yaml_data"], template_data["bad_ast"])
-    
-    detected_locations = result.get("locations", [])
-    assert len(detected_locations) > 0, \
-        f"Template '{template_data['template_name']}' detected nothing in bad contract"
-    
-    detected_lines = [extract_line_info(loc) for loc in detected_locations]
-    
-    # For line accuracy validation, we check that:
-    # 1. At least one detection occurred (already verified above)
-    # 2. All detections have valid line info format (line:col-col)
-    for line_info in detected_lines:
-        assert ":" in line_info or "-" in line_info, \
-            f"Invalid line info format in '{template_data['template_name']}': {line_info}"
-
-
-@pytest.mark.parametrize("template_data", get_template_test_data(), ids=lambda x: x["template_name"])
-def test_template_exact_line_detections(template_data):
     expected_bad_locations = template_data["expected_bad_lines"]
     expected_good_locations = template_data["expected_good_lines"]
     
-    if expected_bad_locations is None:
-        pytest.skip(f"No expected detections defined for {template_data['template_name']}")
+    # Test 1: Bad contract - should detect vulnerabilities
+    bad_result = run_template_on_ast(template_data["yaml_data"], template_data["bad_ast"])
+    bad_locations = bad_result.get("locations", [])
     
-    # Test bad contract detections
-    result = run_template_on_ast(template_data["yaml_data"], template_data["bad_ast"])
-    detected_locations = result.get("locations", [])
+    assert len(bad_locations) > 0, \
+        f"FAILED to detect vulnerability in bad contract"
     
-    # Convert detected locations from docker paths to relative paths with line:col info
-    # Docker path: /radar_data/contract/src/lib.rs:9:38-53
-    # Relative path: tests/mocks/template_name/bad/src/lib.rs:9:38-53
-    detected_with_relative_paths = []
-    for loc in detected_locations:
-        # Extract line:col-col from the location
+    # Test 2: Good contract - should have no false positives
+    good_result = run_template_on_ast(template_data["yaml_data"], template_data["good_ast"])
+    good_locations = good_result.get("locations", [])
+    
+    assert len(good_locations) == 0, \
+        f"FALSE POSITIVE in good contract at: {good_locations}"
+    
+    # Test 3: Validate line info format
+    for loc in bad_locations:
         line_info = extract_line_info(loc)
-        # Reconstruct with relative path from api/ directory
+        assert ":" in line_info or "-" in line_info, \
+            f"Invalid line info format: {line_info}"
+    
+    # Test 4: Exact line detections match expected
+    detected_with_relative_paths = []
+    for loc in bad_locations:
+        line_info = extract_line_info(loc)
         relative_path = f"tests/mocks/{template_data['mock_folder']}/bad/src/lib.rs:{line_info}"
         detected_with_relative_paths.append(relative_path)
     
@@ -186,10 +154,68 @@ def test_template_exact_line_detections(template_data):
     extra_detections = detected_set - expected_set
     
     assert not missing_detections, \
-        f"Template '{template_data['template_name']}' missed expected detections:\n{chr(10).join(missing_detections)}"
+        f"Missed expected detections:\n{chr(10).join(missing_detections)}"
     assert not extra_detections, \
-        f"Template '{template_data['template_name']}' found unexpected detections:\n{chr(10).join(extra_detections)}"
+        f"Found unexpected detections:\n{chr(10).join(extra_detections)}"
     
-    # Verify expected_good_locations is empty (already enforced by test_template_no_false_positives)
     assert expected_good_locations == [], \
         f"Expected good locations should be empty list, got {expected_good_locations}"
+
+
+def test_all_templates_have_required_fields_in_order():
+    """Verify all templates have required fields in the correct order."""
+    templates_path = Path("builtin_templates").absolute()
+    
+    # Expected field order (description before severity/certainty is more logical)
+    EXPECTED_FIELD_ORDER = [
+        "version",
+        "author", 
+        "accent",
+        "name",
+        "description",
+        "severity",
+        "certainty",
+        "vulnerable_example",
+        "rule"
+    ]
+    
+    REQUIRED_FIELDS = {"version", "author", "accent", "name", "description", "severity", "certainty", "rule"}
+    
+    issues = []
+    
+    for yaml_file in sorted(templates_path.glob("*.yaml")):
+        with open(yaml_file, "r") as f:
+            content = f.read()
+            template = yaml.safe_load(content)
+        
+        template_name = template.get("name", yaml_file.name)
+        
+        # Check required fields exist
+        missing_fields = REQUIRED_FIELDS - set(template.keys())
+        if missing_fields:
+            issues.append(f"{yaml_file.name}: Missing required fields: {missing_fields}")
+            continue
+        
+        # Extract field order from raw content
+        actual_order = []
+        for line in content.split('\n'):
+            line = line.strip()
+            if line and not line.startswith('#'):
+                if ':' in line:
+                    field = line.split(':')[0].strip()
+                    if field in EXPECTED_FIELD_ORDER and field not in actual_order:
+                        actual_order.append(field)
+        
+        # Check field order matches expected
+        expected_present = [f for f in EXPECTED_FIELD_ORDER if f in template.keys()]
+        actual_present = [f for f in actual_order if f in EXPECTED_FIELD_ORDER]
+        
+        if expected_present != actual_present:
+            issues.append(
+                f"{yaml_file.name}: Incorrect field order\n"
+                f"  Expected: {expected_present}\n"
+                f"  Actual:   {actual_present}"
+            )
+    
+    assert not issues, \
+        f"Template field validation failed:\n" + "\n".join(issues)

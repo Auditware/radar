@@ -1,5 +1,6 @@
 version: 0.1.0
 author: forefy
+accent: stylus
 name: Incorrect Ceiling Division
 description: Financial calculations involving division should use ceiling division (div_ceil or checked_ceil_div) to avoid rounding errors that benefit attackers.
 severity: Medium

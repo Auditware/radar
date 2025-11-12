@@ -1,9 +1,10 @@
 version: 0.1.0
 author: avigaildanesh
+accent: anchor
 name: Account Precreation DoS
+description: Detects unsafe account owner assignments without prior validation.
 severity: Low
 certainty: Low
-description: Detects unsafe account owner assignments without prior validation.
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_precreation_dos/bad/src/lib.rs#L13
 rule: |
   for source, nodes in ast:

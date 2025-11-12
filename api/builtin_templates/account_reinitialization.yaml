@@ -1,10 +1,11 @@
 version: 0.1.0
 author: forefy
+accent: anchor
 name: Account Reinitialization
+description: When account initialization is not properly validated against reinitialization attempts, callers of the program may try to reinitialize an existing account to manipulate its data and state.
 severity: High
 certainty: High
-description: When account initialization is not properly validated against reinitialization attempts, callers of the program may try to reinitialize an existing account to manipulate its data and state.
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_reinitialization/bad/src/lib.rs#L13-L16
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_reinitialization/bad/src/lib.rs#L9-L14
 rule: |
   for source, nodes in ast:
       try:

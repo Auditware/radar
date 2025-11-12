@@ -1,9 +1,10 @@
 version: 0.1.0
-author: avigaildanesh
+author: forefy
+accent: stylus
 name: Unvalidated Fee Assignment
+description: Detects direct assignments of fee configuration fields when there is no preceding require check in the same function.
 severity: Medium
 certainty: Medium
-description: Detects direct assignments of fee configuration fields when there is no preceding require check in the same function.
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/unvalidated_fee_assignment/bad/lib.rs#L13-L15
 rule: |
   for source, nodes in ast:

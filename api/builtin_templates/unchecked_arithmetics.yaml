@@ -1,9 +1,10 @@
 version: 0.1.0
 author: avigaildanesh
+accent: anchor
 name: Unchecked Arithmetics
+description: Arithmetic operations without overflow checks can lead to unexpected behavior, incorrect calculations, or security vulnerabilities when values exceed their maximum limits.
 severity: Low
 certainty: Medium
-description: Unchecked arithmetic operations can lead to integer overflow/underflow issues.
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/unchecked_arithmetics/bad/lib.rs#L14
 rule: |
   for source, nodes in ast:

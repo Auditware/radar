@@ -1,3 +1,6 @@
+version: 0.1.0
+author: forefy
+accent: stylus
 name: Unauthorized State Modification
 description: Functions that modify critical state variables without proper access control checks allow any user to manipulate contract state, leading to unauthorized changes and potential exploitation.
 severity: High

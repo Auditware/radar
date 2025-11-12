@@ -1,5 +1,6 @@
 version: 0.1.0
 author: forefy
+accent: stylus
 name: Exponential Calculation Complexity
 description: Nested iterations with multiplication operations can cause exponential gas costs and DoS vulnerabilities.
 severity: Medium

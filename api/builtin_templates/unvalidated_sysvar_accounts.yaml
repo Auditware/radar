@@ -1,9 +1,10 @@
 version: 0.1.0
 author: forefy
+accent: anchor
 name: Unvalidated Sysvar Account
+description: Sysvars are special Solana accounts that provide access to dynamically updated data. When using them, it's important to verify the interaction is made to the real inteded system variable account, and not to fraudulent or inorrect ones.
 severity: Low
 certainty: Low
-description: Sysvars are special Solana accounts that provide access to dynamically updated data. When using them, it's important to verify the interaction is made to the real inteded system variable account, and not to fraudulent or inorrect ones.
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/unvalidated_sysvar_accounts/bad/src/lib.rs#L12-L14
 rule: |
   sysvars = ["clock", "epoch_schedule", "instructions", "rent"]

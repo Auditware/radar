@@ -1,3 +1,6 @@
+version: 0.1.0
+author: forefy
+accent: stylus
 name: Improper External Account Access
 description: Detects incorrect patterns for accessing external accounts or making external calls. Using wrong access patterns can cause transaction failures or security vulnerabilities.
 severity: Medium
