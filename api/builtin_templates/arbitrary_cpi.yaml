@@ -1,9 +1,10 @@
 version: 0.1.0
 author: forefy
+accent: anchor
 name: Arbitrary Cross-Program Invocation
+description: If not validated properly, when a program implements a Cross-Program Invocation, callers of the program may provide an arbitrary or untrusted program - manipulating the program to call instructions on an untrusted target program.
 severity: Medium
 certainty: Medium
-description: If not validated properly, when a program implements a Cross-Program Invocation, callers of the program may provide an arbitrary or untrusted program - manipulating the program to call instructions on an untrusted target program.
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/arbitrary_cpi/bad/src/lib.rs#L11-L14
 rule: |
   for source, nodes in ast:

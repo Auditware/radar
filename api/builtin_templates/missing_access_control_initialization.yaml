@@ -1,5 +1,6 @@
 version: 0.1.0
-author: radar
+author: forefy
+accent: stylus
 name: Missing Access Control in Initialization
 description: Initialization functions without proper access control or reinitialization protection allow attackers to reset contract state and take ownership.
 severity: High

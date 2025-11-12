@@ -1,5 +1,6 @@
 version: 0.1.0
 author: forefy
+accent: stylus
 name: Off By One Comparison
 description: Incorrect boundary comparisons using < instead of <= or vice versa can allow values outside intended limits.
 severity: Low

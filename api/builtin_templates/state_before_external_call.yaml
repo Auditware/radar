@@ -1,7 +1,10 @@
+version: 0.1.0
+author: forefy
+accent: stylus
 name: State Updated Before External Call
 description: Updating state after external calls can lead to reentrancy vulnerabilities where the called contract can re-enter and exploit inconsistent state.
-severity: High
-certainty: Medium
+severity: Low
+certainty: Low
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/state_before_external_call/bad/lib.rs#L17-L19
 rule: |
   for source, nodes in ast:

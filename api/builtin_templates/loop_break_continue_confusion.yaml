@@ -1,5 +1,6 @@
 version: 0.1.0
 author: forefy
+accent: stylus
 name: Loop Break Continue Confusion
 description: Using break in validation loops can skip critical checks, allowing invalid data to pass through.
 severity: Medium

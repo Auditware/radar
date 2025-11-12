@@ -1,3 +1,6 @@
+version: 0.1.0
+author: forefy
+accent: stylus
 name: Missing Security Documentation
 description: Security-critical functions without documentation make auditing harder and can hide vulnerabilities.
 severity: Low

@@ -1,3 +1,6 @@
+version: 0.1.0
+author: forefy
+accent: stylus
 name: Unrestricted Token Minting
 description: Public mint functions without access control allow anyone to mint unlimited tokens, completely breaking the token economics and security model.
 severity: Medium
