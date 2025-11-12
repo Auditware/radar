@@ -15,16 +15,16 @@ usage() {
     echo "  info                  Display information about available templates"
     echo ""
     echo "Scan Options:"
-    echo "  -p, --path            Path to the target contract on the local filesystem                                           (required)"
-    echo "  -s, --source          Specific source/scope within the contract path                                                (optional) (default - project root)"
-    echo "  -t, --templates       Path to the templates directory                                                               (optional) (default - builtin_templates folder)"
-    echo "  -i, --ignore          Comma-separated severities to ignore in the scan (e.g. low,medium)                            (optional)"
-    echo "  -o, --output          Results output file path (output type controlled by extension e.g. .json/.md/.sarif)          (optional) (default - current directory)"
-    echo "  -a, --ast             Additionally output the scanned contract's parsed AST                                         (optional)"
-    echo "  -d, --dev             Use development docker-compose file for local builds and enable debug output                  (optional)"
-    echo "  -ss, --store-sarif    Store and accumulate SARIF results from previous runs                                         (optional) (default - clean slate)"
-    echo "  -nu, --no-update      Skip automatic update check for Docker images                                                 (optional)"
-    echo "  -h, --help            Show this help message                                                                        (optional)"
+    echo "  -p, --path            Path to the target contract on the local filesystem                                      (required)"
+    echo "  -s, --source          Specific source/scope within the contract path                                           (optional) (default - project root)"
+    echo "  -t, --templates       Path to the templates directory                                                          (optional) (default - builtin_templates folder)"
+    echo "  -i, --ignore          Comma-separated severities to ignore (low,medium,high,uncertain)                                   (optional)"
+    echo "  -o, --output          Results output file path (output type controlled by extension e.g. .json/.md/.sarif)     (optional) (default - current directory)"
+    echo "  -a, --ast             Additionally output the scanned contract's parsed AST                                    (optional)"
+    echo "  -d, --dev             Use development docker-compose file for local builds and enable debug output             (optional)"
+    echo "  -ss, --store-sarif    Store and accumulate SARIF results from previous runs                                    (optional) (default - clean slate)"
+    echo "  -u, --update          Check for and pull latest Docker images before running                                   (optional)"
+    echo "  -h, --help            Show this help message                                                                   (optional)"
     exit 1
 }
 
@@ -138,7 +138,7 @@ generate_ast=false
 shutdown_containers=false
 development_mode=false
 store_sarif=false
-skip_update=false
+check_update=false
 
 # Check if first argument is a command
 command=""
@@ -175,7 +175,7 @@ while [[ "$#" -gt 0 ]]; do
         -o|--output) output_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -k|--kill-after) shutdown_containers=true ;;
         -d|--dev) development_mode=true ;;
-        -nu|--no-update) skip_update=true ;;
+        -u|--update) check_update=true ;;
         -ss|--store-sarif) store_sarif=true ;;
         -h|--help) usage ;;
         *) echo "[e] Unknown argument: $1"; usage ;;
@@ -257,8 +257,8 @@ check_image_update() {
     fi
 }
 
-# Check for image updates unless --no-update flag is used
-if [ "$skip_update" = false ] && [ "$development_mode" = false ]; then
+# Check for image updates only if --update flag is used
+if [ "$check_update" = true ] && [ "$development_mode" = false ]; then
     echo "[i] Checking for Docker image updates..."
     cd "$RADAR_BASE_DIR"
     
@@ -276,10 +276,6 @@ if [ "$skip_update" = false ] && [ "$development_mode" = false ]; then
     fi
     
     cd "$INITIAL_DIR"
-elif [ "$development_mode" = true ]; then
-    echo "[i] Skipping image update check on development mode"
-elif [ "$skip_update" = true ]; then
-    echo "[i] Skipping image update check (--no-update flag used)"
 fi
 
 if [ -z "$path" ]; then
