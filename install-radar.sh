@@ -17,6 +17,7 @@ if [ ! -d "$RADAR_DIR/.git" ]; then
     git clone "$REPO_URL" "$RADAR_DIR"
 else
     echo "radar repository already exists. Pulling the latest changes.."
+    git -C "$RADAR_DIR" clean -fd
     git -C "$RADAR_DIR" reset --hard HEAD
     git -C "$RADAR_DIR" pull
 fi
