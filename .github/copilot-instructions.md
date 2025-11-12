@@ -34,8 +34,9 @@
 - Try to have a consistent code and description writing style across templates
 - Try to strive for a shorter yet readable template rule code
 - When modifying `dsl_ast_iterator.py`, functions, try even harder to follow existing coding style and conventions
+- Rules should not be made for a single specific contract, they should learn from a vulnerable pattern and generalize it to catch similar issues in other contracts reliably
 
-# debugging radar template rules
+## debugging radar template rules
 - DO NOT write temporary files or templates for debug, use the template you are working on directly
 - You can place temporary print statements within the template you are working on to make line-by-line sense of the rule behavior, but this should be very slight as the system provides relevant debugging on `dsl_log` decorator
 - When debugging templates, instead of reading the whole AST, use `some_node.to_raw_ast_debug()` method within the template code to point out pinpointed AST structures. You don't call print(), just add it to the template code and run radar normally on dev mode to see the output
@@ -48,3 +49,11 @@
 - If a function is not logged or working, it might be failing silently due to the try/catch in the template rule - check if all called methods indeed exist on the node type
 - Always debug a single template at a time against a single contract
 - If the user provided a command with a specific template and target contract, ALWAYS do your tests on the user provided specific command, don't divert into other test files or methods or templates.
+
+## quality verification of radar template rules
+- Every template must have a corresponding unit test in `api/tests/test_templates.py`
+- Every template must have a vulnerable example in `api/tests/mocks/<template_name>/bad`
+- Every template must have a non-vulnerable example in `api/tests/mocks/<template_name>/good`
+- Unit tests must verify that the template detects all issues in the bad example, and does not detect any issues in the good example
+- IMPORTANT: it's crucial that the template rules result in a src line that actually points to the core issue in the code, not just somewhere in the function or file, not generic imports, etc.
+

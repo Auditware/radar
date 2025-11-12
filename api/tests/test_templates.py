@@ -31,16 +31,32 @@ EXPECTED_DETECTIONS = {
         ], 
         "good": []
     },
-    "PDA Sharing": {
-        "bad": ["tests/mocks/pda_sharing/bad/src/lib.rs:2:17-22"],
+    "Account Precreation DoS": {
+        "bad": ["tests/mocks/account_precreation_dos/bad/src/lib.rs:9:12-27"],
+        "good": []
+    },
+    "Account Reinitialization": {
+        "bad": ["tests/mocks/account_reinitialization/bad/src/lib.rs:9:12-22"],
+        "good": []
+    },
+    "Arbitrary Cross-Program Invocation": {
+        "bad": ["tests/mocks/arbitrary_cross_program_invocation/bad/src/lib.rs:10:12-24"],
+        "good": []
+    },
+    "Closing Accounts Insecurely": {
+        "bad": ["tests/mocks/closing_accounts_insecurely/bad/src/lib.rs:11:64-74"],
         "good": []
     },
     "Random Authority Generation": {
         "bad": ["tests/mocks/cpi_authority_bypass/bad/src/lib.rs:10:33-43"],
         "good": []
     },
-    "Account Precreation DoS": {
-        "bad": ["tests/mocks/account_precreation_dos/bad/src/lib.rs:9:12-27"],
+     "PDA Sharing": {
+        "bad": ["tests/mocks/pda_sharing/bad/src/lib.rs:18:16-24"],
+        "good": []
+    },
+    "Division Before Multiplication": {
+        "bad": ["tests/mocks/division_before_multiplication/bad/src/lib.rs:9:54-60"],
         "good": []
     }
 }

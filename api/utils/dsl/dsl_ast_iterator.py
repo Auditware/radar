@@ -984,11 +984,46 @@ def serialize_rust_ast(ast, access_path="", parent=None) -> list:
                 parent.metadata = {}
             parent.metadata["op"] = ast["op"]
 
+        # Also capture operator from binary expressions (syn AST structure)
+        if "binary" in ast and isinstance(ast["binary"], dict) and "op" in ast["binary"]:
+            # Find the first ident node in the left side to use its src location
+            def find_first_ident_node(data, path):
+                if isinstance(data, dict):
+                    if "src" in data and "ident" in data:
+                        return (data, path)
+                    for key, value in data.items():
+                        result = find_first_ident_node(value, f"{path}.{key}" if path else key)
+                        if result:
+                            return result
+                elif isinstance(data, list):
+                    for i, item in enumerate(data):
+                        result = find_first_ident_node(item, f"{path}[{i}]")
+                        if result:
+                            return result
+                return None
+            
+            # Create a node for the binary operator
+            left_result = find_first_ident_node(ast["binary"].get("left", {}), "")
+            if left_result:
+                left_node_data, _ = left_result
+                binary_op = ast["binary"]["op"]
+                binary_node_data = {
+                    "src": left_node_data["src"],
+                    "ident": binary_op
+                }
+                binary_node = RustASTNode(
+                    binary_node_data,
+                    f"{access_path}.binary",
+                    {"op": binary_op}
+                )
+                binary_node.parent = parent
+                nodes.append(binary_node)
+
         # Look deeper
         for key, value in ast.items():
             new_path = f"{access_path}.{key}" if access_path else key
             nodes.extend(serialize_rust_ast(value, new_path, parent))
-
+    
     # Look deeper
     elif isinstance(ast, list):
         for i, item in enumerate(ast):

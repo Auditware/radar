@@ -1,15 +1,16 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
-extern crate alloc;
+use anchor_lang::prelude::*;
 
-use stylus_sdk::prelude::*;
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-#[storage]
-#[entrypoint]
-pub struct Contract {}
+#[program]
+pub mod division_before_multiplication {
+    use super::*;
 
-#[public]
-impl Contract {
-    pub fn calculate_fee(&self, amount: U256) -> U256 {
-        (amount * U256::from(3)) / U256::from(100) // FIX: Multiplication before division preserves precision
+    pub fn calculate_fee(ctx: Context<CalculateFee>, amount: u64) -> Result<u64> {
+        let fee = (amount * 3) / 100; // Fix: Multiplication before division preserves precision
+        Ok(fee)
     }
 }
+
+#[derive(Accounts)]
+pub struct CalculateFee {}

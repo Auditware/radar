@@ -8,8 +8,9 @@ vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks
 rule: |
   for source, nodes in ast:
       try:
-          transfer_nodes = nodes.find_chained_calls("token", "transfer").exit_on_none()
+          transfer_nodes = nodes.find_chained_calls("transfer").exit_on_none()
           nodes.find_macro_attribute_by_names("seeds", "bump").exit_on_value()
-          print(transfer_nodes.first().first().to_result())
+          for transfer_node in transfer_nodes:
+              print(transfer_node.first().to_result())
       except:
           continue
