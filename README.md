@@ -80,7 +80,29 @@ In a 10 seconds setup you can integrate [radar-action](https://github.com/Auditw
 
 ## Pre-commit hook
 
-If you're using [pre-commit](https://pre-commit.com), you could also add radar to your workflow by adding radar to your `.pre-commit-config.yaml` configuration like so:
+If you're using pre-commit that's a fantastic timing to run radar, and will shift the vulnerability triage work to each developer at commit time rather than dependabot on the CI option, or to security tester at test time etc.
+
+### Native github pre-commit hook
+Place this hook inside the file `.git/hooks/pre-commit` in your rust smart contract repo to add radar to your workflow:
+```bash
+#!/bin/sh
+if ! command -v radar >/dev/null 2>&1; then
+  echo "radar not found. Installing..."
+  curl -sL https://raw.githubusercontent.com/auditware/radar/main/install-radar.sh | bash || {
+    echo "Failed to install radar. Commit aborted."
+    exit 1
+  }
+fi
+radar -p . --ignore low
+if [ $? -ne 0 ]; then
+  echo "radar scan found issues, commit aborted."
+  exit 1
+fi
+echo " radar scan passed. proceeding with commit."
+```
+
+### pre-commit framework pre-commit hook
+Alternatively to the native hook method, if you prefer to use [pre-commit](https://pre-commit.com), you could add radar to your workflow by adding radar to your `.pre-commit-config.yaml` configuration like so:
 
 ```yaml
 repos:
