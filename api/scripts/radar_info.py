@@ -60,7 +60,7 @@ def main():
         print(f"{accent_str:<{COL_WIDTH}} {author_str:<{COL_WIDTH}} {severity_str:<{COL_WIDTH}}")
 
     # Total templates
-    print(f"\n[i] Total: {len(templates)} templates (run `radar update` to get latest templates)\n")
+    print(f"\n[i] Total: {len(templates)} templates (run `radar update` to get latest templates)")
 
 if __name__ == "__main__":
     main()

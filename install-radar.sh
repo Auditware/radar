@@ -24,8 +24,8 @@ fi
 
 chmod +x "$SCRIPT_PATH"
 
-if ln -sf "$SCRIPT_PATH" "$LINK_PATH"; then
-    chmod +x "$LINK_PATH"
+if ln -sf "$SCRIPT_PATH" "$LINK_PATH" 2>/dev/null; then
+    chmod +x "$LINK_PATH" 2>/dev/null || true
     echo "radar installed. You can run it by typing 'radar' in your terminal."
 else
     echo "Adding radar directory to PATH."
