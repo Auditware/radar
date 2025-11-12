@@ -88,7 +88,7 @@ handle_update_command() {
     
     echo "[i] Restarting containers with updated images..."
     docker compose -f "$compose_file" down > /dev/null 2>&1
-    docker compose -f "$compose_file" up -d > /dev/null 2>&1
+    docker compose -f "$compose_file" up -d --quiet-pull > /dev/null 2>&1
     
     cd "$INITIAL_DIR"
     echo "[i] Radar updated successfully!"
@@ -118,7 +118,7 @@ handle_info_command() {
     fi
     
     # Ensure containers are running
-    docker compose -f "$compose_file" up -d > /dev/null 2>&1
+    docker compose -f "$compose_file" up -d --quiet-pull > /dev/null 2>&1
     
     # Wait for containers to be ready
     sleep 2
@@ -272,7 +272,7 @@ if [ "$check_update" = true ] && [ "$development_mode" = false ]; then
     
     if [ "$updated" = true ]; then
         echo "[i] Restarting services with updated images..."
-        docker compose -f "$compose_file" up -d > /dev/null 2>&1
+        docker compose -f "$compose_file" up -d --quiet-pull > /dev/null 2>&1
     fi
     
     cd "$INITIAL_DIR"
@@ -350,21 +350,21 @@ if [ "$development_mode" = true ]; then
         docker compose -f "$compose_file" up -d --build --quiet-pull
         echo "$current_dev_checksum" > "$dev_checksum_file"
     else
-        docker compose -f "$compose_file" up -d --no-build --quiet-pull
+        docker compose -f "$compose_file" up -d --no-build --quiet-pull > /dev/null 2>&1
     fi
 elif [ -f "$checksum_file" ]; then
     stored_checksum=$(cat "$checksum_file")
     if [ "$current_checksum" != "$stored_checksum" ]; then
         echo "[i] Configuration changed, building images.. (if frozen - make sure Docker is available)"
-        docker compose -f "$compose_file" up -d --build --quiet-pull
+        docker compose -f "$compose_file" up -d --build --quiet-pull > /dev/null 2>&1
         echo "$current_checksum" > "$checksum_file"
     else
         echo "[i] Running images.. (if frozen - make sure Docker is available)" 
-        docker compose -f "$compose_file" up -d --no-build --quiet-pull
+        docker compose -f "$compose_file" up -d --no-build --quiet-pull > /dev/null 2>&1
     fi
 else
     echo "[i] First run, building images.. (if frozen - make sure Docker is available)"
-    docker compose -f "$compose_file" up -d --build --quiet-pull
+    docker compose -f "$compose_file" up -d --build --quiet-pull > /dev/null 2>&1
     echo "$current_checksum" > "$checksum_file"
 fi
 

@@ -179,6 +179,17 @@ def print_write_outputs(
             finding for finding in results 
             if finding.get("certainty", "").lower() == "high"
         ]
+    
+    # Filter out findings with no locations (no actual issues found)
+    results = [
+        finding for finding in results 
+        if finding.get("locations") and len(finding["locations"]) > 0
+    ]
+    
+    # Remove debug field from results if not in debug mode
+    if not debug:
+        for finding in results:
+            finding.pop("debug", None)
 
     if ast and "sources" in ast:
         file_count = len(ast["sources"])
@@ -214,6 +225,7 @@ def print_write_outputs(
 
     # Color codes for severities
     color_map = {
+        "Critical": "\033[38;2;139;0;0m",  # Dark red (RGB)
         "High": "\033[91m",  # Red
         "Medium": "\033[94m",  # Blue
         "Low": "\033[92m",  # Green
