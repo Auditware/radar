@@ -46,6 +46,7 @@ services:
       - ./api/api:/api/api:cached
       - ./api/builtin_templates:/api/builtin_templates:cached
       - ./api/utils:/api/utils:cached
+      - ./api/scripts:/api/scripts:cached
     depends_on:
       postgres:
         condition: service_healthy
