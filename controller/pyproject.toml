@@ -9,6 +9,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 requests = "^2.32.4"
+urllib3 = "^2.5.0"
 
 
 [build-system]
