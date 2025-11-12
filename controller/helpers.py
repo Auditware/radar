@@ -167,9 +167,18 @@ def print_write_outputs(
         )
     else:
         ignored = set()
+    
+    # Filter by severity
     results = [
         finding for finding in results if finding["severity"].lower() not in ignored
     ]
+    
+    # Filter by certainty if "uncertain" is specified
+    if "uncertain" in ignored:
+        results = [
+            finding for finding in results 
+            if finding.get("certainty", "").lower() == "high"
+        ]
 
     if ast and "sources" in ast:
         file_count = len(ast["sources"])
