@@ -347,24 +347,24 @@ if [ "$development_mode" = true ]; then
     fi
     
     if [ "$dev_build_needed" = true ]; then
-        docker compose -f "$compose_file" up -d --build
+        docker compose -f "$compose_file" up -d --build --quiet-pull
         echo "$current_dev_checksum" > "$dev_checksum_file"
     else
-        docker compose -f "$compose_file" up -d --no-build
+        docker compose -f "$compose_file" up -d --no-build --quiet-pull
     fi
 elif [ -f "$checksum_file" ]; then
     stored_checksum=$(cat "$checksum_file")
     if [ "$current_checksum" != "$stored_checksum" ]; then
         echo "[i] Configuration changed, building images.. (if frozen - make sure Docker is available)"
-        docker compose -f "$compose_file" up -d --build
+        docker compose -f "$compose_file" up -d --build --quiet-pull
         echo "$current_checksum" > "$checksum_file"
     else
         echo "[i] Running images.. (if frozen - make sure Docker is available)" 
-        docker compose -f "$compose_file" up -d --no-build
+        docker compose -f "$compose_file" up -d --no-build --quiet-pull
     fi
 else
     echo "[i] First run, building images.. (if frozen - make sure Docker is available)"
-    docker compose -f "$compose_file" up -d --build
+    docker compose -f "$compose_file" up -d --build --quiet-pull
     echo "$current_checksum" > "$checksum_file"
 fi
 
