@@ -67,11 +67,8 @@ handle_update_command() {
     # Run the install script to update the radar repository
     curl -sL https://raw.githubusercontent.com/auditware/radar/main/install-radar.sh | bash
     
-    if [ $? -eq 0 ]; then
-        echo "[i] Radar script updated successfully"
-    else
-        echo "[e] Failed to update radar script"
-        exit 1
+    if [ $? -ne 0 ]; then
+        echo "[w] Install script encountered an issue, but continuing with Docker image updates..."
     fi
     
     # Update Docker images
