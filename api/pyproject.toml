@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-django = "^5.2.2"
+django = "^5.2.8"
 psycopg2-binary = ">=2.9.10"
 python-dotenv = "^1.0.1"
 gunicorn = "^23.0.0"
