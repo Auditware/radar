@@ -15,18 +15,14 @@ rule: |
         if ".impl." not in access_path:
           continue
         
-        has_const = func.find_by_names("const", "CONST")
-        if not has_const.nodes:
-          continue
-        
         has_set = func.find_by_names("set", "setter")
         if not has_set.nodes:
           continue
         
-        func_ident = func.find_by_names(func.ident).exit_on_none().first()
-        if func_ident.parent and func_ident.parent.metadata:
-          print(func_ident.parent.to_result())
-        else:
-          print(func_ident.to_result())
+        for set_node in has_set:
+          context_str = str(set_node.access_path or "")
+          if "constant" in context_str or "const" in context_str or "immutable" in context_str or "fixed" in context_str:
+            print(set_node.to_result())
+            break
     except:
       continue

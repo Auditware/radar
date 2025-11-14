@@ -58,6 +58,42 @@ EXPECTED_DETECTIONS = {
     "Division Before Multiplication": {
         "bad": ["tests/mocks/division_before_multiplication/bad/src/lib.rs:9:54-60"],
         "good": []
+    },
+    "Exponential Calculation Complexity": {
+        "bad": ["tests/mocks/exponential_calculation_complexity/bad/src/lib.rs:13:12-21"],
+        "good": []
+    },
+    "Improper External Account Access": {
+        "bad": ["tests/mocks/improper_external_account_access/bad/src/lib.rs:13:12-21"],
+        "good": []
+    },
+    "Incorrect Token Calculation": {
+        "bad": ["tests/mocks/incorrect_token_calculation/bad/src/lib.rs:14:12-16"],
+        "good": []
+    },
+    "Integer Division Overflow": {
+        "bad": ["tests/mocks/integer_division_overflow/bad/src/lib.rs:12:12-21"],
+        "good": []
+    },
+    "Invalid Function Attributes": {
+        "bad": ["tests/mocks/invalid_function_attributes/bad/src/lib.rs:12:7-14"],
+        "good": []
+    },
+    "Missing Owner Check": {
+        "bad": ["tests/mocks/missing_owner_check/bad/src/lib.rs:20:3-9"],
+        "good": []
+    },
+    "Missing Signer Check": {
+        "bad": ["tests/mocks/missing_signer_check/bad/src/lib.rs:15:3-9"],
+        "good": []
+    },
+    "Type Cosplay": {
+        "bad": ["tests/mocks/type_cosplay/bad/src/lib.rs:11:33-48"],
+        "good": []
+    },
+    "Unchecked Arithmetics": {
+        "bad": ["tests/mocks/unchecked_arithmetics/bad/src/lib.rs:16:22-25"],
+        "good": []
     }
 }
 
