@@ -9,8 +9,16 @@ vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks
 rule: |
   for source, nodes in ast:
       try:
-          nodes.find_by_child("AccountInfo").exit_on_none()
-          try_from_slice_calls = nodes.find_functions_by_names("try_from_slice").exit_on_none()
-          print(try_from_slice_calls.first().to_result())
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              has_borrow = func.find_by_names("try_borrow_data", "try_borrow_mut_data", "borrow_data", "borrow_mut_data")
+              if not has_borrow.nodes:
+                  continue
+              
+              has_validation = func.find_functions_by_names("try_from", "try_from_slice", "try_into")
+              if has_validation.nodes:
+                  continue
+              
+              print(has_borrow.first().to_result())
       except:
           continue

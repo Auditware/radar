@@ -27,10 +27,7 @@ rule: |
         if has_transfer.nodes:
           continue
         
-        func_ident = func.find_by_names(func.ident).exit_on_none().first()
-        if func_ident.parent and func_ident.parent.metadata:
-          print(func_ident.parent.to_result())
-        else:
-          print(func_ident.to_result())
+        payable_attr = has_payable.first()
+        print(payable_attr.to_result())
     except:
       continue
