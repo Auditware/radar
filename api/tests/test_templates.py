@@ -94,6 +94,10 @@ EXPECTED_DETECTIONS = {
     "Unchecked Arithmetics": {
         "bad": ["tests/mocks/unchecked_arithmetics/bad/src/lib.rs:16:22-25"],
         "good": []
+    },
+    "Immutable State Mutation": {
+        "bad": ["tests/mocks/immutable_state_mutation/bad/src/lib.rs:15:29-32"],
+        "good": []
     }
 }
 

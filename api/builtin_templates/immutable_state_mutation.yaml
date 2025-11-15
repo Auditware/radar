@@ -15,14 +15,21 @@ rule: |
         if ".impl." not in access_path:
           continue
         
-        has_set = func.find_by_names("set", "setter")
-        if not has_set.nodes:
+        set_calls = func.find_by_names("set", "setter")
+        if not set_calls.nodes:
           continue
         
-        for set_node in has_set:
-          context_str = str(set_node.access_path or "")
-          if "constant" in context_str or "const" in context_str or "immutable" in context_str or "fixed" in context_str:
-            print(set_node.to_result())
+        for set_call in set_calls:
+          if not set_call.children:
+            continue
+          receiver = set_call.children[0]
+          if not receiver:
+            continue
+          receiver_ident = receiver.ident or ""
+          if not receiver_ident:
+            continue
+          if "constant" in receiver_ident or "const" in receiver_ident or "immutable" in receiver_ident or "fixed" in receiver_ident or "CONSTANT" in receiver_ident or "CONST" in receiver_ident or "IMMUTABLE" in receiver_ident or "FIXED" in receiver_ident:
+            print(set_call.to_result())
             break
     except:
       continue
