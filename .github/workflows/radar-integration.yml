@@ -1,13 +1,16 @@
 name: Radar Integration Test
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Publish Containers to GitHub Container Registry"]
+    types:
+      - completed
     branches:
       - main
-  pull_request:
 
 jobs:
   analyze:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       security-events: write
