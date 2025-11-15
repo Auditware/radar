@@ -15,17 +15,27 @@
 ```yaml
 version: 0.1.0
 author: forefy
-name: Arbitrary Cross-Program Invocation
-severity: Medium
-certainty: Medium
-description: If not validated properly, when a program implements a Cross-Program Invocation, callers of the program may provide an arbitrary or untrusted program - manipulating the program to call instructions on an untrusted target program.
+accent: anchor
+name: Issue name here
+description: Issue technical description here 
+severity: Medium (filter templates for example via --ignore low,medium)
+certainty: Medium (filter templates for example via --ignore uncertain)
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/arbitrary_cpi/bad/src/lib.rs#L11-L14 (Each template is shipped with a god/ and bad/ minimal compilable contracts, and is tested to work as expected)
+
 rule: |
   for source, nodes in ast:
       try:
-          cpi_groups = nodes.find_chained_calls("solana_program", "program", "invoke").exit_on_none()
-          nodes.find_comparisons_between("spl_token", "token_program").exit_on_value()
-          for cpi_group in cpi_groups:
-              print(cpi_group.first().parent.to_result())
+          # Your python logic here, for example:
+          funcs = nodes.find_all_functions().exit_on_none()
+          invoke_refs = funcs.find_by_names("invoke")
+          if len(invoke_refs) == 0:
+              continue
+          spl_token_checks = funcs.find_by_names("spl_token", "ID")
+          spl_token_2022_checks = funcs.find_by_names("spl_token_2022", "ID")
+          if len(spl_token_checks) >= 2 or len(spl_token_2022_checks) >= 2:
+              continue
+          for invoke_ref in invoke_refs:
+              print(invoke_ref.parent.to_result())
       except:
           continue
 ```
