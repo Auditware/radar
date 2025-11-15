@@ -1,0 +1,40 @@
+name: Radar Integration Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      
+      - name: Run radar on mock contract
+        id: radar
+        uses: auditware/radar-action@main
+        with:
+          path: "api/tests/mocks/anchor-test"
+  
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: output.sarif
+          
+      - name: Verify radar ran successfully
+        run: |
+          if [ ! -f output.sarif ]; then
+            echo "Error: output.sarif not found"
+            exit 1
+          fi
+          echo "Radar integration test passed"
