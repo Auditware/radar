@@ -57,6 +57,8 @@ bash install-radar.sh
 
 ## How to run
 
+Simple example: `radar -p api/tests/mocks/pda_sharing`
+
 A good contract to first test radar against is the beautiful repo [sealevel-attacks](https://github.com/coral-xyz/sealevel-attacks)
 
 ```bash
