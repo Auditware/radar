@@ -30,11 +30,30 @@ def handle_response(response):
         return response.json()
     except (requests.HTTPError, requests.exceptions.RequestException, ValueError) as e:
         if str(response.status_code).startswith("4"):
-            print(f"[e] {e}")
             try:
                 res_json = response.json()
-                print(json.dumps(res_json, indent=4))
+                error_msg = res_json.get("error", "")
+                
+                if "File not found" in error_msg and ("lib/" in error_msg or "node_modules/" in error_msg):
+                    print("[e] Missing project dependencies detected")
+                    if "lib/openzeppelin-contracts" in error_msg or "lib/forge-std" in error_msg:
+                        print("[!] This appears to be a Foundry project with uninstalled dependencies")
+                        print("[!] Please run 'forge install' in your project directory first")
+                    elif "node_modules" in error_msg:
+                        print("[!] This appears to be a Hardhat/npm project with uninstalled dependencies")
+                        print("[!] Please run 'npm install' or 'yarn install' in your project directory first")
+                    else:
+                        print("[!] Please install project dependencies before running radar")
+                elif "Failed to parse" in error_msg and "compilation errors" in error_msg.lower():
+                    print("[e] Solidity compilation failed")
+                    print("[!] Your project has compilation errors that must be fixed first")
+                    if "File not found" in error_msg:
+                        print("[!] Hint: Missing dependencies? Try running 'forge install' or 'npm install'")
+                else:
+                    print(f"[e] {e}")
+                    print(json.dumps(res_json, indent=4))
             except:
+                print(f"[e] {e}")
                 print("[e] Failed to parse response from API")
                 sys.exit(0)
         else:
