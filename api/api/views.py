@@ -26,6 +26,7 @@ class GenerateRustASTView(APIView):
     def post(self, request, *args, **kwargs):
         source_type = request.data.get("source_type")
         source_path = request.data.get(f"{source_type}_path")
+        framework = request.data.get("framework", "unknown")
 
         if not source_type or not source_path:
             return Response(
@@ -40,74 +41,130 @@ class GenerateRustASTView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        ast_data = {}
-
         source_file_path = Path("/radar_data") / Path(source_path.lstrip("/"))
-        if source_type == "file":
-            logger.info(f"Generating AST for {source_file_path}")
+        
+        language = "rust"
+        if source_type == "file" and source_file_path.suffix == ".sol":
+            language = "solidity"
+        
+        logger.info(f"Language detected: {language}")
+        
+        if language == "solidity":
+            from utils.ast import generate_ast_for_solidity_file
             try:
-                file_ast = generate_ast_for_rust_file(source_file_path)
+                file_ast = generate_ast_for_solidity_file(source_file_path)
                 ast_data = {"sources": {}, "metadata": {}}
-                ast_data["sources"][str(source_file_path)] = file_ast
+                ast_data = file_ast
             except Exception as e:
                 logger.error(e)
                 return Response(
-                    {"error": "Faild to parse AST from provided source code"},
+                    {"error": f"Failed to parse Solidity AST: {str(e)}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+        else:
+            ast_data = {}
 
-        elif source_type == "folder":
-            # User may provide a path to the root of the project, or to a specific prgoram,
-            # differentiated by the respective toml file present
-            anchor_file = source_file_path / "Anchor.toml"
-            xargo_file = source_file_path / "Xargo.toml"
-
-            if xargo_file.exists():
+            if source_type == "file":
+                logger.info(f"Generating AST for {source_file_path}")
                 try:
-                    ast_data = generate_ast_for_rust_program(source_file_path)
+                    file_ast = generate_ast_for_rust_file(source_file_path)
+                    ast_data = {"sources": {}, "metadata": {}}
+                    ast_data["sources"][str(source_file_path)] = file_ast
                 except Exception as e:
                     logger.error(e)
                     return Response(
-                        {
-                            "error": f"Failed to parse AST from provided program source code: {str(e)}"
-                        },
+                        {"error": "Faild to parse AST from provided source code"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            elif anchor_file.exists():
-                try:
-                    ast_data = generate_ast_for_anchor_project(source_file_path)
-                except Exception as e:
-                    logger.error(e)
-                    return Response(
-                        {
-                            "error": f"Failed to parse AST from provided program source code: {str(e)}"
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-            # last check for multiple programs within a folder, or quit trying
-            else:
-                try:
-                    ast_data = generate_aggregate_program_ast(source_file_path)
-                    if ast_data is None:
-                        raise ValueError(
-                            "No Cargo.toml files found in any subdirectories."
+            elif source_type == "folder":
+                # Check for Solidity files first - only in src/ for Foundry projects
+                if (source_file_path / "foundry.toml").exists():
+                    # For Foundry projects, only compile src/ files
+                    sol_files = list((source_file_path / "src").rglob("*.sol")) if (source_file_path / "src").exists() else []
+                else:
+                    # For non-Foundry, include all .sol files
+                    sol_files = list(source_file_path.rglob("*.sol"))
+                
+                # Filter out test/verification files
+                sol_files = [
+                    f for f in sol_files 
+                    if not any(part in f.parts for part in ['test', 'Test', 'certora', 'mock', 'Mock', 'forge-std'])
+                ]
+                
+                if sol_files:
+                    logger.info(f"Found {len(sol_files)} Solidity file(s) at {source_file_path}")
+                    language = "solidity"
+                    logger.info(f"Language detected: {language}")
+                    from utils.solidity_compiler import get_foundry_remappings, compile_solidity_files
+                    
+                    remappings = None
+                    base_path = None
+                    
+                    if (source_file_path / "foundry.toml").exists():
+                        logger.info("Detected Foundry project, extracting remappings...")
+                        remappings = get_foundry_remappings(source_file_path)
+                        base_path = source_file_path
+                    
+                    try:
+                        # Compile all files together for proper import resolution
+                        compiled_ast = compile_solidity_files(sol_files, remappings=remappings, base_path=base_path)
+                        ast_data = compiled_ast
+                    except Exception as e:
+                        logger.error(e)
+                        return Response(
+                            {"error": f"Failed to parse Solidity AST: {str(e)}"},
+                            status=status.HTTP_400_BAD_REQUEST,
                         )
-                except Exception as e:
-                    logger.error(e)
-                    return Response(
-                        {
-                            "error": f"Failed to process source path {source_file_path}: {str(e)}"
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                # User may provide a path to the root of the project, or to a specific prgoram,
+                # differentiated by the respective toml file present
+                elif (source_file_path / "Xargo.toml").exists():
+                    try:
+                        ast_data = generate_ast_for_rust_program(source_file_path)
+                    except Exception as e:
+                        logger.error(e)
+                        return Response(
+                            {
+                                "error": f"Failed to parse AST from provided program source code: {str(e)}"
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                elif (source_file_path / "Anchor.toml").exists():
+                    try:
+                        ast_data = generate_ast_for_anchor_project(source_file_path)
+                    except Exception as e:
+                        logger.error(e)
+                        return Response(
+                            {
+                                "error": f"Failed to parse AST from provided program source code: {str(e)}"
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                # last check for multiple programs within a folder, or quit trying
+                else:
+                    try:
+                        ast_data = generate_aggregate_program_ast(source_file_path)
+                        if ast_data is None:
+                            raise ValueError(
+                                "No Cargo.toml files found in any subdirectories."
+                            )
+                    except Exception as e:
+                        logger.error(e)
+                        return Response(
+                            {
+                                "error": f"Failed to process source path {source_file_path}: {str(e)}"
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
 
         serializer_data = {
             "ast": ast_data,
             "source_type": source_type,
             "file_path": source_path if source_type == "file" else None,
             "folder_path": source_path if source_type == "folder" else None,
+            "language": language,
+            "framework": framework,
         }
         serializer = GenerateASTSerializer(data=serializer_data)
 
@@ -156,6 +213,10 @@ class RunScanView(APIView):
         generated_ast = (
             GeneratedAST.objects.filter(**query).order_by("-created").first()
         )
+        
+        # Get the detected language and framework from the AST
+        detected_language = generated_ast.language if generated_ast else "rust"
+        detected_framework = generated_ast.framework if generated_ast else "unknown"
 
         for yaml_file in yaml_files:
             yaml_data = None
@@ -169,6 +230,17 @@ class RunScanView(APIView):
                 )
 
             if yaml_data is not None:
+                # Filter templates by language - only run templates that match detected language
+                template_language = yaml_data.get("language", "rust")
+                if template_language != detected_language:
+                    continue
+                
+                # Filter by framework/accent for rust templates
+                template_accent = yaml_data.get("accent", "")
+                if detected_language == "rust" and template_accent and detected_framework != "unknown":
+                    if template_accent != detected_framework:
+                        continue
+                
                 result = run_scan_task.apply_async(
                     kwargs={
                         "yaml_data": yaml_data,
@@ -235,7 +307,11 @@ class PollResultsView(APIView):
                 all_done = False
 
         if all_done:
-            return Response({"results": results}, status=status.HTTP_200_OK)
+            template_count = len(generated_ast.task_ids)
+            return Response({
+                "results": results,
+                "template_count": template_count
+            }, status=status.HTTP_200_OK)
         else:
             return Response(
                 {"status": "Tasks are still running."}, status=status.HTTP_202_ACCEPTED

@@ -1,0 +1,18 @@
+version: 0.1.0
+author: forefy
+language: solidity
+name: Unsafe delegatecall
+severity: High
+certainty: Low
+description: Using delgate call to call an address provided by external inputs without validation allows attackers to control the execution flow.
+rule: |
+  for source, nodes in ast:
+    try:
+        delegate_calls = nodes.find_nodes_by_member_names("delegatecall").exit_on_none()
+        calldata_found = False
+        for node in delegate_calls:
+            calldata_args = node.parent.find_nodes_by_type_strings("bytes calldata")
+            if len(calldata_args) > 0:
+              print(node.to_result())
+    except:
+        continue

@@ -5,4 +5,4 @@ from .models import GeneratedAST
 class GenerateASTSerializer(serializers.ModelSerializer):
     class Meta:
         model = GeneratedAST
-        fields = ["ast", "source_type", "file_path", "folder_path"]
+        fields = ["ast", "source_type", "file_path", "folder_path", "language", "framework"]

@@ -4,10 +4,10 @@ version = "0.1.0"
 description = ""
 authors = ["forefy <tomer@auditware.io>"]
 license = "GPL-3.0-only"
-readme = "README.md"
+# readme = "README.md"  # File doesn't exist
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 django = "^5.2.8"
 psycopg2-binary = ">=2.9.10"
 python-dotenv = "^1.0.1"
@@ -22,6 +22,8 @@ django-celery-results = "^2.5.1"
 watchdog = "^4.0.1"
 pyyaml = "^6.0.1"
 pytest = "^8.2.2"
+solc-select = "^1.0.4"
+semantic-version = "^2.10.0"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

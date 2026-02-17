@@ -1,0 +1,260 @@
+import json
+import subprocess
+import re
+from pathlib import Path
+from semantic_version import Version
+from typing import List
+
+SOLC_CMD_TIMEOUT = 30
+
+
+def detect_solidity_version(file_content: str) -> str:
+    pragma_match = re.search(r'pragma\s+solidity\s+([^;]+);', file_content)
+    if pragma_match:
+        version_spec = pragma_match.group(1).strip()
+        version_spec = version_spec.replace('^', '').replace('>=', '').replace('>', '')
+        version_match = re.search(r'(\d+\.\d+\.\d+)', version_spec)
+        if version_match:
+            detected = version_match.group(1)
+            if Version(detected) >= Version('0.8.0'):
+                return detected
+    return '0.8.20'
+
+
+def get_foundry_remappings(project_dir: Path) -> List[str]:
+    """Get remappings from Foundry project using 'forge remappings' command."""
+    try:
+        result = subprocess.run(
+            ["forge", "remappings"],
+            cwd=str(project_dir),
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            remappings = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
+            print(f"[i] Found {len(remappings)} remappings from Foundry project")
+            return remappings
+        return []
+    except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.CalledProcessError):
+        return []
+
+
+def compile_solidity_files(file_paths: list[Path], remappings: List[str] = None, base_path: Path = None) -> dict:
+    """Compile multiple Solidity files together in a single compilation unit."""
+    
+    # Detect highest required version from all files
+    max_version = "0.8.0"
+    sources = {}
+    
+    for file_path in file_paths:
+        file_content = file_path.read_text()
+        detected_version = detect_solidity_version(file_content)
+        if Version(detected_version) > Version(max_version):
+            max_version = detected_version
+        
+        # Use relative path if base_path is provided
+        if base_path:
+            try:
+                source_key = str(file_path.relative_to(base_path))
+            except ValueError:
+                source_key = str(file_path)
+        else:
+            source_key = str(file_path)
+        
+        sources[source_key] = {"content": file_content}
+    
+    if Version(max_version) < Version('0.8.0'):
+        raise ValueError(f"Solidity version {max_version} < 0.8.0 is not supported. Only Solidity 0.8+ is supported.")
+    
+    print(f"[i] Compiling {len(file_paths)} files with solc {max_version}")
+    
+    # Install and select compiler version
+    try:
+        result = subprocess.run(
+            ["solc-select", "use", max_version],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10
+        )
+    except subprocess.CalledProcessError as e:
+        if "must be installed" in str(e.stderr):
+            print(f"[i] Installing solc {max_version}...")
+            subprocess.run(
+                ["solc-select", "install", max_version],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=60
+            )
+            subprocess.run(
+                ["solc-select", "use", max_version],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=10
+            )
+        else:
+            raise RuntimeError(f"Failed to set solc version to {max_version}: {e.stderr}")
+    except FileNotFoundError:
+        raise RuntimeError("solc-select not found. Please install it: pip install solc-select")
+    
+    solc_input = {
+        "language": "Solidity",
+        "sources": sources,
+        "settings": {
+            "outputSelection": {
+                "*": {
+                    "*": ["abi"],
+                    "": ["ast"]
+                }
+            }
+        }
+    }
+    
+    if remappings:
+        solc_input["settings"]["remappings"] = remappings
+    
+    cwd = base_path if base_path else None
+    
+    # Build solc command
+    solc_cmd = ["solc", "--standard-json"]
+    if base_path:
+        solc_cmd.extend(["--allow-paths", str(base_path)])
+    
+    try:
+        result = subprocess.run(
+            solc_cmd,
+            input=json.dumps(solc_input),
+            capture_output=True,
+            text=True,
+            timeout=SOLC_CMD_TIMEOUT,
+            cwd=str(cwd) if cwd else None
+        )
+        
+        ast_output = json.loads(result.stdout)
+        
+        if "errors" in ast_output:
+            errors = [e for e in ast_output["errors"] if e.get("severity") == "error"]
+            if errors:
+                error_msgs = "\n".join([e.get("message", str(e)) for e in errors])
+                raise ValueError(f"Solidity compilation errors:\n{error_msgs}")
+        
+        if not ast_output.get("sources"):
+            raise ValueError("Compilation failed - no sources generated")
+        
+        return ast_output
+        
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"Solidity compilation timed out after {SOLC_CMD_TIMEOUT} seconds")
+    except json.JSONDecodeError:
+        raise RuntimeError(f"Failed to parse solc output: {result.stdout}")
+
+
+def compile_solidity_file(file_path: Path, remappings: List[str] = None, base_path: Path = None) -> dict:
+    file_content = file_path.read_text()
+    
+    solc_version = detect_solidity_version(file_content)
+    
+    if Version(solc_version) < Version('0.8.0'):
+        raise ValueError(f"Solidity version {solc_version} < 0.8.0 is not supported. Only Solidity 0.8+ is supported.")
+    
+    print(f"[i] Compiling {file_path} with solc {solc_version}")
+    
+    try:
+        result = subprocess.run(
+            ["solc-select", "use", solc_version],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10
+        )
+    except subprocess.CalledProcessError as e:
+        if "must be installed" in str(e.stderr):
+            print(f"[i] Installing solc {solc_version}...")
+            subprocess.run(
+                ["solc-select", "install", solc_version],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=60
+            )
+            subprocess.run(
+                ["solc-select", "use", solc_version],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=10
+            )
+        else:
+            raise RuntimeError(f"Failed to set solc version to {solc_version}: {e.stderr}")
+    except FileNotFoundError:
+        raise RuntimeError("solc-select not found. Please install it: pip install solc-select")
+    
+    # Use relative path if base_path is provided (for Foundry projects)
+    if base_path:
+        try:
+            source_key = str(file_path.relative_to(base_path))
+        except ValueError:
+            source_key = str(file_path)
+    else:
+        source_key = str(file_path)
+    
+    solc_input = {
+        "language": "Solidity",
+        "sources": {source_key: {"content": file_content}},
+        "settings": {
+            "outputSelection": {
+                "*": {
+                    "*": ["abi"],
+                    "": ["ast"]
+                }
+            }
+        }
+    }
+    
+    if remappings:
+        solc_input["settings"]["remappings"] = remappings
+    
+    cwd = base_path if base_path else None
+    
+    if cwd:
+        print(f"[i] Running solc from directory: {cwd}")
+        print(f"[i] Source key: {source_key}")
+    
+    # Build solc command - add --allow-paths for Foundry projects
+    solc_cmd = ["solc", "--standard-json"]
+    if base_path:
+        # Allow access to the entire project directory
+        solc_cmd.extend(["--allow-paths", str(base_path)])
+    
+    try:
+        result = subprocess.run(
+            solc_cmd,
+            input=json.dumps(solc_input),
+            capture_output=True,
+            text=True,
+            timeout=SOLC_CMD_TIMEOUT,
+            cwd=str(cwd) if cwd else None
+        )
+        
+        ast_output = json.loads(result.stdout)
+        
+        if "errors" in ast_output:
+            errors = [e for e in ast_output["errors"] if e.get("severity") == "error"]
+            if errors:
+                error_msgs = "\n".join([e.get("message", str(e)) for e in errors])
+                raise ValueError(f"Solidity compilation errors:\n{error_msgs}")
+        
+        if not ast_output.get("sources"):
+            raise ValueError("Compilation failed - no sources generated")
+        
+        return ast_output
+        
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"Solidity compilation timed out after {SOLC_CMD_TIMEOUT} seconds")
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Failed to parse solc output: {e}")

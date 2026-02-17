@@ -37,6 +37,7 @@ RUN apt-get update \
         gcc \
         libpq-dev \
         curl \
+        git \
         build-essential \
         libssl-dev \
         pkg-config \
@@ -87,13 +88,23 @@ ENV DEBUG=${DEBUG} \
 
 # Install poetry and dependencies as root
 # Upgrade pip to latest version to address security vulnerability GHSA-4xh5-x5gv-qwph
-RUN pip install --no-cache-dir --upgrade pip poetry
+RUN pip install --no-cache-dir --upgrade pip poetry==1.8.3
 
 # Copy dependency files first for better caching
 COPY pyproject.toml poetry.lock* /api/
 RUN poetry config virtualenvs.create true \
     && poetry config virtualenvs.in-project true \
+    && rm -rf /api/.venv \
     && poetry install --no-root
+
+RUN pip install solc-select && \
+    solc-select install 0.8.20 && \
+    solc-select use 0.8.20
+
+RUN curl -L https://foundry.paradigm.xyz | bash && \
+    bash -c "source /root/.bashrc && foundryup" && \
+    cp /root/.foundry/bin/* /usr/local/bin/ && \
+    chmod +x /usr/local/bin/forge /usr/local/bin/cast /usr/local/bin/anvil /usr/local/bin/chisel
 
 # Copy application files in layers for better caching
 COPY utils/ /api/utils/

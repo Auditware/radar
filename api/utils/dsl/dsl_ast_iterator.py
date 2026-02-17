@@ -1033,11 +1033,28 @@ def serialize_rust_ast(ast, access_path="", parent=None) -> list:
     return nodes
 
 
-def parse_ast(ast: dict) -> dict:
+def parse_ast(ast: dict, language: str = "rust") -> dict:
     """Parse an AST dictionary into organized source-based node hierarchies.
 
     Args:
         ast: The AST dictionary to parse.
+        language: Programming language ('rust' or 'solidity'). Defaults to 'rust'.
+
+    Returns:
+        Dictionary mapping source file names to their root ASTNode objects.
+    """
+    if language == "solidity":
+        from utils.dsl.solidity import parse_solidity_ast
+        return parse_solidity_ast(ast)
+    else:
+        return parse_rust_ast(ast)
+
+
+def parse_rust_ast(ast: dict) -> dict:
+    """Parse Rust AST dictionary into organized source-based node hierarchies.
+
+    Args:
+        ast: The Rust AST dictionary to parse.
 
     Returns:
         Dictionary mapping source file names to their root RustASTNode objects.

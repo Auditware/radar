@@ -15,7 +15,8 @@ def run_scan_task(yaml_data, generated_ast_id):
         }
 
         code = yaml_data["rule"]
-        code = inject_code_lines(code, [f"ast = parse_ast({generated_ast.ast}).items()"])
+        template_language = yaml_data.get("language", "rust")
+        code = inject_code_lines(code, [f"ast = parse_ast({generated_ast.ast}, '{template_language}').items()"])
 
         template_outputs = wrapped_exec(code)
         print(template_outputs)

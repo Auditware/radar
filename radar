@@ -13,6 +13,7 @@ usage() {
     echo "  scan                  Scan a contract for vulnerabilities (default command)"
     echo "  update                Update radar to the latest version"
     echo "  info                  Display information about available templates"
+    echo "  list-templates        List all available templates grouped by language/framework"
     echo ""
     echo "Scan Options:"
     echo "  -p, --path            Path to the target contract on the local filesystem                                      (required)"
@@ -130,6 +131,81 @@ handle_info_command() {
     exit 0
 }
 
+handle_list_templates_command() {
+    check_docker
+    cd "$RADAR_BASE_DIR"
+    
+    compose_file="docker-compose.yml"
+    templates_dir="$RADAR_BASE_DIR/api/builtin_templates"
+    
+    if [ "$development_mode" = true ] && [ -d "$INITIAL_DIR/api/builtin_templates" ]; then
+        templates_dir="$INITIAL_DIR/api/builtin_templates"
+        echo "[d] Using local templates directory"
+    fi
+    
+    if [ ! -d "$templates_dir" ]; then
+        echo "[e] Templates directory not found: $templates_dir"
+        exit 1
+    fi
+    
+    echo ""
+    echo "Available Templates"
+    echo "==================="
+    echo ""
+    
+    # Rust - Anchor templates
+    anchor_templates=$(for template in "$templates_dir"/*.yaml; do
+        if grep -q "^accent: anchor" "$template" 2>/dev/null; then
+            grep "^name:" "$template" | sed 's/name: *//'
+        fi
+    done | sort)
+    
+    anchor_count=$(echo "$anchor_templates" | grep -c "^" 2>/dev/null || echo 0)
+    if [ "$anchor_count" -gt 0 ]; then
+        echo "Rust - Anchor (Solana) [$anchor_count templates]"
+        echo "-----------------------------------"
+        echo "$anchor_templates" | sed 's/^/  • /'
+        echo ""
+    fi
+    
+    # Rust - Stylus templates
+    stylus_templates=$(for template in "$templates_dir"/*.yaml; do
+        if grep -q "^accent: stylus" "$template" 2>/dev/null; then
+            grep "^name:" "$template" | sed 's/name: *//'
+        fi
+    done | sort)
+    
+    stylus_count=$(echo "$stylus_templates" | grep -c "^" 2>/dev/null || echo 0)
+    if [ "$stylus_count" -gt 0 ]; then
+        echo "Rust - Stylus (Arbitrum) [$stylus_count templates]"
+        echo "-----------------------------------"
+        echo "$stylus_templates" | sed 's/^/  • /'
+        echo ""
+    fi
+    
+    # Solidity templates
+    solidity_templates=$(for template in "$templates_dir"/*.yaml; do
+        if grep -q "^language: solidity" "$template" 2>/dev/null; then
+            grep "^name:" "$template" | sed 's/name: *//'
+        fi
+    done | sort)
+    
+    solidity_count=$(echo "$solidity_templates" | grep -c "^" 2>/dev/null || echo 0)
+    if [ "$solidity_count" -gt 0 ]; then
+        echo "Solidity [$solidity_count templates]"
+        echo "-----------------------------------"
+        echo "$solidity_templates" | sed 's/^/  • /'
+        echo ""
+    fi
+    
+    total=$((anchor_count + stylus_count + solidity_count))
+    echo "Total: $total templates"
+    echo ""
+    
+    cd "$INITIAL_DIR"
+    exit 0
+}
+
 path=""
 source_directory_or_file=""
 ignore_severities=""
@@ -148,6 +224,9 @@ if [[ "$1" == "update" ]]; then
 elif [[ "$1" == "info" ]]; then
     command="info"
     shift
+elif [[ "$1" == "list-templates" ]]; then
+    command="list-templates"
+    shift
 elif [[ "$1" == "scan" ]]; then
     command="scan"
     shift
@@ -156,7 +235,7 @@ elif [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
 elif [[ "$1" != "-"* ]] && [[ -n "$1" ]]; then
     # If first arg is not a flag and not empty, it might be an unknown command
     echo "[e] Unknown command: $1"
-    echo "[i] Available commands: scan, update, info"
+    echo "[i] Available commands: scan, update, info, list-templates"
     usage
 fi
 
@@ -188,6 +267,8 @@ if [[ "$command" == "update" ]]; then
     handle_update_command
 elif [[ "$command" == "info" ]]; then
     handle_info_command
+elif [[ "$command" == "list-templates" ]]; then
+    handle_list_templates_command
 fi
 
 # If command is scan, continue with normal flow
@@ -351,7 +432,24 @@ if [ "$development_mode" = true ]; then
         echo "$current_dev_checksum" > "$dev_checksum_file"
     else
         docker compose -f "$compose_file" up -d --no-build --quiet-pull > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            echo "[d] Failed to start containers, rebuilding..."
+            docker compose -f "$compose_file" up -d --build --quiet-pull
+            echo "$current_dev_checksum" > "$dev_checksum_file"
+        fi
     fi
+    
+    # Wait for API container to be healthy
+    echo "[d] Waiting for containers to be ready..."
+    timeout=60
+    elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        if docker compose -f "$compose_file" ps | grep -q "api.*healthy"; then
+            break
+        fi
+        sleep 1
+        ((elapsed++))
+    done
 elif [ -f "$checksum_file" ]; then
     stored_checksum=$(cat "$checksum_file")
     if [ "$current_checksum" != "$stored_checksum" ]; then

@@ -17,6 +17,8 @@ class GeneratedAST(models.Model):
     folder_path = models.CharField(max_length=255, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True, null=True)
     task_ids = ArrayField(models.CharField(max_length=255), blank=True, null=True)
+    language = models.CharField(max_length=50, default="rust", blank=True, null=True)
+    framework = models.CharField(max_length=50, default="unknown", blank=True, null=True)
 
     class SourceTypeOptions(models.TextChoices):
         FILE = "file"

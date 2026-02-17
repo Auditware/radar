@@ -12,6 +12,17 @@ import toml
 logger = logging.getLogger(__name__)
 
 
+def generate_ast_for_solidity_file(source_file_path: Path, remappings: list = None, base_path: Path = None) -> dict:
+    from utils.solidity_compiler import compile_solidity_file
+    
+    try:
+        ast_output = compile_solidity_file(source_file_path, remappings=remappings, base_path=base_path)
+        return {"ast": ast_output, "metadata": {}}
+    except Exception as e:
+        logger.error(f"Failed to generate Solidity AST: {e}")
+        raise
+
+
 def parse_toml_keys(toml_path: Path, keys: list) -> list:
     toml_data = toml.load(toml_path)
     results = []

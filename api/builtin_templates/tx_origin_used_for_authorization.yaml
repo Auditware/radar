@@ -1,0 +1,16 @@
+version: 0.1.0
+author: forefy
+language: solidity
+name: Use of tx.origin for Authorization
+severity: Low
+certainty: Medium
+description: The use of `tx.origin` for authorization is insecure because it may allow malicious contracts to impersonate other users. Instead, `msg.sender` should be used for proper access control.
+rule: |
+  for source, nodes in ast:
+    try:
+        require_nodes = nodes.find_nodes_by_names("require").exit_on_none()
+        for node in require_nodes:
+            if len(node.parent.find_nodes_by_names("tx")) > 0:
+                print(node.to_result())
+    except:
+        continue
