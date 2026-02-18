@@ -38,7 +38,8 @@ def handle_response(response):
                     print("[e] Missing project dependencies detected")
                     if "lib/openzeppelin-contracts" in error_msg or "lib/forge-std" in error_msg:
                         print("[!] This appears to be a Foundry project with uninstalled dependencies")
-                        print("[!] Please run 'forge install' in your project directory first")
+                        print("[!] Run 'forge install' in your project directory to install dependencies")
+                        print("[!] Ensure your project compiles with 'forge build' before using radar")
                     elif "node_modules" in error_msg:
                         print("[!] This appears to be a Hardhat/npm project with uninstalled dependencies")
                         print("[!] Please run 'npm install' or 'yarn install' in your project directory first")

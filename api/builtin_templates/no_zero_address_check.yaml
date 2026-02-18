@@ -1,0 +1,17 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: No Zero Address Check
+description: Functions that assign an address should ensure the address is not the zero address using a `require` statements
+severity: Low
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_functions_with_address_assignments().find_setters_and_constructors().exit_on_none()
+        for function in functions:
+            if len(function.find_nodes_by_names("require")) <=0:
+                print(function.to_result())
+    except:
+        continue

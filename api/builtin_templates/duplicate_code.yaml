@@ -1,0 +1,16 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Duplicate Code
+description: Duplicate code segments or very similar structures incharge for the same logic within the contract increase maintenance costs and can lead to inconsistencies and even security issues as a result.
+severity: Low
+certainty: High
+rule: |
+  for source, nodes in ast:
+    try:
+        duplicated_nodes = nodes.find_similar_function_definitions().exit_on_none()
+        for node in duplicated_nodes:
+            print(node.to_result())
+    except:
+        continue

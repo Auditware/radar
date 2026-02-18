@@ -1,0 +1,17 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Unsafe Usage of _mint
+description: The use of the `_mint` function in ERC-20/ERC-721 contracts is generally for internal updates and ownerships. It can be unsafe and it's usually recommended to use _safeMint instead.
+severity: Medium
+certainty: High
+rule: |
+  for source, nodes in ast:
+    try:
+        mint_nodes = nodes.find_nodes_by_names("_mint").exit_on_none()
+        for node in mint_nodes:
+            if not node.find_nodes_by_type_identifiers("require", "modifier").has_results():
+                print(node.to_result())
+    except:
+        continue

@@ -1,0 +1,16 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Use of Transfer/Send on a Payable Address
+description: Using `.transfer` or `.send` to transfer funds enfore a considerably risky gas limitation, causing possible reverts unexpected behavior.
+severity: Low
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        payable_nodes = nodes.find_nodes_by_type_identifiers("payable").find_nodes_by_member_names("transfer", "send").exit_on_none()
+        for node in payable_nodes:
+            print(node.to_result())
+    except:
+        continue

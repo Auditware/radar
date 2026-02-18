@@ -1,0 +1,29 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Delete on Struct with Mapping
+description: Deleting a struct that contains a mapping can lead to inconsistent behavior or residual data. Mappings are reference types, and deleting them along with structs does not properly clear all internal data.
+severity: Low
+certainty: Low
+rule: |
+  for source, nodes in ast:
+      try:
+          delete_nodes = nodes.find_nodes_by_operators("delete").exit_on_none()
+          structs = nodes.find_nodes_by_types("StructDefinition").exit_on_none()
+          struct_assigned_names = []
+
+          for struct in structs:
+              type_id_nodes = nodes.find_nodes_by_type_identifiers("t_mapping$_t_address_$_t_struct$_" + struct.metadata.get("name"))
+              for node in type_id_nodes:
+                  assigned_name = node.metadata.get("name")
+                  if assigned_name and assigned_name not in struct_assigned_names:
+                      struct_assigned_names.append(assigned_name)
+
+          for delete_node in delete_nodes:
+              for assigned_name in struct_assigned_names:
+                  if len(delete_node.find_nodes_by_names(assigned_name)) > 0:
+                      print(delete_node.to_result())
+                      break
+      except:
+          continue

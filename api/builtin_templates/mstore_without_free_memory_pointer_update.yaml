@@ -1,0 +1,19 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Mstore Without Free Memory Pointer Update
+description: |
+severity: Low
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        mstore_nodes = nodes.find_nodes_by_names("mstore").exit_on_none()
+        if len(mstore_nodes) == 1:
+            print(mstore_nodes.first().to_result())
+            continue        
+        elif len(mstore_nodes) % 2 != 0:
+            print(mstore_nodes.first().to_result())
+    except:
+        continue

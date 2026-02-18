@@ -1,0 +1,21 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Unexplicit Imports
+description: Libraries often introduce breaking changes in new versions, especially with major releases. These changes can alter or even break how your contract functions, causing unexpected behavior or making your contract incompatible with the newer library.
+severity: Low
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    # Skip lib sources
+    if source.startswith("lib"):
+        continue
+        
+    try:
+        nodes = nodes.find_nodes_by_metadata_key("absolutePath", r"^lib\/(?!.*@\d+\.\d+\.\d+).+$").exit_on_none()
+        for node in nodes:
+            if node.node_type == "ImportDirective" and node.parent.node_type == "SourceUnit":
+                print(node.to_result())
+    except:
+        continue

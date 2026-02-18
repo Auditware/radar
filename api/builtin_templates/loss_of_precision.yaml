@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Loss of Precision
+description: Division by a large number can result in loss of precision, especially if the numerator is much smaller than the divisor. Consider ensuring that the numerator is sufficiently large relative to the divisor.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        large_uints = nodes.find_nodes_by_type_strings("uint256").exit_on_none()
+        division_nodes = []
+        for node in large_uints:
+            operator = node.parent.metadata.get("operator")
+            if operator == "/":
+                division_nodes.append(node)
+        
+        for node in division_nodes:
+            if "rightExpression" in node.access_path:
+                print(node.to_result())
+    except:
+        continue

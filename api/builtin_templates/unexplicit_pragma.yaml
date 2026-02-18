@@ -1,0 +1,21 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Unexplicit Pragma
+description:  Solidity files with an unbounded or overly permissive pragma directive may compile with unexpected or incompatible compiler versions, potentially introducing security risks or unexpected behavior.
+severity: Low
+certainty: Low
+rule: |
+  for source, nodes in ast:      
+      try:
+          nodes = nodes.find_nodes_by_types("PragmaDirective").exit_on_none()
+          for node in nodes:
+            literals = node.metadata.get("literals")
+            pragma_version = literals[1]
+            for c in ["^", ">", "<", "*"]:
+                if c in pragma_version:
+                    print(node.to_result())
+                    break
+      except:
+          continue

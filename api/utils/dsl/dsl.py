@@ -110,28 +110,41 @@ def process_template_outputs(template_outputs, yaml_data):
         "debug": [],
     }
 
+    def extract_location(node):
+        """Extract location string from either Rust or Solidity node format."""
+        # Rust format: src is a dict with file, line, start_col, end_col
+        if "src" in node and isinstance(node["src"], dict):
+            src = node["src"]
+            if src is not None:
+                return f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
+        
+        # Solidity format: src_calculated has the location, file separate
+        if "src_calculated" in node and node["src_calculated"]:
+            return node["src_calculated"]
+        
+        # Fallback: construct from file + src string (Solidity raw format)
+        if "file" in node and "src" in node and isinstance(node["src"], str):
+            # src format is "start:length:fileIndex", we use file+src as is
+            return f"{node['file']}:{node['src']}"
+            
+        return None
+
     for output in template_outputs:
         valid_output = extract_json_output(output)
         if valid_output is not None:
             # Handle single node case
             if isinstance(valid_output, dict):
                 # print("[i] Finding-valid printed output detected")
-                src = valid_output["src"]
-                if src is not None:
-                    location = (
-                        f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
-                    )
+                location = extract_location(valid_output)
+                if location:
                     finding_data["locations"].append(location)
             
             # Handle list of nodes case
             elif isinstance(valid_output, list):
                 # print(f"[i] Finding-valid printed output list detected with {len(valid_output)} nodes")
                 for node in valid_output:
-                    src = node["src"]
-                    if src is not None:
-                        location = (
-                            f"{src['file']}:{src['line']}:{src['start_col']}-{src['end_col']}"
-                        )
+                    location = extract_location(node)
+                    if location:
                         finding_data["locations"].append(location)
         else:
             finding_data["debug"].append(output)
@@ -149,14 +162,25 @@ def extract_json_output(data: str) -> Optional[dict | list]:
         
         # Handle single node case
         if isinstance(node_data, dict):
-            if "ident" not in node_data or "src" not in node_data:
-                # print(f"[w] Dropping output node data without ident/src: {data}")
+            # Support both Rust (ident+src) and Solidity (node_type+src_calculated) formats
+            is_rust_node = "ident" in node_data and "src" in node_data
+            is_solidity_node = "node_type" in node_data and ("src" in node_data or "src_calculated" in node_data)
+            
+            if not (is_rust_node or is_solidity_node):
+                # print(f"[w] Dropping output node data without required fields: {data}")
                 raise ValueError
         
         # Handle list of nodes case
         elif isinstance(node_data, list):
             for node in node_data:
-                if not isinstance(node, dict) or "ident" not in node or "src" not in node:
+                if not isinstance(node, dict):
+                    # print(f"[w] Dropping output list containing non-dict: {data}")
+                    raise ValueError
+                    
+                is_rust_node = "ident" in node and "src" in node
+                is_solidity_node = "node_type" in node and ("src" in node or "src_calculated" in node)
+                
+                if not (is_rust_node or is_solidity_node):
                     # print(f"[w] Dropping output list containing invalid node data: {data}")
                     raise ValueError
         

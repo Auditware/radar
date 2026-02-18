@@ -1,0 +1,18 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Use of ABI Encode on Array of Arrays
+description: Passing multi-dimensional arrays to `abi.encode` can lead to inconsistent behavior or interpretation on some solidity versions due to how arrays are encoded and flattened in memory.
+severity: Low
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        abi_encode_nodes = nodes.find_nodes_by_type_identifiers("t_function_abiencode").exit_on_none()
+        for node in abi_encode_nodes:
+            multi_d_array_nodes = node.parent.find_nodes_by_type_strings(r"\[\d+\].*\[\d+\]")
+            if len(multi_d_array_nodes) > 0:
+                print(node.to_result())
+    except:
+        continue

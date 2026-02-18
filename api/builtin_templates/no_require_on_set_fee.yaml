@@ -1,0 +1,17 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: No Require When Setting a Fee
+description: Functions setting fees almost always must implement require statements to prevent incorrect values from being set, e.g. 100% fee.
+severity: Low
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        set_fee_funcs = nodes.find_functions_by_name_patterns("setFee").exit_on_none()
+        for node in set_fee_funcs:
+            if len(node.find_nodes_by_names("require")) == 0:
+                print(node.to_result())
+    except:
+        continue

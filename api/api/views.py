@@ -86,11 +86,13 @@ class GenerateRustASTView(APIView):
                     # For non-Foundry, include all .sol files
                     sol_files = list(source_file_path.rglob("*.sol"))
                 
-                # Filter out test/verification files
-                sol_files = [
-                    f for f in sol_files 
-                    if not any(part in f.parts for part in ['test', 'Test', 'certora', 'mock', 'Mock', 'forge-std'])
-                ]
+                # Filter out Foundry test/verification files (only for Foundry projects)
+                if (source_file_path / "foundry.toml").exists():
+                    sol_files = [
+                        f for f in sol_files 
+                        if not any(part in f.parts for part in ['test', 'Test', 'certora', 'forge-std'])
+                        and not f.stem.endswith('.t')
+                    ]
                 
                 if sol_files:
                     logger.info(f"Found {len(sol_files)} Solidity file(s) at {source_file_path}")

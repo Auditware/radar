@@ -1,0 +1,16 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Msg.value Reuse
+description: Reusing `msg.value` across multiple iterations or inappropriately across function calls can lead to unexpected behavior or vulnerabilities, particularly when value is assumed to be fresh each time.
+severity: Low
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        nodes = nodes.find_nodes_by_types("ForStatement").find_nodes_by_member_names("value").exit_on_none()
+        for node in nodes:
+            print(node.to_result())
+    except:
+        continue

@@ -1,0 +1,19 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Missing Reentrancy Guards
+description: Functions making external calls should be protected by reentrancy guard to prevent situations in which the called contract maliciously calls back to the calling function, potentially draining funds or manipulating states.
+severity: Low
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none() 
+        for function in functions:
+            external_calls = function.find_external_calls()
+            modifiers = function.find_modifiers_by_names("nonReentrant")
+            if len(modifiers.nodes) == 0 and len(external_calls) > 0:
+                print(function.to_result())
+    except:
+        continue

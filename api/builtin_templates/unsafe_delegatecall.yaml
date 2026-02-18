@@ -1,10 +1,11 @@
 version: 0.1.0
 author: forefy
 language: solidity
+accent: ""
 name: Unsafe delegatecall
+description: Using delgate call to call an address provided by external inputs without validation allows attackers to control the execution flow.
 severity: High
 certainty: Low
-description: Using delgate call to call an address provided by external inputs without validation allows attackers to control the execution flow.
 rule: |
   for source, nodes in ast:
     try:

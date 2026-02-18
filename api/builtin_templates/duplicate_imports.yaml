@@ -1,0 +1,26 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Duplicate Imports
+description: Duplicate imports in Solidity contracts can lead to unnecessary complexity, bloated bytecode, and potential compatibility issues when managing dependencies.
+severity: Low
+certainty: Low
+rule: |
+  for source, nodes in ast:
+      # Skip lib sources
+      if source.startswith("lib"):
+          continue
+      
+      try:
+          nodes = nodes.find_nodes_by_metadata_key("absolutePath", r"^lib\/(?!.*@\d+\.\d+\.\d+).+$").exit_on_none()
+          seen_imports = set()
+          for node in nodes:
+              if node.node_type == "ImportDirective" and node.parent.node_type == "SourceUnit":
+                    abs_path = node.metadata.get("absolutePath")
+                    if abs_path and abs_path not in seen_imports:
+                        seen_imports.add(abs_path)
+                    elif abs_path:
+                        print(node.to_result())
+      except:
+          continue

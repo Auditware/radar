@@ -1,0 +1,17 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: approve on Max Allowance
+description: When approve is called with type(uint256).max, it grants the spender (e.g., another contract or user) an unlimited allowance. This can mean that the spender can withdraw an unlimited amount of tokens from the owner's balance until the allowance is manually revoked
+severity: Low
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        approve_nodes = nodes.find_nodes_by_member_names("approve").exit_on_none()
+        for node in approve_nodes:
+            if len(node.parent.find_nodes_by_member_names("max")) != 0:
+                print(node.to_result())
+    except:
+        continue
