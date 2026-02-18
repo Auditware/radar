@@ -223,7 +223,9 @@ def print_write_outputs(
         print("[i] radar completed successfully. No results found.")
         sys.exit(0)
 
-    # Color codes for severities
+    severity_order = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
+    results = sorted(results, key=lambda x: severity_order.get(x["severity"], 4))
+    
     color_map = {
         "Critical": "\033[38;2;139;0;0m",  # Dark red (RGB)
         "High": "\033[91m",  # Red
