@@ -16,7 +16,7 @@
 
 <br>
 
-A static analysis tool for rust smart contracts 🦀
+A static analysis tool for rust, anchor, stylus and solidity smart contracts
 
 https://github.com/user-attachments/assets/62435714-cc5b-43f3-a213-96d28481a6d7
 
