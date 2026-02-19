@@ -103,7 +103,7 @@ RUN pip install solc-select && \
     solc-select use 0.8.20
 
 RUN curl -L https://foundry.paradigm.xyz | bash && \
-    /root/.foundry/bin/foundryup --version nightly-de33b6af53005037b463318d2628b5cfcaf39916 && \
+    /root/.foundry/bin/foundryup --install nightly-de33b6af53005037b463318d2628b5cfcaf39916 && \
     cp /root/.foundry/bin/* /usr/local/bin/ && \
     chmod +x /usr/local/bin/forge /usr/local/bin/cast /usr/local/bin/anvil /usr/local/bin/chisel
 
