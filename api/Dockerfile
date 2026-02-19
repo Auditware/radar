@@ -42,6 +42,7 @@ RUN apt-get update \
         libssl-dev \
         pkg-config \
         ca-certificates \
+        su-exec \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -116,9 +117,22 @@ COPY manage.py entrypoint.sh /api/
 # Set ownership after copying
 RUN chown -R radar:radar /api
 
-# Switch to radar user
-USER radar
+# Create a wrapper script that runs as root then switches to radar
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Create the actual app entrypoint that runs as radar
+RUN echo '#!/bin/bash\n\
+poetry run python manage.py collectstatic --no-input\n\
+poetry run python manage.py makemigrations --no-input || { echo "makemigrations failed" ; exit 1; }\n\
+poetry run python manage.py migrate --no-input || { echo "migrate failed" ; exit 1; }\n\
+poetry run python manage.py createsuperuser --noinput --email ""\n\
+poetry run gunicorn --bind 0.0.0.0:8000 api.wsgi:application' > /api/app-entrypoint.sh \
+    && chmod +x /api/app-entrypoint.sh \
+    && chown radar:radar /api/app-entrypoint.sh
+
+# Don't switch to radar user yet - entrypoint.sh needs to run as root first
 
 EXPOSE 8000
 
-CMD ["/api/entrypoint.sh"]
+CMD ["/entrypoint.sh"]
