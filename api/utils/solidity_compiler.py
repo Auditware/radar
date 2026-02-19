@@ -12,6 +12,7 @@ SOLC_CMD_TIMEOUT = 30
 def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
     """
     Prepare a Foundry project by ensuring dependencies are installed and built.
+    Runs automatically when lib/ directory is missing or empty.
     Returns True if preparation was successful, False otherwise.
     """
     if not (project_dir / "foundry.toml").exists():
@@ -20,9 +21,12 @@ def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
     lib_dir = project_dir / "lib"
     needs_prep = force or not lib_dir.exists() or not any(lib_dir.iterdir()) if lib_dir.exists() else True
     
+    # In CI, always run to ensure clean builds even if lib/ exists
     is_ci = os.getenv("CI") or os.getenv("GITHUB_ACTIONS") or os.getenv("GITLAB_CI")
+    if is_ci:
+        needs_prep = True
     
-    if not needs_prep and not is_ci:
+    if not needs_prep:
         return False
     
     print("[i] Preparing Foundry project...")
