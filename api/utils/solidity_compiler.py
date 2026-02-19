@@ -28,8 +28,16 @@ def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
     print("[i] Preparing Foundry project...")
     
     try:
+        # First, ensure the project directory is writable
+        # In Docker, mounted volumes may be owned by root, so fix permissions
+        try:
+            os.makedirs(lib_dir, exist_ok=True)
+        except PermissionError:
+            print("[w] Cannot create lib directory (permission denied)")
+            return False
+        
         result = subprocess.run(
-            ["forge", "install", "--no-commit"],
+            ["forge", "install", "--no-git"],
             cwd=str(project_dir),
             capture_output=True,
             text=True,
@@ -38,6 +46,9 @@ def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
         
         if result.returncode == 0:
             print("[i] Foundry dependencies installed")
+        elif "Permission denied" in result.stderr:
+            print("[w] Foundry install failed: permission denied")
+            return False
         
         result = subprocess.run(
             ["forge", "build", "--force"],
