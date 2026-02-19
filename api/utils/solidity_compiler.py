@@ -9,6 +9,40 @@ from typing import List
 SOLC_CMD_TIMEOUT = 30
 
 
+def _select_and_install_solc(version: str) -> None:
+    """Select and install a specific solc version using solc-select."""
+    try:
+        result = subprocess.run(
+            ["solc-select", "use", version],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10
+        )
+    except subprocess.CalledProcessError as e:
+        if "must be installed" in str(e.stderr):
+            print(f"[i] Installing solc {version}...")
+            subprocess.run(
+                ["solc-select", "install", version],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=60
+            )
+            subprocess.run(
+                ["solc-select", "use", version],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=10
+            )
+        else:
+            raise RuntimeError(f"Failed to set solc version to {version}: {e.stderr}")
+    except FileNotFoundError:
+        raise RuntimeError("solc-select not found. Please install it: pip install solc-select")
+
+
 def parse_gitmodules(gitmodules_path: Path) -> List[str]:
     """Parse .gitmodules and extract GitHub package identifiers (owner/repo)."""
     packages = []
@@ -20,8 +54,10 @@ def parse_gitmodules(gitmodules_path: Path) -> List[str]:
         pattern = r'url\s*=\s*(?:https://github\.com/|git@github\.com:)([^/\s]+/[^/\s]+?)(?:\.git)?(?:\s|$)'
         matches = re.findall(pattern, content)
         packages = [match.strip() for match in matches if match.strip()]
-    except Exception:
-        pass
+    except FileNotFoundError:
+        print(f"[w] .gitmodules not found at {gitmodules_path}")
+    except Exception as e:
+        print(f"[w] Failed to parse .gitmodules: {e}")
     return packages
 
 
@@ -54,8 +90,10 @@ def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
             capture_output=True,
             timeout=10
         )
-    except Exception:
-        pass
+    except subprocess.TimeoutExpired:
+        print("[w] Permission fix timed out")
+    except Exception as e:
+        print(f"[w] Failed to fix permissions: {e}")
     
     try:
         # First, ensure the project directory is writable
@@ -229,37 +267,7 @@ def compile_solidity_files(file_paths: list[Path], remappings: List[str] = None,
     
     print(f"[i] Compiling {len(file_paths)} files with solc {max_version}")
     
-    # Install and select compiler version
-    try:
-        result = subprocess.run(
-            ["solc-select", "use", max_version],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=10
-        )
-    except subprocess.CalledProcessError as e:
-        if "must be installed" in str(e.stderr):
-            print(f"[i] Installing solc {max_version}...")
-            subprocess.run(
-                ["solc-select", "install", max_version],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=60
-            )
-            subprocess.run(
-                ["solc-select", "use", max_version],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=10
-            )
-        else:
-            raise RuntimeError(f"Failed to set solc version to {max_version}: {e.stderr}")
-    except FileNotFoundError:
-        raise RuntimeError("solc-select not found. Please install it: pip install solc-select")
+    _select_and_install_solc(max_version)
     
     solc_input = {
         "language": "Solidity",
@@ -323,36 +331,7 @@ def compile_solidity_file(file_path: Path, remappings: List[str] = None, base_pa
     
     print(f"[i] Compiling {file_path} with solc {solc_version}")
     
-    try:
-        result = subprocess.run(
-            ["solc-select", "use", solc_version],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=10
-        )
-    except subprocess.CalledProcessError as e:
-        if "must be installed" in str(e.stderr):
-            print(f"[i] Installing solc {solc_version}...")
-            subprocess.run(
-                ["solc-select", "install", solc_version],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=60
-            )
-            subprocess.run(
-                ["solc-select", "use", solc_version],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=10
-            )
-        else:
-            raise RuntimeError(f"Failed to set solc version to {solc_version}: {e.stderr}")
-    except FileNotFoundError:
-        raise RuntimeError("solc-select not found. Please install it: pip install solc-select")
+    _select_and_install_solc(solc_version)
     
     # Use relative path if base_path is provided (for Foundry projects)
     if base_path:
