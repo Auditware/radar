@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class GenerateRustASTView(APIView):
+class GenerateASTView(APIView):
     def post(self, request, *args, **kwargs):
         source_type = request.data.get("source_type")
         source_path = request.data.get(f"{source_type}_path")
@@ -105,6 +105,8 @@ class GenerateRustASTView(APIView):
                     
                     if (source_file_path / "foundry.toml").exists():
                         logger.info("Detected Foundry project, extracting remappings...")
+                        from utils.solidity_compiler import prepare_foundry_project
+                        prepare_foundry_project(source_file_path)
                         remappings = get_foundry_remappings(source_file_path)
                         base_path = source_file_path
                     

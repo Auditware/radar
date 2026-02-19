@@ -1,11 +1,65 @@
 import json
 import subprocess
 import re
+import os
 from pathlib import Path
 from semantic_version import Version
 from typing import List
 
 SOLC_CMD_TIMEOUT = 30
+
+
+def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
+    """
+    Prepare a Foundry project by ensuring dependencies are installed and built.
+    Returns True if preparation was successful, False otherwise.
+    """
+    if not (project_dir / "foundry.toml").exists():
+        return False
+    
+    lib_dir = project_dir / "lib"
+    needs_prep = force or not lib_dir.exists() or not any(lib_dir.iterdir()) if lib_dir.exists() else True
+    
+    is_ci = os.getenv("CI") or os.getenv("GITHUB_ACTIONS") or os.getenv("GITLAB_CI")
+    
+    if not needs_prep and not is_ci:
+        return False
+    
+    print("[i] Preparing Foundry project...")
+    
+    try:
+        result = subprocess.run(
+            ["forge", "install", "--no-commit"],
+            cwd=str(project_dir),
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        
+        if result.returncode == 0:
+            print("[i] Foundry dependencies installed")
+        
+        result = subprocess.run(
+            ["forge", "build", "--force"],
+            cwd=str(project_dir),
+            capture_output=True,
+            text=True,
+            timeout=180
+        )
+        
+        if result.returncode == 0:
+            print("[i] Foundry project built successfully")
+            return True
+        else:
+            print(f"[w] Foundry build had issues: {result.stderr[:200]}")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        print("[w] Foundry preparation timed out")
+        return False
+    except FileNotFoundError:
+        print("[w] forge command not found")
+        return False
 
 
 def detect_solidity_version(file_content: str) -> str:
