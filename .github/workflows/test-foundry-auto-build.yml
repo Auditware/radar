@@ -11,9 +11,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        # Intentionally NOT using submodules to test auto-build
         
-      - name: Create test Foundry project
+      - name: Create test Foundry project  
         run: |
           mkdir -p test-foundry-project/src
           cd test-foundry-project
@@ -26,6 +25,10 @@ jobs:
           
           [dependencies]
           forge-std = "1.9.4"
+          EOT
+          
+          cat > remappings.txt << 'EOT'
+          forge-std/=lib/forge-std/src/
           EOT
           
           cat > src/TestContract.sol << 'EOT'
@@ -43,9 +46,11 @@ jobs:
           }
           EOT
           
-          echo "Created Foundry project without lib/ directory"
+          echo "✅ Created Foundry project without lib/ directory"
           ls -la
-          ls -la lib/ 2>&1 || echo "lib/ does not exist - radar should auto-build this"
+          echo ""
+          echo "Checking for lib/:"
+          ls -la lib/ 2>&1 || echo "lib/ does not exist - radar should auto-build this ✅"
           
       - name: Run radar on fresh Foundry project
         uses: auditware/radar-action@main
@@ -56,6 +61,8 @@ jobs:
         run: |
           if [ -f output.sarif ]; then
             echo "✅ Radar auto-build worked!"
+            cat output.sarif | jq '.runs[0].results | length' || true
+            echo "Full SARIF:"
             cat output.sarif | head -50
           else
             echo "❌ Radar failed - auto-build didn't work"
