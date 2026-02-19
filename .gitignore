@@ -12,4 +12,4 @@ output.md
 radar.wiki
 **/.DS_Store
 outputs
-api/builtin_templates/*debug*
+api/builtin_templates/*debug**.skill
