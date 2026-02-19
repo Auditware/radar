@@ -9,6 +9,22 @@ from typing import List
 SOLC_CMD_TIMEOUT = 30
 
 
+def parse_gitmodules(gitmodules_path: Path) -> List[str]:
+    """Parse .gitmodules and extract GitHub package identifiers (owner/repo)."""
+    packages = []
+    try:
+        with open(gitmodules_path, 'r') as f:
+            content = f.read()
+        
+        # Match github URLs: https://github.com/owner/repo or git@github.com:owner/repo
+        pattern = r'url\s*=\s*(?:https://github\.com/|git@github\.com:)([^/\s]+/[^/\s]+?)(?:\.git)?(?:\s|$)'
+        matches = re.findall(pattern, content)
+        packages = [match.strip() for match in matches if match.strip()]
+    except Exception:
+        pass
+    return packages
+
+
 def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
     """
     Prepare a Foundry project by ensuring dependencies are installed and built.
@@ -31,6 +47,16 @@ def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
     
     print("[i] Preparing Foundry project...")
     
+    # Fix permissions first (may be running as non-root with root-owned mounted dir)
+    try:
+        subprocess.run(
+            ["chmod", "-R", "777", str(project_dir)],
+            capture_output=True,
+            timeout=10
+        )
+    except Exception:
+        pass
+    
     try:
         # First, ensure the project directory is writable
         # In Docker, mounted volumes may be owned by root, so fix permissions
@@ -40,19 +66,84 @@ def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
             print("[w] Cannot create lib directory (permission denied)")
             return False
         
-        result = subprocess.run(
-            ["forge", "install", "--no-commit"],
-            cwd=str(project_dir),
-            capture_output=True,
-            text=True,
-            timeout=120
-        )
+        # Initialize git repo if .git doesn't exist (needed for forge install with git submodules)
+        git_dir = project_dir / ".git"
+        if not git_dir.exists():
+            print("[i] Initializing git repository for Foundry...")
+            result = subprocess.run(
+                ["git", "init"],
+                cwd=str(project_dir),
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode != 0:
+                print(f"[w] git init failed: {result.stderr[:100]}")
+                return False
+            
+            subprocess.run(
+                ["git", "config", "user.email", "radar@auditware.io"],
+                cwd=str(project_dir),
+                capture_output=True
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "Radar"],
+                cwd=str(project_dir),
+                capture_output=True
+            )
+            # Add all files and commit (required for forge install to work)
+            subprocess.run(
+                ["git", "add", "-A"],
+                cwd=str(project_dir),
+                capture_output=True
+            )
+            result = subprocess.run(
+                ["git", "commit", "-m", "Initial commit for Foundry setup", "--no-gpg-sign"],
+                cwd=str(project_dir),
+                capture_output=True,
+                text=True
+            )
+            if result.returncode != 0:
+                print(f"[w] git commit failed: {result.stderr[:100]}")
+            print("[i] Git repository initialized successfully")
         
-        if result.returncode == 0:
-            print("[i] Foundry dependencies installed")
-        elif "Permission denied" in result.stderr:
-            print("[w] Foundry install failed: permission denied")
-            return False
+        # Parse .gitmodules to get dependency package names
+        gitmodules_path = project_dir / ".gitmodules"
+        packages = parse_gitmodules(gitmodules_path) if gitmodules_path.exists() else []
+        
+        if packages:
+            # Install dependencies with explicit package names
+            install_cmd = ["forge", "install"] + packages
+            result = subprocess.run(
+                install_cmd,
+                cwd=str(project_dir),
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            
+            if result.returncode == 0:
+                print(f"[i] Foundry dependencies installed ({len(packages)} packages)")
+            else:
+                print(f"[w] forge install failed (code {result.returncode}): {result.stderr[:200]}")
+                if "Permission denied" in result.stderr:
+                    return False
+        else:
+            # No .gitmodules or no packages found, try plain forge install
+            result = subprocess.run(
+                ["forge", "install"],
+                cwd=str(project_dir),
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            
+            if result.returncode == 0:
+                print("[i] Foundry dependencies installed")
+            else:
+                print(f"[w] forge install failed (code {result.returncode}): {result.stderr[:200]}")
+                if "Permission denied" in result.stderr:
+                    return False
         
         result = subprocess.run(
             ["forge", "build", "--force"],
