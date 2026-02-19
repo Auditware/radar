@@ -42,7 +42,7 @@ RUN apt-get update \
         libssl-dev \
         pkg-config \
         ca-certificates \
-        su-exec \
+        gosu \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

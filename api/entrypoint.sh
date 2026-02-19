@@ -8,4 +8,4 @@ if [ -d "/radar_data" ]; then
 fi
 
 # Now switch to radar user and run the app
-exec su-exec radar /api/app-entrypoint.sh
+exec gosu radar /api/app-entrypoint.sh
