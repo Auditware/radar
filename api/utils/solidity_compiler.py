@@ -83,21 +83,7 @@ def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
     
     print("[i] Preparing Foundry project...")
     
-    # Fix permissions first (may be running as non-root with root-owned mounted dir)
     try:
-        subprocess.run(
-            ["chmod", "-R", "777", str(project_dir)],
-            capture_output=True,
-            timeout=10
-        )
-    except subprocess.TimeoutExpired:
-        print("[w] Permission fix timed out")
-    except Exception as e:
-        print(f"[w] Failed to fix permissions: {e}")
-    
-    try:
-        # First, ensure the project directory is writable
-        # In Docker, mounted volumes may be owned by root, so fix permissions
         try:
             os.makedirs(lib_dir, exist_ok=True)
         except PermissionError:
