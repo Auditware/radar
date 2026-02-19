@@ -1,0 +1,63 @@
+name: Test Foundry Auto-Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        # Intentionally NOT using submodules to test auto-build
+        
+      - name: Create test Foundry project
+        run: |
+          mkdir -p test-foundry-project/src
+          cd test-foundry-project
+          
+          cat > foundry.toml << 'EOT'
+          [profile.default]
+          src = "src"
+          out = "out"
+          libs = ["lib"]
+          
+          [dependencies]
+          forge-std = "1.9.4"
+          EOT
+          
+          cat > src/TestContract.sol << 'EOT'
+          // SPDX-License-Identifier: MIT
+          pragma solidity ^0.8.20;
+          
+          import "forge-std/Test.sol";
+          
+          contract TestContract is Test {
+              uint256 public value;
+              
+              function setValue(uint256 _value) public {
+                  value = _value;
+              }
+          }
+          EOT
+          
+          echo "Created Foundry project without lib/ directory"
+          ls -la
+          ls -la lib/ 2>&1 || echo "lib/ does not exist - radar should auto-build this"
+          
+      - name: Run radar on fresh Foundry project
+        uses: auditware/radar-action@main
+        with:
+          path: "test-foundry-project"
+          
+      - name: Verify radar succeeded
+        run: |
+          if [ -f output.sarif ]; then
+            echo "✅ Radar auto-build worked!"
+            cat output.sarif | head -50
+          else
+            echo "❌ Radar failed - auto-build didn't work"
+            exit 1
+          fi
