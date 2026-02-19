@@ -37,7 +37,7 @@ def prepare_foundry_project(project_dir: Path, force: bool = False) -> bool:
             return False
         
         result = subprocess.run(
-            ["forge", "install", "--no-git"],
+            ["forge", "install", "--no-commit"],
             cwd=str(project_dir),
             capture_output=True,
             text=True,
