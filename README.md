@@ -153,6 +153,13 @@ repos:
             <sub><b>brittcyr</b></sub>
         </a>
     </td>
+    <td align="center">
+        <a href="https://github.com/T-rustdev">
+            <img src="https://avatars.githubusercontent.com/u/6428963?v=4" width="100;" alt="T-rustdev"/>
+            <br />
+            <sub><b>T-rustdev</b></sub>
+        </a>
+    </td>
 </tr>
 </table>
 
