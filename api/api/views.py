@@ -73,7 +73,7 @@ class GenerateASTView(APIView):
                 except Exception as e:
                     logger.error(e)
                     return Response(
-                        {"error": "Faild to parse AST from provided source code"},
+                        {"error": "Failed to parse AST from provided source code"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
