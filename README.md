@@ -68,7 +68,7 @@ radar -p sealevel-attacks
 
 Or you can quickly test on local mocks (from root dir) `./radar --dev -p ./api/tests/mocks/anchor-test-2`
 
-To run a non-builtin template place a yaml file anywhere and reference it via `radar -p . -t <path_to_templats_dir>`
+To run a non-builtin template place a yaml file anywhere and reference it via `radar -p . -t <path_to_templates_dir>`
 
 To explore more running options, see [All the ways to run radar](https://github.com/auditware/radar/wiki/Running-Options).
 

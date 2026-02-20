@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import sys
+from typing import Optional
 
 
 no_results_sarif = {
@@ -272,6 +273,7 @@ def print_write_outputs(
 
 def convert_severity_to_sarif_level(severity: str) -> str:
     severity_mapping = {
+        "Critical": "error",
         "High": "error",
         "Medium": "warning",
         "Low": "warning",
@@ -283,7 +285,7 @@ def convert_severity_to_sarif_level(severity: str) -> str:
 
 
 def convert_severity_to_sarif_security_severity(severity: str) -> str:
-    security_severity_mapping = {"High": "8.0", "Medium": "5.0", "Low": "3.0"}
+    security_severity_mapping = {"Critical": "9.0", "High": "8.0", "Medium": "5.0", "Low": "3.0"}
     sarif_security_severity = security_severity_mapping.get(severity)
     if sarif_security_severity is None:
         print("[e] Could not convert severity to SARIF security severity")
@@ -308,7 +310,7 @@ def save_json_output(container_output_file_path: Path, findings: list):
         json.dump(findings, f, indent=4)
 
 
-def write_sarif_output(output_file_path: Path, findings: list, arg_path: Path):
+def write_sarif_output(output_file_path: Path, findings: list, arg_path: Optional[Path]):
     sarif_run_template = {
         "tool": {
             "driver": {
@@ -387,7 +389,11 @@ def write_sarif_output(output_file_path: Path, findings: list, arg_path: Path):
                     location
                 )
 
-                relative_file_path = str(Path(file_path).relative_to(arg_path))
+                relative_file_path = (
+                    str(Path(file_path).relative_to(arg_path))
+                    if arg_path is not None
+                    else str(Path(file_path))
+                )
 
                 new_result = {
                     "ruleId": rule_id,

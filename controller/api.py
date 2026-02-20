@@ -190,7 +190,7 @@ def poll_results(
             response = requests.get(f"{api_uri}/poll_results/", params=req_params)
             if response.status_code == 200:
                 response_data = response.json()
-                results = response_data.get("results")
+                results = response_data.get("results") or []
                 template_count = response_data.get("template_count", 0)
                 
                 # Print template count
