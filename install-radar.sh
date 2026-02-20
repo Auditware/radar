@@ -18,8 +18,8 @@ if [ ! -d "$RADAR_DIR/.git" ]; then
 else
     echo "radar repository already exists. Pulling the latest changes.."
     git -C "$RADAR_DIR" clean -fd
-    git -C "$RADAR_DIR" reset --hard HEAD
-    git -C "$RADAR_DIR" pull
+    git -C "$RADAR_DIR" fetch origin
+    git -C "$RADAR_DIR" reset --hard origin/main
 fi
 
 chmod +x "$SCRIPT_PATH"
