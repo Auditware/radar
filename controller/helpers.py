@@ -293,12 +293,19 @@ def convert_severity_to_sarif_security_severity(severity: str) -> str:
 
 
 def parse_location(location: str):
-    # Split from right to handle file paths with colons (e.g., Windows paths, full paths)
-    # Format: file_path:line:start_column:end_column
+    # Format: file_path:line:start_column:end_column or file_path:line:start_column-end_column
     parts = location.rsplit(":", 3)
-    if len(parts) != 4:
+    if len(parts) == 4:
+        file_path, line_info, start_column_info, end_column_info = parts
+    elif len(parts) == 3:
+        file_path, line_info, column_range = parts
+        if "-" in column_range:
+            start_column_info, end_column_info = column_range.split("-", 1)
+        else:
+            start_column_info = column_range
+            end_column_info = column_range
+    else:
         raise ValueError(f"Invalid location format: {location}")
-    file_path, line_info, start_column_info, end_column_info = parts
     start_line = int(line_info)
     start_column = int(start_column_info)
     end_column = int(end_column_info)
