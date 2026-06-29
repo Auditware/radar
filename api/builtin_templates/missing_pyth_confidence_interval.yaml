@@ -1,0 +1,21 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Missing Pyth Confidence Interval
+description: Using Pyth prices without validating the returned confidence interval can accept unreliable oracle values during volatile market conditions.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  pyth_calls = func.find_by_names("get_price_no_older_than", "get_price_unchecked", "get_price").exit_on_none()
+                  conf_refs = func.find_member_accesses("conf")
+                  if not conf_refs.nodes:
+                      print(pyth_calls.first().first().to_result())
+              except:
+                  continue
+      except:
+          continue

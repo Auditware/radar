@@ -1,0 +1,21 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Unvalidated CPI Context Program
+description: Building a CPI context from a program account sourced from dynamic accounts without validating the program ID can allow arbitrary cross-program invocation targets.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  cpi_ctx = func.find_by_names("CpiContext").exit_on_none()
+                  remaining = func.find_by_names("remaining_accounts").exit_on_none()
+                  func.find_by_names("require_keys_eq", "require_eq").exit_on_value()
+                  print(cpi_ctx.first().first().to_result())
+              except:
+                  continue
+      except:
+          continue

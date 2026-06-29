@@ -1,0 +1,22 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: SPL Token Mint Consistency
+description: Token transfer flows that separately trust a Mint account and a TokenAccount without enforcing that the token account uses the same mint can allow asset substitution.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  has_mint = func.find_by_names("Mint").exit_on_none()
+                  has_token_account = func.find_by_names("TokenAccount").exit_on_none()
+                  func.find_comparisons_between("mint", "key").exit_on_value()
+                  func.find_by_names("require_keys_eq").exit_on_value()
+                  print(has_token_account.first().to_result())
+              except:
+                  continue
+      except:
+          continue

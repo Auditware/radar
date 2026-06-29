@@ -1,0 +1,21 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Unvalidated Price Data Account
+description: Reading oracle or price data from an untyped AccountInfo without validating the account owner can allow untrusted accounts to supply forged pricing data.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  borrow_nodes = func.find_by_names("try_borrow_data", "borrow_data").exit_on_none()
+                  func.find_by_names("require_keys_eq", "require_eq").exit_on_value()
+                  func.find_comparison_involving("owner").exit_on_value()
+                  print(borrow_nodes.first().to_result())
+              except:
+                  continue
+      except:
+          continue
