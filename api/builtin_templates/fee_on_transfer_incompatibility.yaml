@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Fee On Transfer Incompatibility
+description: Accounting that assumes transferFrom delivers the full requested amount is incompatible with fee-on-transfer tokens.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                transfer_calls = function.find_nodes_by_member_names("transferFrom").exit_on_none()
+                balance_checks = function.find_nodes_by_member_names("balanceOf")
+                if len(balance_checks) == 0:
+                    for transfer_call in transfer_calls:
+                        print(transfer_call.to_result())
+            except:
+                continue
+    except:
+        continue

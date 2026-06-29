@@ -1,0 +1,19 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Selfdestruct In Implementation
+description: Proxy implementation contracts should not contain selfdestruct or suicide because destroying the implementation can brick the proxy.
+severity: Critical
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        upgrade_nodes = nodes.find_nodes_by_names("upgradeTo", "_upgradeTo")
+        selfdestruct_nodes = nodes.find_nodes_by_names("selfdestruct", "suicide").exit_on_none()
+        if len(upgrade_nodes) == 0:
+            continue
+        for node in selfdestruct_nodes:
+            print(node.to_result())
+    except:
+        continue

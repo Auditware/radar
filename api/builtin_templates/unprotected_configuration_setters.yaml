@@ -1,0 +1,57 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Unprotected Configuration Setters
+description: Public or external configuration setters should enforce access control before allowing sensitive protocol updates.
+severity: High
+certainty: Low
+rule: |
+  suspicious_names = {
+      "setFee",
+      "setOracle",
+      "setPool",
+      "setOwner",
+      "setAdmin",
+      "setTreasury",
+      "setRouter",
+  }
+  access_modifiers = (
+      "onlyOwner",
+      "onlyAdmin",
+      "onlyRole",
+      "onlyGovernance",
+      "onlyGov",
+      "adminOnly",
+      "governanceOnly",
+      "requiresAuth",
+      "auth",
+  )
+
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                function_name = function.metadata.get("name", "")
+                if function_name not in suspicious_names:
+                    continue
+                if function.metadata.get("visibility") not in ("public", "external"):
+                    continue
+                if len(function.find_modifiers_by_names(*access_modifiers)) > 0:
+                    continue
+
+                protected_by_require = False
+                require_calls = function.find_nodes_by_names("require")
+                for require_call in require_calls:
+                    require_scope = require_call.parent
+                    if len(require_scope.find_nodes_by_member_names("sender")) > 0 and len(require_scope.find_nodes_by_names("owner", "admin")) > 0:
+                        protected_by_require = True
+                        break
+
+                if not protected_by_require:
+                    print(function.to_result())
+            except:
+                continue
+    except:
+        continue

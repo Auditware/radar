@@ -1,0 +1,44 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Missing Array Length Equality Check
+description: Functions accepting multiple array parameters should validate matching lengths before indexing them together.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                array_params = []
+                for parameter in function.find_nodes_by_types("VariableDeclaration"):
+                    if parameter.parent and parameter.parent.node_type == "ParameterList":
+                        type_string = parameter.metadata.get("type_string", "")
+                        if "[]" in type_string:
+                            array_params.append(parameter.metadata.get("name", ""))
+
+                array_params = [name for name in array_params if name]
+                if len(array_params) < 2:
+                    continue
+
+                has_length_equality_check = False
+                for comparison in function.find_nodes_by_operators("=="):
+                    length_nodes = comparison.find_nodes_by_member_names("length")
+                    if len(length_nodes) < 2:
+                        continue
+                    matched_names = 0
+                    for param_name in array_params:
+                        if len(comparison.find_nodes_by_names(param_name)) > 0:
+                            matched_names += 1
+                    if matched_names >= 2:
+                        has_length_equality_check = True
+                        break
+
+                if not has_length_equality_check:
+                    print(function.to_result())
+            except:
+                continue
+    except:
+        continue

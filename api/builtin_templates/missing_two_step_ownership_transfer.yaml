@@ -1,0 +1,28 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Missing Two Step Ownership Transfer
+description: Ownership transfer flows should require a second acceptance step before the new owner takes control.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        transfer_functions = []
+        has_acceptance_function = False
+        for function in functions:
+            try:
+                function_name = function.metadata.get("name", "")
+                if function_name == "transferOwnership":
+                    transfer_functions.append(function)
+                if function_name in ("acceptOwnership", "claimOwnership"):
+                    has_acceptance_function = True
+            except:
+                continue
+        if len(transfer_functions) > 0 and not has_acceptance_function:
+            for function in transfer_functions:
+                print(function.to_result())
+    except:
+        continue

@@ -1,0 +1,28 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Missing Flash Loan Callback Validation
+description: Flash loan callbacks should validate msg.sender before executing callback logic.
+severity: High
+certainty: Medium
+rule: |
+  callback_names = ("onFlashLoan", "executeOperation", "uniswapV2Call", "uniswapV3SwapCallback", "pancakeCall", "receiveFlashLoan")
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                function_name = function.metadata.get("name", "")
+                if function_name not in callback_names:
+                    continue
+                msg_nodes = function.find_nodes_by_names("msg")
+                sender_nodes = function.find_nodes_by_member_names("sender")
+                require_nodes = function.find_nodes_by_names("require")
+                revert_nodes = function.find_nodes_by_names("revert")
+                if len(msg_nodes) == 0 or len(sender_nodes) == 0 or (len(require_nodes) == 0 and len(revert_nodes) == 0):
+                    print(function.to_result())
+            except:
+                continue
+    except:
+        continue

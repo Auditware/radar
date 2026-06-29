@@ -1,0 +1,27 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: ERC20 Permit Deadline Not Checked
+description: Permit-based flows should validate the provided deadline against the current block timestamp before using the signature.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                permit_calls = function.find_nodes_by_member_names("permit").exit_on_none()
+                has_deadline_check = False
+                comparisons = function.find_nodes_by_operators(">=", ">", "<=", "<")
+                for comparison in comparisons:
+                    if len(comparison.find_nodes_by_names("deadline")) > 0 and len(comparison.find_nodes_by_member_names("timestamp")) > 0:
+                        has_deadline_check = True
+                if not has_deadline_check:
+                    for permit_call in permit_calls:
+                        print(permit_call.to_result())
+            except:
+                continue
+    except:
+        continue

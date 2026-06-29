@@ -1,0 +1,31 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: UpgradeTo Without Access Control
+description: Upgrade entrypoints should enforce explicit access control before changing implementation addresses.
+severity: Critical
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                function_name = function.metadata.get("name", "")
+                if function_name not in ("upgradeTo", "upgradeToAndCall"):
+                    continue
+                access_modifiers = function.find_modifiers_by_names("onlyOwner", "onlyAdmin", "onlyRole", "onlyProxy")
+                if len(access_modifiers) > 0:
+                    continue
+                has_sender_guard = False
+                require_nodes = function.find_nodes_by_names("require")
+                for require_node in require_nodes:
+                    if len(require_node.find_nodes_by_member_names("sender")) > 0 and len(require_node.find_nodes_by_names("owner", "admin", "proxy")) > 0:
+                        has_sender_guard = True
+                if not has_sender_guard:
+                    print(function.to_result())
+            except:
+                continue
+    except:
+        continue

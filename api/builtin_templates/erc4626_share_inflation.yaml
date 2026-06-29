@@ -1,0 +1,26 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: ERC4626 Share Inflation
+description: ERC4626 share conversion helpers should use a virtual offset when totalSupply can be zero to avoid share inflation.
+severity: High
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                function_name = function.metadata.get("name", "")
+                if function_name not in ("previewDeposit", "convertToShares"):
+                    continue
+                total_supply_nodes = function.find_nodes_by_names("totalSupply")
+                ternary_nodes = function.find_nodes_by_types("Conditional")
+                offset_nodes = function.find_nodes_by_names("decimalsOffset", "offset")
+                if len(total_supply_nodes) > 0 and len(ternary_nodes) > 0 and len(offset_nodes) == 0:
+                    print(function.to_result())
+            except:
+                continue
+    except:
+        continue

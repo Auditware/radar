@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Chainlink Min Max Circuit Breaker
+description: Chainlink price consumers should enforce additional lower bound checks instead of only checking that the answer is positive.
+severity: High
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        latest_round_calls = nodes.find_nodes_by_member_names("latestRoundData").exit_on_none()
+        functions = nodes.find_all_functions().exit_on_none()
+        for call in latest_round_calls:
+            for function in functions:
+                if call not in function.find_nodes_by_member_names("latestRoundData").nodes:
+                    continue
+                min_price_nodes = function.find_nodes_by_names("minPrice", "minAnswer")
+                if len(min_price_nodes) == 0:
+                    print(call.to_result())
+                    break
+    except:
+        continue

@@ -1,0 +1,28 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Unsafe Integer Downcast
+description: Downcasting from uint256 to a smaller unsigned integer should be guarded by an explicit upper-bound check.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                require_nodes = function.find_nodes_by_names("require")
+                max_nodes = function.find_nodes_by_member_names("max")
+                casts = function.find_nodes_by_types("FunctionCall")
+                for cast in casts:
+                    if cast.metadata.get("kind") != "typeConversion":
+                        continue
+                    if cast.metadata.get("type_string") not in ("uint128", "uint64", "uint32", "uint16", "uint8"):
+                        continue
+                    if len(require_nodes) == 0 or len(max_nodes) == 0:
+                        print(cast.to_result())
+            except:
+                continue
+    except:
+        continue

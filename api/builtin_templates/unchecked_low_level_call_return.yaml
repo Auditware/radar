@@ -1,0 +1,26 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Unchecked Low-Level Call Return
+description: Low-level call return values should not be discarded because failures otherwise go unnoticed.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        call_nodes = nodes.find_nodes_by_member_names("call", "delegatecall", "staticcall").exit_on_none()
+        for call_node in call_nodes:
+            try:
+                current = call_node
+                while current.parent:
+                    current = current.parent
+                    if current.node_type in ("VariableDeclarationStatement", "Assignment"):
+                        break
+                    if current.node_type == "ExpressionStatement":
+                        print(call_node.to_result())
+                        break
+            except:
+                continue
+    except:
+        continue

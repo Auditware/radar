@@ -1,0 +1,20 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Missing sqrtPriceLimitX96 on Pool Swap
+description: Direct Uniswap V3 pool swaps should not pass a zero sqrtPriceLimitX96 because that disables price bound protection.
+severity: High
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        swap_nodes = nodes.find_nodes_by_member_names("swap").exit_on_none()
+        for node in swap_nodes:
+            try:
+                zero_literals = node.parent.find_nodes_by_metadata_key("value", "^0$").exit_on_none()
+                print(zero_literals.first().to_result())
+            except:
+                continue
+    except:
+        continue

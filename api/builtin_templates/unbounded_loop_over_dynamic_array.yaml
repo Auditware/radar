@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Unbounded Loop Over Dynamic Array
+description: Iterating over array.length in a stateful loop can become unbounded as user-controlled arrays grow.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        loops = nodes.find_nodes_by_types("ForStatement").exit_on_none()
+        for loop in loops:
+            try:
+                length_nodes = loop.find_nodes_by_member_names("length")
+                for length_node in length_nodes:
+                    if ".condition" in length_node.access_path:
+                        print(loop.to_result())
+                        break
+            except:
+                continue
+    except:
+        continue

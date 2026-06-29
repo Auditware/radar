@@ -1,0 +1,33 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Permit Front-Run Griefing
+description: Calling permit directly before transferFrom without try/catch lets attackers front-run the permit and grief the entire transaction.
+severity: Low
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                if len(function.find_nodes_by_member_names("permit")) == 0:
+                    continue
+                if len(function.find_nodes_by_member_names("transferFrom")) == 0:
+                    continue
+
+                for permit_call in function.find_nodes_by_member_names("permit"):
+                    current = permit_call
+                    inside_try = False
+                    while current.parent:
+                        current = current.parent
+                        if current.node_type == "TryStatement":
+                            inside_try = True
+                            break
+                    if not inside_try:
+                        print(permit_call.to_result())
+            except:
+                continue
+    except:
+        continue

@@ -1,0 +1,25 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Signature Missing Nonce Or Chainid
+description: Signature verification hashes should include a nonce or chain identifier to prevent replay across transactions or chains.
+severity: High
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                ecrecover_nodes = function.find_nodes_by_names("ecrecover").exit_on_none()
+                encode_packed_nodes = function.find_nodes_by_member_names("encodePacked").exit_on_none()
+                replay_guards = function.find_nodes_by_names("nonce", "nonces", "chainId", "chainid")
+                chainid_members = function.find_nodes_by_member_names("chainId", "chainid")
+                if len(encode_packed_nodes) > 0 and len(replay_guards) == 0 and len(chainid_members) == 0:
+                    for ecrecover_node in ecrecover_nodes:
+                        print(ecrecover_node.to_result())
+            except:
+                continue
+    except:
+        continue

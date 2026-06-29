@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Missing ERC20 Return Value Check
+description: ERC20 transfer calls that return a boolean should have their return value checked instead of being discarded.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        transfer_nodes = nodes.find_nodes_by_member_names("transfer", "transferFrom").exit_on_none()
+        for transfer_node in transfer_nodes:
+            try:
+                function_call = transfer_node.parent
+                if not function_call or function_call.node_type != "FunctionCall":
+                    continue
+                if function_call.parent and function_call.parent.node_type == "ExpressionStatement":
+                    print(transfer_node.to_result())
+            except:
+                continue
+    except:
+        continue

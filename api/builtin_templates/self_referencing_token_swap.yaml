@@ -1,0 +1,45 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Self-Referencing Token Swap
+description: Swap functions should reject identical input and output token addresses to avoid nonsensical self-swaps.
+severity: High
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                function_name = function.metadata.get("name", "")
+                if "swap" not in function_name.lower():
+                    continue
+
+                token_params = []
+                for parameter in function.find_nodes_by_types("VariableDeclaration"):
+                    if parameter.parent and parameter.parent.node_type == "ParameterList":
+                        name = parameter.metadata.get("name", "")
+                        type_string = parameter.metadata.get("type_string", "")
+                        if "token" in name.lower() and "address" in type_string:
+                            token_params.append(name)
+
+                if len(token_params) < 2:
+                    continue
+
+                has_token_equality_guard = False
+                for comparison in function.find_nodes_by_operators("!=", "=="):
+                    matched_names = 0
+                    for param_name in token_params:
+                        if len(comparison.find_nodes_by_names(param_name)) > 0:
+                            matched_names += 1
+                    if matched_names >= 2:
+                        has_token_equality_guard = True
+                        break
+
+                if not has_token_equality_guard:
+                    print(function.to_result())
+            except:
+                continue
+    except:
+        continue

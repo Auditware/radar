@@ -1,0 +1,16 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: ETH Send or Transfer Usage
+description: Using `.send()` or `.transfer()` for ETH transfers forwards only 2300 gas and can unexpectedly fail with smart contract recipients.
+severity: Low
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        eth_send_nodes = nodes.find_nodes_by_type_identifiers("payable").find_nodes_by_member_names("send", "transfer").exit_on_none()
+        for node in eth_send_nodes:
+            print(node.to_result())
+    except:
+        continue

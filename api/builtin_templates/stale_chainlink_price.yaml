@@ -1,0 +1,24 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Stale Chainlink Price
+description: Calls to Chainlink latestRoundData should validate updatedAt against block.timestamp to avoid using stale oracle prices.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        latest_round_calls = nodes.find_nodes_by_member_names("latestRoundData").exit_on_none()
+        functions = nodes.find_all_functions().exit_on_none()
+        for call in latest_round_calls:
+            for function in functions:
+                if call not in function.find_nodes_by_member_names("latestRoundData").nodes:
+                    continue
+                updated_at_nodes = function.find_nodes_by_names("updatedAt")
+                timestamp_nodes = function.find_nodes_by_member_names("timestamp")
+                if len(updated_at_nodes) == 0 or len(timestamp_nodes) == 0:
+                    print(call.to_result())
+                    break
+    except:
+        continue

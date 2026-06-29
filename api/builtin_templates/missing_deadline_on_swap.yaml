@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Missing Deadline On Swap
+description: Swap deadlines set to the current block timestamp are ineffective because they expire immediately.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        struct_builders = nodes.find_nodes_by_member_names("ExactInputSingleParams").exit_on_none()
+        for builder in struct_builders:
+            try:
+                struct_call = builder.parent
+                timestamp_nodes = struct_call.find_nodes_by_member_names("timestamp").exit_on_none()
+                plus_nodes = struct_call.find_nodes_by_operators("+")
+                if len(timestamp_nodes) > 0 and len(plus_nodes) == 0:
+                    print(timestamp_nodes.first().to_result())
+            except:
+                continue
+    except:
+        continue

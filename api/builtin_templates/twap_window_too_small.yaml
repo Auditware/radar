@@ -1,0 +1,32 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: TWAP Window Too Small
+description: TWAP observations should use a sufficiently large window because very short lookbacks are easier to manipulate.
+severity: High
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                function.find_nodes_by_member_names("observe").exit_on_none()
+                assignments = function.find_nodes_by_types("Assignment").exit_on_none()
+                for assignment in assignments:
+                    try:
+                        if len(assignment.find_nodes_by_names("secondsAgo")) == 0:
+                            continue
+                        short_window_literals = assignment.find_nodes_by_metadata_key(
+                            "value",
+                            "^[1-9][0-9]?$",
+                            "^[1-8][0-9]{2}$",
+                        ).exit_on_none()
+                        print(short_window_literals.first().to_result())
+                    except:
+                        continue
+            except:
+                continue
+    except:
+        continue

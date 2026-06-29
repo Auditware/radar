@@ -1,0 +1,37 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Hardcoded External Dependency Address
+description: Critical external dependency addresses should not be hardcoded as immutable or constant values because protocols may need to update them.
+severity: Low
+certainty: Low
+rule: |
+  risky_name_parts = ("oracle", "router", "pool", "treasury", "price", "feed")
+
+  for source, nodes in ast:
+    try:
+        declarations = nodes.find_nodes_by_types("VariableDeclaration").exit_on_none()
+        for declaration in declarations:
+            try:
+                if declaration.metadata.get("stateVariable") != True:
+                    continue
+                type_string = declaration.metadata.get("type_string", "")
+                if "address" not in type_string:
+                    continue
+                name = declaration.metadata.get("name", "").lower()
+                matched_risky_name = False
+                for part in risky_name_parts:
+                    if part in name:
+                        matched_risky_name = True
+                        break
+                if not matched_risky_name:
+                    continue
+                mutability = declaration.metadata.get("mutability")
+                is_constant = declaration.metadata.get("constant") == True or declaration.metadata.get("isConstant") == True
+                if mutability in ("immutable", "constant") or is_constant:
+                    print(declaration.to_result())
+            except:
+                continue
+    except:
+        continue

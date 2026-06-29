@@ -1,0 +1,29 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: No Emergency Pause Mechanism
+description: Financial contracts should expose a pause mechanism or use pause guards on sensitive entrypoints.
+severity: Low
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        financial_functions = []
+        has_pause_function = False
+        for function in functions:
+            try:
+                function_name = function.metadata.get("name", "")
+                if function_name in ("deposit", "withdraw", "borrow", "lend", "mint"):
+                    financial_functions.append(function)
+                if function_name == "pause":
+                    has_pause_function = True
+            except:
+                continue
+        pause_modifiers = nodes.find_modifiers_by_names("whenNotPaused")
+        if len(financial_functions) > 0 and not has_pause_function and len(pause_modifiers) == 0:
+            for function in financial_functions:
+                print(function.to_result())
+    except:
+        continue

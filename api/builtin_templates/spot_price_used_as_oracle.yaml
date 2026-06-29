@@ -1,0 +1,29 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Spot Price Used As Oracle
+description: Price or oracle helpers should not derive oracle values directly from AMM spot prices such as getReserves or slot0.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                function_name = function.metadata.get("name", "")
+                normalized = function_name.lower()
+                relevant = False
+                for pattern in ("price", "oracle", "latestanswer"):
+                    if pattern in normalized:
+                        relevant = True
+                if not relevant:
+                    continue
+                reserve_nodes = function.find_nodes_by_member_names("getReserves", "slot0")
+                for reserve_node in reserve_nodes:
+                    print(reserve_node.to_result())
+            except:
+                continue
+    except:
+        continue

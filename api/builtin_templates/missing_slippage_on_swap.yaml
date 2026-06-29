@@ -1,0 +1,20 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Missing Slippage On Swap
+description: Swap calls should not set amountOutMinimum or amountOutMin to zero because that disables slippage protection.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        struct_builders = nodes.find_nodes_by_member_names("ExactInputSingleParams").exit_on_none()
+        for builder in struct_builders:
+            try:
+                literal_zero_nodes = builder.parent.find_nodes_by_metadata_key("value", "^0$").exit_on_none()
+                print(literal_zero_nodes.first().to_result())
+            except:
+                continue
+    except:
+        continue

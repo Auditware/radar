@@ -1,0 +1,30 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Missing Storage Gap Upgradeable
+description: Upgradeable base contracts with state variables should reserve storage gaps to reduce layout collision risk in future upgrades.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        contracts = nodes.find_nodes_by_types("ContractDefinition").exit_on_none()
+        for contract in contracts:
+            try:
+                contract_name = contract.metadata.get("name", "")
+                if "Upgradeable" not in contract_name and "Base" not in contract_name:
+                    continue
+                state_variables = []
+                for variable in contract.find_nodes_by_types("VariableDeclaration"):
+                    if variable.metadata.get("stateVariable"):
+                        state_variables.append(variable)
+                if len(state_variables) == 0:
+                    continue
+                gap_nodes = contract.find_nodes_by_names("__gap")
+                if len(gap_nodes) == 0:
+                    print(contract.to_result())
+            except:
+                continue
+    except:
+        continue

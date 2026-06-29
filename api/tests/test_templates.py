@@ -14,12 +14,20 @@ def extract_line_info(location):
     """
     Extract line:col info from location string.
     Example: '/path/to/file.rs:15:12-20' -> '15:12-20'
+    Example: '/path/to/bad.sol:15:12-20' -> '15:12-20'
     """
     parts = location.rsplit(":", 2)
     if len(parts) >= 2:
-        # Return line:col-col format
         return ":".join(parts[-2:])
     return location
+
+
+def get_mock_sol_filename(mock_folder: Path, kind: str) -> str:
+    """Return the .sol filename (if any) inside mock_folder/kind/."""
+    sol_files = list((mock_folder / kind).glob("*.sol"))
+    if sol_files:
+        return sol_files[0].name
+    return "src/lib.rs"
 
 
 # Expected detections for each template
@@ -98,6 +106,147 @@ EXPECTED_DETECTIONS = {
     "Immutable State Mutation": {
         "bad": ["tests/mocks/immutable_state_mutation/bad/src/lib.rs:15:29-32"],
         "good": []
+    },
+    "Missing Two Step Ownership Transfer": {
+        "bad": [
+            "tests/mocks/missing_two_step_ownership_transfer/bad/missing_two_step_ownership_transfer.sol:10:5-142"
+        ],
+        "good": []
+    },
+    "ERC20 Permit Deadline Not Checked": {
+        "bad": [
+            "tests/mocks/erc20_permit_deadline_not_checked/bad/erc20_permit_deadline_not_checked.sol:16:9-20"
+        ],
+        "good": []
+    },
+    "Missing ERC20 Return Value Check": {
+        "bad": [
+            "tests/mocks/missing_erc20_return_value_check/bad/missing_erc20_return_value_check.sol:15:9-22"
+        ],
+        "good": []
+    },
+    "Fee On Transfer Incompatibility": {
+        "bad": [
+            "tests/mocks/fee_on_transfer_incompatibility/bad/fee_on_transfer_incompatibility.sol:16:9-26"
+        ],
+        "good": []
+    },
+    "Signature Missing Nonce Or Chainid": {
+        "bad": [
+            "tests/mocks/signature_missing_nonce_or_chainid/bad/signature_missing_nonce_or_chainid.sol:6:16-24"
+        ],
+        "good": []
+    },
+    "UpgradeTo Without Access Control": {
+        "bad": [
+            "tests/mocks/upgradeto_without_access_control/bad/upgradeto_without_access_control.sol:6:5-88"
+        ],
+        "good": []
+    },
+    "Missing Storage Gap Upgradeable": {
+        "bad": [
+            "tests/mocks/missing_storage_gap_upgradeable/bad/missing_storage_gap_upgradeable.sol:3:1-81"
+        ],
+        "good": []
+    },
+    "Unbounded Loop Over Dynamic Array": {
+        "bad": [
+            "tests/mocks/unbounded_loop_over_dynamic_array/bad/unbounded_loop_over_dynamic_array.sol:7:9-86"
+        ],
+        "good": []
+    },
+    "Unsafe Integer Downcast": {
+        "bad": [
+            "tests/mocks/unsafe_integer_downcast/bad/unsafe_integer_downcast.sol:5:21-39"
+        ],
+        "good": []
+    },
+    "No Emergency Pause Mechanism": {
+        "bad": [
+            "tests/mocks/no_emergency_pause_mechanism/bad/no_emergency_pause_mechanism.sol:16:5-156",
+            "tests/mocks/no_emergency_pause_mechanism/bad/no_emergency_pause_mechanism.sol:21:5-138"
+        ],
+        "good": []
+    },
+    "Stale Chainlink Price": {
+        "bad": ["tests/mocks/stale_chainlink_price/bad/stale_chainlink_price.sol:15:51-72"],
+        "good": []
+    },
+    "Missing Flash Loan Callback Validation": {
+        "bad": ["tests/mocks/missing_flash_loan_callback_validation/bad/missing_flash_loan_callback_validation.sol:6:5-209"],
+        "good": []
+    },
+    "Unvalidated Proxy Initializer": {
+        "bad": ["tests/mocks/unvalidated_proxy_initializer/bad/unvalidated_proxy_initializer.sol:6:5-78"],
+        "good": []
+    },
+    "Missing Deadline On Swap": {
+        "bad": ["tests/mocks/missing_deadline_on_swap/bad/missing_deadline_on_swap.sol:29:27-41"],
+        "good": []
+    },
+    "Governance Execute Without Timelock": {
+        "bad": ["tests/mocks/governance_execute_without_timelock/bad/governance_execute_without_timelock.sol:12:5-258"],
+        "good": []
+    },
+    "Missing Slippage On Swap": {
+        "bad": ["tests/mocks/missing_slippage_on_swap/bad/missing_slippage_on_swap.sol:27:35-35"],
+        "good": []
+    },
+    "Chainlink Min Max Circuit Breaker": {
+        "bad": ["tests/mocks/chainlink_min_max_circuit_breaker/bad/chainlink_min_max_circuit_breaker.sol:15:34-55"],
+        "good": []
+    },
+    "ERC4626 Share Inflation": {
+        "bad": ["tests/mocks/erc4626_share_inflation/bad/erc4626_share_inflation.sol:15:5-213"],
+        "good": []
+    },
+    "Spot Price Used As Oracle": {
+        "bad": ["tests/mocks/spot_price_used_as_oracle/bad/spot_price_used_as_oracle.sol:15:50-65"],
+        "good": []
+    },
+    "Selfdestruct In Implementation": {
+        "bad": ["tests/mocks/selfdestruct_in_implementation/bad/selfdestruct_in_implementation.sol:18:9-20"],
+        "good": []
+    },
+    "ETH Send or Transfer Usage": {
+        "bad": ["tests/mocks/eth_send_or_transfer_usage/bad/eth_send_or_transfer_usage.sol:5:9-35"],
+        "good": []
+    },
+    "Unprotected Configuration Setters": {
+        "bad": ["tests/mocks/unprotected_configuration_setters/bad/unprotected_configuration_setters.sol:6:5-68"],
+        "good": []
+    },
+    "Missing Array Length Equality Check": {
+        "bad": ["tests/mocks/missing_array_length_equality_check/bad/missing_array_length_equality_check.sol:14:5-221"],
+        "good": []
+    },
+    "Missing sqrtPriceLimitX96 on Pool Swap": {
+        "bad": ["tests/mocks/missing_sqrtpricelimitx96_on_pool_swap/bad/missing_sqrtpricelimitx96_on_pool_swap.sol:15:59-59"],
+        "good": []
+    },
+    "Permit Front-Run Griefing": {
+        "bad": ["tests/mocks/permit_front_run_griefing/bad/permit_front_run_griefing.sol:16:9-20"],
+        "good": []
+    },
+    "Self-Referencing Token Swap": {
+        "bad": ["tests/mocks/self_referencing_token_swap/bad/self_referencing_token_swap.sol:4:5-170"],
+        "good": []
+    },
+    "Reentrancy via ERC777 Hook": {
+        "bad": ["tests/mocks/reentrancy_via_erc777_hook/bad/reentrancy_via_erc777_hook.sol:14:5-257"],
+        "good": []
+    },
+    "Hardcoded External Dependency Address": {
+        "bad": ["tests/mocks/hardcoded_external_dependency_address/bad/hardcoded_external_dependency_address.sol:4:5-72"],
+        "good": []
+    },
+    "TWAP Window Too Small": {
+        "bad": ["tests/mocks/twap_window_too_small/bad/twap_window_too_small.sol:16:25-27"],
+        "good": []
+    },
+    "Unchecked Low-Level Call Return": {
+        "bad": ["tests/mocks/unchecked_low_level_call_return/bad/unchecked_low_level_call_return.sol:5:9-19"],
+        "good": []
     }
 }
 
@@ -124,6 +273,8 @@ def get_template_test_data():
                 # Get expected detections if defined
                 expected = EXPECTED_DETECTIONS.get(template_name, {"bad": None, "good": []})
                 
+                language = yaml_data.get("language", "rust")
+                bad_sol_file = get_mock_sol_filename(mock_folder, "bad")
                 template_test_data.append({
                     "template_name": template_name,
                     "template_file": yaml_file,
@@ -131,6 +282,8 @@ def get_template_test_data():
                     "bad_ast": bad_ast,
                     "good_ast": good_ast,
                     "mock_folder": mock_folder_name,
+                    "language": language,
+                    "bad_source_file": bad_sol_file,
                     "expected_bad_lines": expected["bad"],
                     "expected_good_lines": expected["good"],
                 })
@@ -138,13 +291,13 @@ def get_template_test_data():
     return template_test_data
 
 
-def run_template_on_ast(yaml_data, ast_file):
+def run_template_on_ast(yaml_data, ast_file, language: str = "rust"):
     code = yaml_data["rule"]
     
     with open(ast_file, "r") as file:
         ast_data = json.load(file)
     
-    modified_code = inject_code_lines(code, [f"ast = parse_ast({ast_data}).items()"])
+    modified_code = inject_code_lines(code, [f"ast = parse_ast({ast_data}, language={repr(language)}).items()"])
     template_outputs = wrapped_exec(modified_code)
     result = process_template_outputs(template_outputs, yaml_data)
     
@@ -161,14 +314,14 @@ def test_template_accuracy(template_data):
     expected_good_locations = template_data["expected_good_lines"]
     
     # Test 1: Bad contract - should detect vulnerabilities
-    bad_result = run_template_on_ast(template_data["yaml_data"], template_data["bad_ast"])
+    bad_result = run_template_on_ast(template_data["yaml_data"], template_data["bad_ast"], template_data.get("language", "rust"))
     bad_locations = bad_result.get("locations", [])
     
     assert len(bad_locations) > 0, \
         f"FAILED to detect vulnerability in bad contract"
     
     # Test 2: Good contract - should have no false positives
-    good_result = run_template_on_ast(template_data["yaml_data"], template_data["good_ast"])
+    good_result = run_template_on_ast(template_data["yaml_data"], template_data["good_ast"], template_data.get("language", "rust"))
     good_locations = good_result.get("locations", [])
     
     assert len(good_locations) == 0, \
@@ -181,10 +334,11 @@ def test_template_accuracy(template_data):
             f"Invalid line info format: {line_info}"
     
     # Test 4: Exact line detections match expected
+    bad_source_file = template_data.get("bad_source_file", "src/lib.rs")
     detected_with_relative_paths = []
     for loc in bad_locations:
         line_info = extract_line_info(loc)
-        relative_path = f"tests/mocks/{template_data['mock_folder']}/bad/src/lib.rs:{line_info}"
+        relative_path = f"tests/mocks/{template_data['mock_folder']}/bad/{bad_source_file}:{line_info}"
         detected_with_relative_paths.append(relative_path)
     
     detected_set = set(detected_with_relative_paths)

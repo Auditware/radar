@@ -1,0 +1,28 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Unvalidated Proxy Initializer
+description: Public or external initializer functions should use an initializer modifier or an initialized guard.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                function_name = function.metadata.get("name", "")
+                visibility = function.metadata.get("visibility")
+                if function_name not in ("initialize", "init"):
+                    continue
+                if visibility not in ("public", "external"):
+                    continue
+                initializer_modifiers = function.find_modifiers_by_names("initializer")
+                initialized_names = function.find_nodes_by_names("initialized", "_initialized")
+                if len(initializer_modifiers) == 0 and len(initialized_names) == 0:
+                    print(function.to_result())
+            except:
+                continue
+    except:
+        continue

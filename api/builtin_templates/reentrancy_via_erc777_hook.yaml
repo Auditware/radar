@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Reentrancy via ERC777 Hook
+description: ERC777 hooks should use nonReentrant because token transfers can invoke them during sensitive state transitions.
+severity: High
+certainty: Medium
+rule: |
+  hook_names = ("tokensReceived", "tokensToSend")
+
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                if function.metadata.get("name") not in hook_names:
+                    continue
+                function.find_modifiers_by_names("nonReentrant").exit_on_none()
+            except:
+                print(function.to_result())
+    except:
+        continue
