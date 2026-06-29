@@ -440,7 +440,7 @@ class SolidityASTNode(ASTNode):
 
         def match_pattern(value: str) -> bool:
             for pattern in patterns:
-                if any(re.search(p, value) or p in value for p in pattern):
+                if re.search(pattern, value) or pattern in value:
                     return True
             return False
 
