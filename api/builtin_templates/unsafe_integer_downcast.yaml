@@ -20,7 +20,7 @@ rule: |
                         continue
                     if cast.metadata.get("type_string") not in ("uint128", "uint64", "uint32", "uint16", "uint8"):
                         continue
-                    if len(require_nodes) == 0 or len(max_nodes) == 0:
+                    if len(max_nodes) == 0:
                         print(cast.to_result())
             except:
                 continue

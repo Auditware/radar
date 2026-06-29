@@ -7,22 +7,23 @@ description: Ownership transfer flows should require a second acceptance step be
 severity: Medium
 certainty: Medium
 rule: |
+  all_function_names = set()
   for source, nodes in ast:
     try:
-        functions = nodes.find_all_functions().exit_on_none()
-        transfer_functions = []
-        has_acceptance_function = False
-        for function in functions:
-            try:
-                function_name = function.metadata.get("name", "")
-                if function_name == "transferOwnership":
-                    transfer_functions.append(function)
-                if function_name in ("acceptOwnership", "claimOwnership"):
-                    has_acceptance_function = True
-            except:
-                continue
-        if len(transfer_functions) > 0 and not has_acceptance_function:
-            for function in transfer_functions:
-                print(function.to_result())
+        for function in nodes.find_all_functions().nodes:
+            all_function_names.add(function.metadata.get("name", ""))
     except:
         continue
+  if "acceptOwnership" in all_function_names or "claimOwnership" in all_function_names:
+    pass
+  else:
+    for source, nodes in ast:
+      try:
+          for function in nodes.find_all_functions().nodes:
+              try:
+                  if function.metadata.get("name") == "transferOwnership":
+                      print(function.to_result())
+              except:
+                  continue
+      except:
+          continue
