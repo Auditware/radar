@@ -9,8 +9,14 @@ certainty: Medium
 rule: |
   for source, nodes in ast:
     try:
-        eth_send_nodes = nodes.find_nodes_by_type_identifiers("payable").find_nodes_by_member_names("send", "transfer").exit_on_none()
-        for node in eth_send_nodes:
+        transfer_nodes = nodes.find_nodes_by_type_identifiers(r"t_function_transfer_").find_nodes_by_member_names("transfer").exit_on_none()
+        for node in transfer_nodes:
+            print(node.to_result())
+    except:
+        pass
+    try:
+        send_nodes = nodes.find_nodes_by_type_identifiers(r"t_function_send_").find_nodes_by_member_names("send").exit_on_none()
+        for node in send_nodes:
             print(node.to_result())
     except:
         continue
