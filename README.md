@@ -31,6 +31,7 @@ https://github.com/user-attachments/assets/62435714-cc5b-43f3-a213-96d28481a6d7
 - [Features](#-github-action)
   - [GitHub Action](#-github-action)
   - [Pre-commit Hook](#-pre-commit-hook)
+- [Radar at ETHDenver](#-radar-at-eth-denver)
 - [Contributors](#contributors)
 
 ## Installation
@@ -125,6 +126,12 @@ repos:
         pass_filenames: false
         always_run: true
 ```
+
+<br>
+
+### Radar at ETHDenver
+
+[![Watch the talk](https://img.youtube.com/vi/utpOmr9MVuQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=utpOmr9MVuQ)
 
 <br>
 
