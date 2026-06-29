@@ -14,8 +14,13 @@ rule: |
           funcs = nodes.find_all_functions().exit_on_none()
           for func in funcs:
               try:
-                  func_name = getattr(func, "ident", "")
-                  if not any(func_name.startswith(prefix) for prefix in admin_func_prefixes):
+                  func_name = func.ident or ""
+                  prefix_match = False
+                  for prefix in admin_func_prefixes:
+                      if func_name.startswith(prefix):
+                          prefix_match = True
+                          break
+                  if not prefix_match:
                       continue
                   critical_refs = func.find_by_names(*critical_fields)
                   if not critical_refs.nodes:
