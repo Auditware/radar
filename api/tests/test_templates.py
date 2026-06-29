@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import pytest
 import yaml
+from utils.ast import generate_ast_for_rust_file
 from utils.dsl.dsl import inject_code_lines, process_template_outputs, wrapped_exec
 
 
@@ -247,6 +248,25 @@ EXPECTED_DETECTIONS = {
     "Unchecked Low-Level Call Return": {
         "bad": ["tests/mocks/unchecked_low_level_call_return/bad/unchecked_low_level_call_return.sol:5:9-19"],
         "good": []
+    },
+    "Anchor Spot Price Oracle": {
+        "bad": ["tests/mocks/anchor_spot_price_oracle/bad/src/lib.rs:13:34-44"],
+        "good": []
+    },
+    "Anchor Missing Min Output": {
+        "bad": ["tests/mocks/anchor_missing_min_output/bad/src/lib.rs:9:53-59"],
+        "good": []
+    },
+    "Decimal To U64 Without Sign Check": {
+        "bad": ["tests/mocks/decimal_to_u64_without_sign_check/bad/src/lib.rs:15:14-19"],
+        "good": []
+    },
+    "Anchor Admin Without Timelock": {
+        "bad": [
+            "tests/mocks/anchor_admin_without_timelock/bad/src/lib.rs:10:28-45",
+            "tests/mocks/anchor_admin_without_timelock/bad/src/lib.rs:15:28-35"
+        ],
+        "good": []
     }
 }
 
@@ -302,6 +322,14 @@ def run_template_on_ast(yaml_data, ast_file, language: str = "rust"):
     result = process_template_outputs(template_outputs, yaml_data)
     
     return result
+
+
+def run_template_on_rust_source(yaml_data, source_file: Path):
+    code = yaml_data["rule"]
+    ast_data = generate_ast_for_rust_file(source_file)["ast"]
+    modified_code = inject_code_lines(code, [f"ast = parse_ast({ast_data}, language='rust').items()"])
+    template_outputs = wrapped_exec(modified_code)
+    return process_template_outputs(template_outputs, yaml_data)
 
 
 @pytest.mark.parametrize("template_data", get_template_test_data(), ids=lambda x: x["template_name"])
@@ -413,3 +441,54 @@ def test_all_templates_have_required_fields_in_order():
     
     assert not issues, \
         f"Template field validation failed:\n" + "\n".join(issues)
+
+
+RUNTIME_RUST_TEMPLATES = [
+    {
+        "name": "Anchor Spot Price Oracle",
+        "yaml_file": Path("builtin_templates/anchor_spot_price_oracle.yaml"),
+        "bad_source": Path("tests/mocks/anchor_spot_price_oracle/bad/src/lib.rs"),
+        "good_source": Path("tests/mocks/anchor_spot_price_oracle/good/src/lib.rs"),
+        "expected_bad_locations": ["tests/mocks/anchor_spot_price_oracle/bad/src/lib.rs:13:34-44"],
+    },
+    {
+        "name": "Anchor Missing Min Output",
+        "yaml_file": Path("builtin_templates/anchor_missing_min_output.yaml"),
+        "bad_source": Path("tests/mocks/anchor_missing_min_output/bad/src/lib.rs"),
+        "good_source": Path("tests/mocks/anchor_missing_min_output/good/src/lib.rs"),
+        "expected_bad_locations": ["tests/mocks/anchor_missing_min_output/bad/src/lib.rs:9:53-59"],
+    },
+    {
+        "name": "Decimal To U64 Without Sign Check",
+        "yaml_file": Path("builtin_templates/decimal_to_u64_without_sign_check.yaml"),
+        "bad_source": Path("tests/mocks/decimal_to_u64_without_sign_check/bad/src/lib.rs"),
+        "good_source": Path("tests/mocks/decimal_to_u64_without_sign_check/good/src/lib.rs"),
+        "expected_bad_locations": ["tests/mocks/decimal_to_u64_without_sign_check/bad/src/lib.rs:15:14-19"],
+    },
+    {
+        "name": "Anchor Admin Without Timelock",
+        "yaml_file": Path("builtin_templates/anchor_admin_without_timelock.yaml"),
+        "bad_source": Path("tests/mocks/anchor_admin_without_timelock/bad/src/lib.rs"),
+        "good_source": Path("tests/mocks/anchor_admin_without_timelock/good/src/lib.rs"),
+        "expected_bad_locations": [
+            "tests/mocks/anchor_admin_without_timelock/bad/src/lib.rs:10:28-45",
+            "tests/mocks/anchor_admin_without_timelock/bad/src/lib.rs:15:28-35",
+        ],
+    },
+]
+
+
+@pytest.mark.active_runtime
+@pytest.mark.parametrize("template_data", RUNTIME_RUST_TEMPLATES, ids=lambda x: x["name"])
+def test_runtime_rust_template_accuracy(template_data):
+    with open(template_data["yaml_file"], "r") as file:
+        yaml_data = yaml.safe_load(file)
+
+    bad_result = run_template_on_rust_source(yaml_data, template_data["bad_source"])
+    good_result = run_template_on_rust_source(yaml_data, template_data["good_source"])
+
+    bad_locations = set(bad_result.get("locations", []))
+    good_locations = good_result.get("locations", [])
+
+    assert bad_locations == set(template_data["expected_bad_locations"])
+    assert good_locations == []

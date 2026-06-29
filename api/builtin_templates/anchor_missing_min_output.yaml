@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Anchor Missing Min Output
+description: Anchor swap-like instructions should not accept a minimum output argument that is declared but never enforced in the instruction body.
+severity: Medium
+certainty: Low
+rule: |
+  slippage_params = ("min_out", "min_output", "minimum_amount_out", "min_amount_out", "minimum_out", "min_receive")
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  for param_name in slippage_params:
+                      param_refs = func.find_by_names(param_name)
+                      if len(param_refs) == 1:
+                          print(param_refs.first().to_result())
+                          break
+              except:
+                  continue
+      except:
+          continue

@@ -1,0 +1,30 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Anchor Admin Without Timelock
+description: Immediate Anchor admin setters that change critical protocol thresholds or fees should gate execution behind a timelock.
+severity: Medium
+certainty: Low
+rule: |
+  admin_func_prefixes = ("update_", "set_", "initialize_market", "create_market", "change_", "modify_")
+  critical_fields = ("withdraw_threshold", "fee_rate", "fee", "threshold", "limit", "guard")
+  timelock_names = ("Clock", "unix_timestamp", "execute_after", "timelock")
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  func_name = getattr(func, "ident", "")
+                  if not any(func_name.startswith(prefix) for prefix in admin_func_prefixes):
+                      continue
+                  critical_refs = func.find_by_names(*critical_fields)
+                  if not critical_refs.nodes:
+                      continue
+                  timelock_refs = func.find_by_names(*timelock_names)
+                  if timelock_refs.nodes:
+                      continue
+                  print(critical_refs.first().to_result())
+              except:
+                  continue
+      except:
+          continue

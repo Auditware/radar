@@ -1,0 +1,29 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Decimal To U64 Without Sign Check
+description: Converting subtraction results to u64 without a preceding non-negative guard can panic or DoS liquidation and accounting flows.
+severity: Medium
+certainty: Low
+rule: |
+  subtraction_names = ("p_sub", "checked_sub", "saturating_sub")
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  to_u64_calls = func.find_chained_calls("to_u64", "unwrap")
+                  if not to_u64_calls.node_lists:
+                      continue
+                  subtraction_refs = func.find_by_names(*subtraction_names)
+                  binary_subtractions = func.find_binary_operations("-")
+                  if not subtraction_refs.nodes and not binary_subtractions.nodes:
+                      continue
+                  sign_checks = func.find_binary_operations(">", ">=", "<", "<=")
+                  if sign_checks.nodes:
+                      continue
+                  print(to_u64_calls.first().first().to_result())
+              except:
+                  continue
+      except:
+          continue

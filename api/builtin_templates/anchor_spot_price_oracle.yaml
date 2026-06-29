@@ -1,0 +1,37 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Anchor Spot Price Oracle
+description: Anchor price or collateral helpers should not derive oracle values directly from manipulable AMM reserve balances without a TWAP-style reference.
+severity: High
+certainty: Low
+rule: |
+  price_keywords = ("price", "oracle", "collateral", "value")
+  reserve_names = ("base_reserve", "quote_reserve", "token_amount", "token_a_amount", "token_b_amount", "reserve", "base_amount", "quote_amount", "pool")
+  twap_names = ("twap", "ema", "time_weighted", "cumulative", "observe")
+  division_names = ("checked_div", "div")
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  func_name = getattr(func, "ident", "").lower()
+                  if not any(keyword in func_name for keyword in price_keywords):
+                      continue
+                  reserve_reads = func.find_by_names(*reserve_names)
+                  if not reserve_reads.nodes:
+                      continue
+                  twap_refs = func.find_by_names(*twap_names)
+                  if twap_refs.nodes:
+                      continue
+                  division_nodes = func.find_binary_operations("/")
+                  if division_nodes.nodes:
+                      print(division_nodes.first().to_result())
+                      continue
+                  division_calls = func.find_by_names(*division_names)
+                  if division_calls.nodes:
+                      print(division_calls.first().to_result())
+              except:
+                  continue
+      except:
+          continue
