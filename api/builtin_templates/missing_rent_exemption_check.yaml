@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Missing Rent Exemption Check
+description: Account creation via system_program without verifying rent exemption lamports can produce accounts that are garbage-collected by the Solana runtime, causing fund loss or program failures.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          for function in nodes.find_all_functions():
+              create_account_nodes = function.find_chained_calls("system_instruction", "create_account")
+              create_account_variant_nodes = function.find_by_names("CreateAccount")
+              if not create_account_nodes and not create_account_variant_nodes:
+                  continue
+              function.find_by_names("minimum_balance").exit_on_value()
+              function.find_chained_calls("Rent", "get").exit_on_value()
+              if create_account_nodes:
+                  print(create_account_nodes.first()[1].to_result())
+                  continue
+              print(create_account_variant_nodes.first().to_result())
+      except:
+          continue

@@ -1,0 +1,51 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Unchecked Close Target
+description: Anchor close constraints that direct lamports to an unvalidated target can let attackers choose an arbitrary beneficiary when the close target is not proven to be the legitimate owner.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          close_nodes = nodes.find_macro_attribute_by_names("close").exit_on_none()
+          nodes.find_by_names("Signer").exit_on_none()
+          for close_node in close_nodes:
+              close_target_node = None
+              for index in range(len(close_node.parent.children)):
+                  sibling_node = close_node.parent.children[index]
+                  if sibling_node.access_path == close_node.access_path:
+                      target_index = index + 1
+                      if target_index < len(close_node.parent.children):
+                          close_target_node = close_node.parent.children[target_index]
+                      break
+
+              if close_target_node is None:
+                  continue
+
+              has_matching_has_one = False
+              has_one_nodes = nodes.find_macro_attribute_by_names("has_one")
+              for has_one_node in has_one_nodes:
+                  if has_one_node.parent.ident != close_node.parent.ident:
+                      continue
+
+                  has_one_target_node = None
+                  for index in range(len(has_one_node.parent.children)):
+                      sibling_node = has_one_node.parent.children[index]
+                      if sibling_node.access_path == has_one_node.access_path:
+                          target_index = index + 1
+                          if target_index < len(has_one_node.parent.children):
+                              has_one_target_node = has_one_node.parent.children[target_index]
+                          break
+
+                  if has_one_target_node is not None and has_one_target_node.ident == close_target_node.ident:
+                      has_matching_has_one = True
+                      break
+
+              if has_matching_has_one:
+                  continue
+
+              nodes.find_comparison_involving(close_target_node.ident).exit_on_value()
+              print(close_target_node.to_result())
+      except:
+          continue

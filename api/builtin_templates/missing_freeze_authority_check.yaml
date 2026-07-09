@@ -1,0 +1,38 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Missing Freeze Authority Check
+description: Programs that accept token deposits without verifying the mint freeze_authority is None allow token issuers to freeze user accounts and trap deposited funds.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          nodes.find_by_names("transfer").exit_on_none()
+          flagged_structs = set()
+          for mint_node in nodes.find_by_names("Mint"):
+              try:
+                  if ".struct.fields.named[" not in mint_node.access_path:
+                      continue
+                  account_node = mint_node.parent
+                  field_node = account_node.parent
+                  struct_node = field_node.parent
+                  struct_node.find_chained_calls("derive", "Accounts").exit_on_none()
+                  struct_node.find_by_names("TokenAccount").exit_on_none()
+                  struct_node.find_by_names("freeze_authority").exit_on_value()
+                  if struct_node.ident in flagged_structs:
+                      continue
+                  for function in nodes.find_all_functions():
+                      try:
+                          function.find_by_names("Context", struct_node.ident).exit_on_none()
+                          function.find_by_names("transfer").exit_on_none()
+                          function.find_by_names("freeze_authority").exit_on_value()
+                          flagged_structs.add(struct_node.ident)
+                          print(field_node.to_result())
+                          break
+                      except:
+                          continue
+              except:
+                  continue
+      except:
+          continue

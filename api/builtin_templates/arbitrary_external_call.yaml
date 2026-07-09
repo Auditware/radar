@@ -1,0 +1,81 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Arbitrary External Call
+description: Functions that forward low-level calls to a caller-supplied address without validating it allow attackers to redirect execution to arbitrary contracts and drain approvals or manipulate state.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                address_params = function.find_nodes_by_type_strings("address")
+                if len(address_params) == 0:
+                    continue
+
+                address_param_names = []
+                for address_param in address_params:
+                    try:
+                        if address_param.node_type != "VariableDeclaration":
+                            continue
+                        if ".parameters." not in address_param.access_path:
+                            continue
+                        address_name = address_param.metadata.get("name")
+                        if address_name:
+                            address_param_names.append(address_name)
+                    except:
+                        continue
+
+                if len(address_param_names) == 0:
+                    continue
+
+                if len(function.find_nodes_by_member_names("call")) == 0:
+                    continue
+
+                function_body = None
+                for child in function.children:
+                    if child.node_type == "Block":
+                        function_body = child
+                        break
+
+                if not function_body:
+                    continue
+
+                validated_targets = set()
+
+                for statement in function_body.children:
+                    try:
+                        if len(statement.find_nodes_by_names("require", "revert")) > 0:
+                            for address_name in address_param_names:
+                                if len(statement.find_nodes_by_names(address_name)) > 0:
+                                    validated_targets.add(address_name)
+                            continue
+
+                        call_nodes = statement.find_nodes_by_member_names("call")
+                        if len(call_nodes) == 0:
+                            continue
+
+                        for call_node in call_nodes:
+                            try:
+                                validated = False
+                                for address_name in address_param_names:
+                                    if len(call_node.find_nodes_by_names(address_name)) == 0:
+                                        continue
+                                    if address_name in validated_targets:
+                                        validated = True
+                                        break
+                                    print(call_node.to_result())
+                                    break
+                                if validated:
+                                    continue
+                            except:
+                                continue
+                    except:
+                        continue
+            except:
+                continue
+    except:
+        continue

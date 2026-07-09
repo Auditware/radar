@@ -1,0 +1,31 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Read-Only Reentrancy
+description: Functions that read pricing data from external protocols such as get_virtual_price or exchangeRate while also making external calls are vulnerable to read-only reentrancy, where an attacker manipulates the view return value during a callback.
+severity: High
+certainty: Medium
+rule: |
+  price_view_names = ("get_virtual_price", "virtualPrice", "totalAssets", "exchangeRate", "convertToAssets", "pricePerShare", "getPricePerFullShare")
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                price_nodes = function.find_nodes_by_member_names(*price_view_names)
+                if len(price_nodes) == 0:
+                    continue
+                external_calls = function.find_external_calls()
+                transfer_nodes = function.find_nodes_by_member_names("transfer", "send")
+                if len(external_calls) == 0 and len(transfer_nodes) == 0:
+                    continue
+                modifiers = function.find_modifiers_by_names("nonReentrant")
+                if len(modifiers.nodes) > 0:
+                    continue
+                for price_node in price_nodes:
+                    print(price_node.to_result())
+            except:
+                continue
+    except:
+        continue

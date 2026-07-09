@@ -1,0 +1,28 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Missing has_one Constraint
+description: Anchor account validation should link signer accounts to stored authority pubkeys. Without a has_one constraint, a caller can provide an arbitrary signer instead of the account's recorded authority, owner, or admin key.
+severity: Low
+certainty: Low
+rule: |
+  for source, nodes in ast:
+      try:
+          derive_account_nodes = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
+          signer_nodes = nodes.find_by_names("Signer").exit_on_none()
+          pubkey_nodes = nodes.find_by_names("Pubkey").exit_on_none()
+          nodes.find_macro_attribute_by_names("has_one").exit_on_value()
+          found_missing_has_one = False
+          for signer_node in signer_nodes:
+              if signer_node.parent.ident not in ("authority", "owner", "admin"):
+                  continue
+              for pubkey_node in pubkey_nodes:
+                  if pubkey_node.parent.ident == signer_node.parent.ident:
+                      found_missing_has_one = True
+                      break
+              if found_missing_has_one:
+                  break
+          if found_missing_has_one:
+              print(derive_account_nodes.first().first().to_result())
+      except:
+          continue

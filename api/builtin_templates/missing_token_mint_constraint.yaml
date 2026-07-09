@@ -1,0 +1,31 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Missing Token Mint Constraint
+description: Anchor account structs that accept TokenAccount fields without token::mint constraints can allow wrong-mint token accounts to be passed into sensitive flows.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          nodes.find_by_names("TokenAccount").exit_on_none()
+          nodes.find_comparisons_between("mint", "key").exit_on_value()
+          nodes.find_by_names("require_keys_eq").exit_on_value()
+          flagged_structs = set()
+          for token_account_node in nodes.find_by_names("TokenAccount"):
+              try:
+                  if ".struct.fields.named[" not in token_account_node.access_path:
+                      continue
+                  account_node = token_account_node.parent
+                  field_node = account_node.parent
+                  struct_node = field_node.parent
+                  struct_node.find_chained_calls("derive", "Accounts").exit_on_none()
+                  field_node.find_macro_attribute_by_names("token").exit_on_none()
+                  field_node.find_macro_attribute_by_names("mint").exit_on_none()
+              except:
+                  if struct_node.access_path in flagged_structs:
+                      continue
+                  flagged_structs.add(struct_node.access_path)
+                  print(account_node.to_result())
+      except:
+          continue

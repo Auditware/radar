@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Callback Token Reentrancy
+description: Token and NFT receiver callbacks should use nonReentrant because transfers can invoke them during sensitive state transitions.
+severity: High
+certainty: Medium
+rule: |
+  callback_names = ("onTransferReceived", "onERC721Received", "onERC1155Received", "onERC1155BatchReceived")
+
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                if function.metadata.get("name", "") not in callback_names:
+                    continue
+                function.find_modifiers_by_names("nonReentrant").exit_on_none()
+            except:
+                print(function.to_result())
+    except:
+        continue

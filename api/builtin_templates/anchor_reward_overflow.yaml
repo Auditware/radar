@@ -1,0 +1,60 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Anchor Reward Overflow
+description: Reward or interest calculations that multiply staked amounts by rates without checked_mul can silently overflow on Solana, distributing incorrect reward amounts or panicking.
+severity: High
+certainty: Medium
+rule: |
+  rate_names = ("reward_rate", "interest_rate", "rate", "reward_per_share", "acc_reward_per_share")
+  amount_keywords = ("amount", "stake", "staked", "deposit", "principal", "balance", "share")
+  safe_math_names = ("checked_mul", "saturating_mul")
+  def collect_idents(node):
+      idents = []
+      try:
+          if node.ident:
+              idents.append(node.ident)
+          for child in node.children:
+              idents.extend(collect_idents(child))
+      except:
+          pass
+      return idents
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  rate_nodes = func.find_by_names(*rate_names)
+                  if not rate_nodes.nodes:
+                      continue
+                  mul_nodes = func.find_binary_operations("*")
+                  if not mul_nodes.nodes:
+                      continue
+                  for mul_node in mul_nodes:
+                      try:
+                          rate_refs = mul_node.find_by_names(*rate_names)
+                          if not rate_refs.nodes:
+                              continue
+                          ident_values = collect_idents(mul_node)
+                          amount_ref_found = False
+                          for ident in ident_values:
+                              ident_lower = (ident or "").lower()
+                              for keyword in amount_keywords:
+                                  if keyword in ident_lower:
+                                      amount_ref_found = True
+                                      break
+                              if amount_ref_found:
+                                  break
+                          if not amount_ref_found:
+                              continue
+                          safe_math_refs = mul_node.find_by_names(*safe_math_names)
+                          if safe_math_refs.nodes:
+                              continue
+                          print(mul_node.to_result())
+                          break
+                      except:
+                          continue
+              except:
+                  continue
+      except:
+          continue

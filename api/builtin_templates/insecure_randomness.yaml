@@ -1,0 +1,37 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Insecure Randomness
+description: Using block variables such as blockhash, block.timestamp, or block.prevrandao as a randomness source is insecure because validators can manipulate these values to influence outcomes.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                blockhash_nodes = function.find_nodes_by_names("blockhash")
+                member_entropy_nodes = function.find_nodes_by_member_names("timestamp", "prevrandao", "difficulty")
+                entropy_nodes = list(blockhash_nodes) + list(member_entropy_nodes)
+                if len(entropy_nodes) == 0:
+                    continue
+                for entropy_node in entropy_nodes:
+                    current = entropy_node
+                    while current:
+                        try:
+                            if current.node_type == "FunctionCall":
+                                if len(current.find_nodes_by_names("keccak256", "blockhash")) > 0:
+                                    print(entropy_node.to_result())
+                                    break
+                                if len(current.find_nodes_by_member_names("encodePacked")) > 0:
+                                    print(entropy_node.to_result())
+                                    break
+                            current = current.parent
+                        except:
+                            break
+            except:
+                continue
+    except:
+        continue

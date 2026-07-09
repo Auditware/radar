@@ -1,0 +1,95 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Unchecked CPI Program Invoke
+description: Raw invoke calls that use a caller-supplied program_id without key validation allow attackers to redirect cross-program invocations to malicious programs, bypassing Anchor typed program checks.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        funcs = nodes.find_all_functions().exit_on_none()
+        for func in funcs:
+            try:
+                func.find_by_names("invoke").exit_on_none()
+                program_id_fields = []
+                for node in func.find_by_names("program_id"):
+                    if ".struct.fields[" not in node.access_path:
+                        continue
+                    field_tail = node.access_path.split(".struct.fields[", 1)[1]
+                    if ".expr" in field_tail:
+                        continue
+                    program_id_fields.append(node)
+                if len(program_id_fields) == 0:
+                    continue
+
+                validation_idents = set()
+                for validation_macro in func.find_by_names("require_keys_eq", "require_eq"):
+                    macro_prefix = validation_macro.access_path.split(".macro.path.segments")[0]
+                    for token in func.find_by_access_path(macro_prefix + ".macro.tokens"):
+                        validation_idents.add(token.ident)
+
+                program_id_params = [
+                    node for node in func.find_by_names("program_id")
+                    if ".fn.inputs[" in node.access_path
+                ]
+
+                remaining_account_aliases = set()
+                remaining_account_nodes = func.find_by_names("remaining_accounts")
+                for remaining_account in remaining_account_nodes:
+                    if ".let.init" not in remaining_account.access_path:
+                        continue
+                    stmt_prefix = remaining_account.access_path.split(".let.init")[0]
+                    for alias_node in func.find_by_access_path(stmt_prefix + ".let.pat.ident"):
+                        remaining_account_aliases.add(alias_node.ident)
+
+                found_issue = False
+                for program_id_field in program_id_fields:
+                    field_expr_nodes = func.find_by_access_path(program_id_field.access_path + ".expr")
+
+                    uses_program_id_param = False
+                    for field_expr_node in field_expr_nodes:
+                        if field_expr_node.ident == "program_id":
+                            uses_program_id_param = True
+                            break
+
+                    if (
+                        len(program_id_params) > 0
+                        and "program_id" not in validation_idents
+                        and uses_program_id_param
+                    ):
+                        print(program_id_field.to_result())
+                        found_issue = True
+                        break
+
+                    uses_remaining_accounts = False
+                    for field_expr_node in field_expr_nodes:
+                        if field_expr_node.ident == "remaining_accounts":
+                            uses_remaining_accounts = True
+                            break
+
+                    if (
+                        uses_remaining_accounts
+                        and "remaining_accounts" not in validation_idents
+                    ):
+                        print(program_id_field.to_result())
+                        found_issue = True
+                        break
+
+                    for alias_ident in remaining_account_aliases:
+                        if alias_ident in validation_idents:
+                            continue
+                        for field_expr_node in field_expr_nodes:
+                            if field_expr_node.ident == alias_ident:
+                                print(program_id_field.to_result())
+                                found_issue = True
+                                break
+                        if found_issue:
+                            break
+
+                    if found_issue:
+                        break
+            except:
+                continue
+    except:
+        continue

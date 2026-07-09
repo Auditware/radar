@@ -1,0 +1,36 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Wrong Function Visibility
+description: Functions prefixed with an underscore follow the Solidity convention for internal helpers but should not be marked public or external, as this exposes internal logic to arbitrary callers.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                name = function.metadata.get("name", "")
+                if not name.startswith("_"):
+                    continue
+                visibility = function.metadata.get("visibility", "")
+                if visibility not in ("public", "external"):
+                    continue
+                block = function.children[0] if len(function.children) > 0 else None
+                if block and block.node_type == "Block" and block.src_calculated:
+                    file_path, line, cols = function.src_calculated.rsplit(":", 2)
+                    start_col = cols.split("-")[0]
+                    _, block_line, block_cols = block.src_calculated.rsplit(":", 2)
+                    block_start_col = block_cols.split("-")[0]
+                    if block_line == line:
+                        result = function.to_result()
+                        result["src_calculated"] = f"{file_path}:{line}:{start_col}-{block_start_col}"
+                        print(result)
+                        continue
+                print(function.to_result())
+            except:
+                continue
+    except:
+        continue

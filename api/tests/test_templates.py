@@ -52,12 +52,28 @@ EXPECTED_DETECTIONS = {
         "bad": ["tests/mocks/arbitrary_cross_program_invocation/bad/src/lib.rs:10:12-24"],
         "good": []
     },
+    "Arbitrary External Call": {
+        "bad": [
+            "tests/mocks/arbitrary_external_call/bad/arbitrary_external_call.sol:5:27-37"
+        ],
+        "good": []
+    },
+    "Callback Token Reentrancy": {
+        "bad": [
+            "tests/mocks/callback_token_reentrancy/bad/callback_token_reentrancy.sol:14:5-193"
+        ],
+        "good": []
+    },
     "Closing Accounts Insecurely": {
         "bad": ["tests/mocks/closing_accounts_insecurely/bad/src/lib.rs:11:64-74"],
         "good": []
     },
     "Random Authority Generation": {
         "bad": ["tests/mocks/cpi_authority_bypass/bad/src/lib.rs:10:33-43"],
+        "good": []
+    },
+    "Read-Only Reentrancy": {
+        "bad": ["tests/mocks/read_only_reentrancy/bad/read_only_reentrancy.sol:22:25-51"],
         "good": []
     },
      "PDA Sharing": {
@@ -80,6 +96,24 @@ EXPECTED_DETECTIONS = {
         "bad": ["tests/mocks/incorrect_token_calculation/bad/src/lib.rs:14:12-16"],
         "good": []
     },
+    "Incorrect Reward Calculation": {
+        "bad": [
+            "tests/mocks/incorrect_reward_calculation/bad/incorrect_reward_calculation.sol:20:9-29"
+        ],
+        "good": []
+    },
+    "Insecure Clock Randomness": {
+        "bad": [
+            "tests/mocks/insecure_clock_randomness/bad/src/lib.rs:11:35-49"
+        ],
+        "good": []
+    },
+    "Insecure Randomness": {
+        "bad": [
+            "tests/mocks/insecure_randomness/bad/insecure_randomness.sol:8:51-65"
+        ],
+        "good": []
+    },
     "Integer Division Overflow": {
         "bad": ["tests/mocks/integer_division_overflow/bad/src/lib.rs:12:12-21"],
         "good": []
@@ -88,8 +122,28 @@ EXPECTED_DETECTIONS = {
         "bad": ["tests/mocks/invalid_function_attributes/bad/src/lib.rs:12:7-14"],
         "good": []
     },
+    "Missing Freeze Authority Check": {
+        "bad": ["tests/mocks/missing_freeze_authority_check/bad/src/lib.rs:28:9-13"],
+        "good": []
+    },
+    "Missing has_one Constraint": {
+        "bad": ["tests/mocks/missing_has_one_constraint/bad/src/lib.rs:15:3-9"],
+        "good": []
+    },
     "Missing Owner Check": {
         "bad": ["tests/mocks/missing_owner_check/bad/src/lib.rs:20:3-9"],
+        "good": []
+    },
+    "Missing Rent Exemption Check": {
+        "bad": ["tests/mocks/missing_rent_exemption_check/bad/src/lib.rs:11:38-52"],
+        "good": []
+    },
+    "Missing Token Authority Constraint": {
+        "bad": ["tests/mocks/missing_token_authority_constraint/bad/src/lib.rs:29:21-28"],
+        "good": []
+    },
+    "Missing Token Mint Constraint": {
+        "bad": ["tests/mocks/missing_token_mint_constraint/bad/src/lib.rs:29:21-28"],
         "good": []
     },
     "Missing Signer Check": {
@@ -162,6 +216,18 @@ EXPECTED_DETECTIONS = {
         ],
         "good": []
     },
+    "Vault Share Inflation": {
+        "bad": [
+            "tests/mocks/vault_share_inflation/bad/vault_share_inflation.sol:18:18-51"
+        ],
+        "good": []
+    },
+    "Wrong Function Visibility": {
+        "bad": [
+            "tests/mocks/wrong_function_visibility/bad/wrong_function_visibility.sol:6:5-70"
+        ],
+        "good": []
+    },
     "No Emergency Pause Mechanism": {
         "bad": [
             "tests/mocks/no_emergency_pause_mechanism/bad/no_emergency_pause_mechanism.sol:16:5-156",
@@ -201,8 +267,20 @@ EXPECTED_DETECTIONS = {
         "bad": ["tests/mocks/erc4626_share_inflation/bad/erc4626_share_inflation.sol:15:5-213"],
         "good": []
     },
+    "Snapshotless Governance Voting": {
+        "bad": ["tests/mocks/snapshotless_governance_voting/bad/snapshotless_governance_voting.sol:18:26-40"],
+        "good": []
+    },
     "Spot Price Used As Oracle": {
         "bad": ["tests/mocks/spot_price_used_as_oracle/bad/spot_price_used_as_oracle.sol:15:50-65"],
+        "good": []
+    },
+    "Storage Slot Collision": {
+        "bad": ["tests/mocks/storage_slot_collision/bad/storage_slot_collision.sol:16:27-38"],
+        "good": []
+    },
+    "Self Transfer Exploit": {
+        "bad": ["tests/mocks/self_transfer_exploit/bad/self_transfer_exploit.sol:6:5-214"],
         "good": []
     },
     "Selfdestruct In Implementation": {
@@ -229,6 +307,10 @@ EXPECTED_DETECTIONS = {
         "bad": ["tests/mocks/permit_front_run_griefing/bad/permit_front_run_griefing.sol:16:9-20"],
         "good": []
     },
+    "Public Skim Function": {
+        "bad": ["tests/mocks/public_skim_function/bad/public_skim_function.sol:19:5-192"],
+        "good": []
+    },
     "Self-Referencing Token Swap": {
         "bad": ["tests/mocks/self_referencing_token_swap/bad/self_referencing_token_swap.sol:4:5-170"],
         "good": []
@@ -241,12 +323,28 @@ EXPECTED_DETECTIONS = {
         "bad": ["tests/mocks/hardcoded_external_dependency_address/bad/hardcoded_external_dependency_address.sol:4:5-72"],
         "good": []
     },
+    "Hidden Fee Drain": {
+        "bad": ["tests/mocks/hidden_fee_drain/bad/hidden_fee_drain.sol:21:9-29"],
+        "good": []
+    },
     "TWAP Window Too Small": {
         "bad": ["tests/mocks/twap_window_too_small/bad/twap_window_too_small.sol:16:25-27"],
         "good": []
     },
+    "Unchecked Close Target": {
+        "bad": ["tests/mocks/unchecked_close_target/bad/src/lib.rs:16:28-34"],
+        "good": []
+    },
+    "Unchecked CPI Program Invoke": {
+        "bad": ["tests/mocks/unchecked_cpi_program_invoke/bad/src/lib.rs:10:43-53"],
+        "good": []
+    },
     "Unchecked Low-Level Call Return": {
         "bad": ["tests/mocks/unchecked_low_level_call_return/bad/unchecked_low_level_call_return.sol:5:9-19"],
+        "good": []
+    },
+    "Unchecked Token Account Owner": {
+        "bad": ["tests/mocks/unchecked_token_account_owner/bad/src/lib.rs:29:15-22"],
         "good": []
     },
     "Anchor Spot Price Oracle": {
@@ -257,8 +355,19 @@ EXPECTED_DETECTIONS = {
         "bad": ["tests/mocks/anchor_missing_min_output/bad/src/lib.rs:9:53-59"],
         "good": []
     },
+    "Anchor Reward Overflow": {
+        "bad": ["tests/mocks/anchor_reward_overflow/bad/src/lib.rs:12:40-53"],
+        "good": []
+    },
     "Decimal To U64 Without Sign Check": {
         "bad": ["tests/mocks/decimal_to_u64_without_sign_check/bad/src/lib.rs:15:14-19"],
+        "good": []
+    },
+    "Token Decimal Mismatch": {
+        "bad": [
+            "tests/mocks/token_decimal_mismatch/bad/token_decimal_mismatch.sol:5:16-72",
+            "tests/mocks/token_decimal_mismatch/bad/token_decimal_mismatch.sol:9:16-65"
+        ],
         "good": []
     },
     "Anchor Admin Without Timelock": {

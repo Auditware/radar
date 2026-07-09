@@ -1,0 +1,85 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Unchecked Token Account Owner
+description: SPL token transfer CPIs that lack a token::authority constraint on the source token account allow callers to pass token accounts they do not own, enabling unauthorized fund transfers.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          nodes.find_chained_calls("token", "transfer").exit_on_none()
+          nodes.find_by_names("TokenAccount").exit_on_none()
+          flagged_fields = set()
+          for from_node in nodes.find_by_names("from"):
+              try:
+                  if ".fn." not in from_node.access_path:
+                      continue
+                  if ".struct.fields[" not in from_node.access_path:
+                      continue
+                  function_prefix = from_node.access_path.split(".stmts[")[0]
+                  has_transfer = False
+                  for transfer_call in nodes.find_chained_calls("token", "transfer"):
+                      if transfer_call.first().access_path.startswith(function_prefix):
+                          has_transfer = True
+                          break
+                  if not has_transfer:
+                      continue
+                  manual_check = False
+                  for candidate in nodes.find_by_names("require_keys_eq"):
+                      if candidate.access_path.startswith(function_prefix):
+                          manual_check = True
+                          break
+                  if manual_check:
+                      continue
+                  source_field_name = None
+                  for candidate in from_node.find_by_access_path(".expr.method_call.receiver.field"):
+                      if ".base.field" in candidate.access_path:
+                          continue
+                      source_field_name = candidate.ident
+                      break
+                  if source_field_name is None:
+                      continue
+                  context_node = None
+                  for candidate in nodes.find_by_names("Context"):
+                      if candidate.access_path.startswith(function_prefix + ".inputs["):
+                          context_node = candidate
+                          break
+                  if context_node is None:
+                      continue
+                  struct_name = None
+                  for candidate in context_node.find_by_access_path(".arguments.angle_bracketed.args[0].type.path.segments[0]"):
+                      struct_name = candidate.ident
+                      break
+                  if struct_name is None:
+                      continue
+                  struct_node = None
+                  for candidate in nodes.find_by_names(struct_name):
+                      if candidate.access_path.endswith(".struct"):
+                          struct_node = candidate
+                          break
+                  if struct_node is None:
+                      continue
+                  struct_node.find_chained_calls("derive", "Accounts").exit_on_none()
+                  field_node = None
+                  for candidate in nodes.find_by_names(source_field_name):
+                      if not candidate.access_path.startswith(struct_node.access_path + ".fields.named["):
+                          continue
+                      field_node = candidate
+                      break
+                  if field_node is None:
+                      continue
+                  field_node.find_by_names("TokenAccount").exit_on_none()
+                  try:
+                      field_node.find_chained_calls("token", "authority").exit_on_none()
+                  except:
+                      if field_node is None:
+                          continue
+                      if field_node.access_path in flagged_fields:
+                          continue
+                      flagged_fields.add(field_node.access_path)
+                      print(field_node.find_by_names("Account").first().to_result())
+              except:
+                  continue
+      except:
+          continue

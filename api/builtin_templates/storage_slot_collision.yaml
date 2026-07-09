@@ -1,0 +1,49 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Storage Slot Collision
+description: Proxy contracts that delegate execution while storing implementation data in regular state slots can collide with delegated storage layouts.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        contracts = nodes.find_nodes_by_types("ContractDefinition").exit_on_none()
+        for contract in contracts:
+            try:
+                delegatecall_nodes = []
+                delegatecall_nodes.extend(contract.find_nodes_by_names("delegatecall"))
+                delegatecall_nodes.extend(contract.find_nodes_by_member_names("delegatecall"))
+                if len(delegatecall_nodes) == 0:
+                    continue
+
+                slot_guards = contract.find_nodes_by_names(
+                    "sload",
+                    "sstore",
+                    "IMPLEMENTATION_SLOT",
+                    "ADMIN_SLOT",
+                )
+                slot_constants = contract.find_nodes_by_metadata_key("name", "_SLOT$")
+                if len(slot_guards) > 0 or len(slot_constants) > 0:
+                    continue
+
+                plain_state_variables = []
+                for variable in contract.find_nodes_by_types("VariableDeclaration"):
+                    if not variable.metadata.get("stateVariable"):
+                        continue
+                    if variable.metadata.get("constant"):
+                        continue
+                    if variable.metadata.get("mutability") == "immutable":
+                        continue
+                    plain_state_variables.append(variable)
+
+                if len(plain_state_variables) == 0:
+                    continue
+
+                for delegatecall_node in delegatecall_nodes:
+                    print(delegatecall_node.to_result())
+            except:
+                continue
+    except:
+        continue

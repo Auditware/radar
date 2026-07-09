@@ -1,0 +1,75 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Vault Share Inflation
+description: Vault deposit functions that compute share amounts using totalSupply divided by totalAssets without a virtual offset or zero-check allow the first depositor to inflate the share price and steal subsequent depositors funds.
+severity: High
+certainty: Low
+rule: |
+  deposit_names = ("deposit", "mint", "stake", "_deposit")
+  supply_names = ("totalSupply", "totalShares")
+  asset_names = ("totalAssets", "totalBalance", "totalDeposits", "balance")
+  offset_names = ("offset", "decimalsOffset", "OFFSET")
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                if function.metadata.get("name", "") not in deposit_names:
+                    continue
+                if len(function.find_nodes_by_names(*supply_names)) == 0:
+                    continue
+                if len(function.find_nodes_by_names(*asset_names)) == 0:
+                    continue
+                if len(function.find_nodes_by_names(*offset_names)) > 0:
+                    continue
+
+                has_zero_guard = False
+                for conditional in function.find_nodes_by_types("Conditional"):
+                    if len(conditional.find_nodes_by_names(*supply_names, *asset_names)) > 0:
+                        has_zero_guard = True
+                        break
+
+                if not has_zero_guard:
+                    for comparison in function.find_nodes_by_operators("=="):
+                        if len(comparison.find_nodes_by_names(*supply_names, *asset_names)) == 0:
+                            continue
+                        zero_literals = comparison.find_nodes_by_types("Literal")
+                        for literal in zero_literals:
+                            if literal.metadata.get("value") in ("0", 0):
+                                has_zero_guard = True
+                                break
+                        if has_zero_guard:
+                            break
+
+                if has_zero_guard:
+                    continue
+
+                division_nodes = function.find_nodes_by_operators("/")
+                for division_node in division_nodes:
+                    if len(division_node.find_nodes_by_names(*supply_names)) == 0:
+                        continue
+                    if len(division_node.find_nodes_by_names(*asset_names)) == 0:
+                        continue
+
+                    has_virtual_offset = False
+                    for add_node in division_node.find_nodes_by_operators("+"):
+                        if len(add_node.find_nodes_by_names(*supply_names, *asset_names)) == 0:
+                            continue
+                        for literal in add_node.find_nodes_by_types("Literal"):
+                            if literal.metadata.get("value") in ("1", 1):
+                                has_virtual_offset = True
+                                break
+                        if has_virtual_offset:
+                            break
+
+                    if has_virtual_offset:
+                        continue
+
+                    print(division_node.to_result())
+                    break
+            except:
+                continue
+    except:
+        continue

@@ -1,0 +1,29 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Public Skim Function
+description: Public or external skim functions without access control allow any caller to drain excess token balances from a pool by transferring them to an arbitrary address.
+severity: High
+certainty: Medium
+rule: |
+  access_modifiers = ("onlyOwner", "onlyAdmin", "onlyGovernance", "auth", "restricted", "onlyRole", "onlyOperator")
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                name = function.metadata.get("name", "")
+                if name not in ("skim", "sync"):
+                    continue
+                visibility = function.metadata.get("visibility", "")
+                if visibility not in ("public", "external"):
+                    continue
+                modifiers = function.find_modifiers_by_names(*access_modifiers)
+                if len(modifiers.nodes) > 0:
+                    continue
+                print(function.to_result())
+            except:
+                continue
+    except:
+        continue

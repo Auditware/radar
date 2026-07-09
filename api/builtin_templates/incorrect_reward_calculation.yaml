@@ -1,0 +1,52 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Incorrect Reward Calculation
+description: Staking functions that update a user amount field without updating the corresponding rewardDebt accumulator allow users to claim rewards repeatedly without resetting their debt.
+severity: High
+certainty: Medium
+rule: |
+  deposit_withdraw = ("deposit", "withdraw")
+  amount_assignment_operators = ("=", "+=", "-=", "*=", "/=", "%=")
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                name = function.metadata.get("name", "")
+                if name not in deposit_withdraw:
+                    continue
+                amount_updates = []
+                assignments = function.find_nodes_by_types("Assignment")
+                for assignment in assignments:
+                    try:
+                        if assignment.metadata.get("operator") not in amount_assignment_operators:
+                            continue
+                        left_hand_side = assignment.children[0]
+                        if len(left_hand_side.find_nodes_by_member_names("amount")) == 0:
+                            continue
+                        amount_updates.append(assignment)
+                    except:
+                        continue
+                if len(amount_updates) == 0:
+                    continue
+                reward_debt_updates = []
+                for assignment in assignments:
+                    try:
+                        if assignment.metadata.get("operator") not in amount_assignment_operators:
+                            continue
+                        left_hand_side = assignment.children[0]
+                        if len(left_hand_side.find_nodes_by_member_names("rewardDebt", "reward_debt", "debtSnapshot", "userDebt")) == 0:
+                            continue
+                        reward_debt_updates.append(assignment)
+                    except:
+                        continue
+                if len(reward_debt_updates) > 0:
+                    continue
+                for amount_update in amount_updates:
+                    print(amount_update.to_result())
+            except:
+                continue
+    except:
+        continue

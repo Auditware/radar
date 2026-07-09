@@ -1,0 +1,29 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Hidden Fee Drain
+description: Transfer override functions that call transferFrom on the sender address pull additional tokens beyond the declared transfer amount, acting as a hidden tax that drains user wallets without explicit consent.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                name = function.metadata.get("name", "")
+                if name not in ("_transfer", "transfer", "_beforeTokenTransfer"):
+                    continue
+                transfer_from_nodes = function.find_nodes_by_member_names("transferFrom")
+                if len(transfer_from_nodes) == 0:
+                    continue
+                from_nodes = function.find_nodes_by_names("from")
+                if len(from_nodes) == 0:
+                    continue
+                for node in transfer_from_nodes:
+                    print(node.to_result())
+            except:
+                continue
+    except:
+        continue

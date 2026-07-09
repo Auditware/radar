@@ -1,0 +1,58 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Insecure Clock Randomness
+description: Using Clock::get() slot or unix_timestamp as a randomness source via modulo or hash input is insecure because validators can influence these values.
+severity: Medium
+certainty: Medium
+rule: |
+  hash_idents = ("hash", "hashv", "keccak", "sha", "digest")
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  func.find_chained_calls("Clock", "get").exit_on_none()
+                  seen_sources = set()
+                  for modulo_node in func.find_binary_operations("%"):
+                      try:
+                          risky_field = modulo_node.find_by_names("unix_timestamp", "slot").exit_on_none().first()
+                          risky_src = (
+                              risky_field.src["file"],
+                              risky_field.src["line"],
+                              risky_field.src["start_col"],
+                              risky_field.src["end_col"],
+                          )
+                          if risky_src not in seen_sources:
+                              seen_sources.add(risky_src)
+                              print(risky_field.to_result())
+                      except:
+                          continue
+                  for clock_field in func.find_by_names("unix_timestamp", "slot"):
+                      try:
+                          current = clock_field
+                          while current:
+                              current_ident = (current.ident or "").lower()
+                              hash_match = False
+                              for hash_ident in hash_idents:
+                                  if hash_ident in current_ident:
+                                      hash_match = True
+                                      break
+                              if hash_match:
+                                  clock_src = (
+                                      clock_field.src["file"],
+                                      clock_field.src["line"],
+                                      clock_field.src["start_col"],
+                                      clock_field.src["end_col"],
+                                  )
+                                  if clock_src not in seen_sources:
+                                      seen_sources.add(clock_src)
+                                      print(clock_field.to_result())
+                                  break
+                              current = current.parent
+                      except:
+                          continue
+              except:
+                  continue
+      except:
+          continue

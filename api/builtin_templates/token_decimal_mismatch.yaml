@@ -1,0 +1,70 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Token Decimal Mismatch
+description: Arithmetic that mixes 6-decimal and 18-decimal token scales without an explicit normalization step can misprice values and break accounting.
+severity: Medium
+certainty: Low
+rule: |
+  def has_literal_scale(node, scale):
+      return len(node.find_nodes_by_metadata_key("value", f"^{scale}$")) > 0
+
+  def has_power_scale(node, exponent_value):
+      power_nodes = node.find_nodes_by_operators("**")
+      for power_node in power_nodes:
+          try:
+              left = power_node.children[0]
+              right = power_node.children[1]
+              if not has_literal_scale(left, "10"):
+                  continue
+              if not has_literal_scale(right, exponent_value):
+                  continue
+              return True
+          except:
+              continue
+      return False
+
+  def has_small_scale(node):
+      return has_literal_scale(node, "1000000") or has_power_scale(node, "6")
+
+  def has_large_scale(node):
+      return has_literal_scale(node, "1000000000000000000") or has_power_scale(node, "18")
+
+  def has_normalizer(node):
+      return has_literal_scale(node, "1000000000000") or has_power_scale(node, "12")
+
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                if len(function.find_nodes_by_member_names("decimals")) > 0:
+                    continue
+                if len(function.find_nodes_by_names("decimals")) > 0:
+                    continue
+                if not has_small_scale(function):
+                    continue
+                if not has_large_scale(function):
+                    continue
+                if has_normalizer(function):
+                    continue
+                operations = function.find_nodes_by_types("BinaryOperation").exit_on_none()
+                for operation in operations:
+                    try:
+                        if operation.metadata.get("operator") not in ("*", "/", "+", "-"):
+                            continue
+                        if len(operation.find_nodes_by_types("Identifier")) < 2:
+                            continue
+                        if not has_small_scale(operation):
+                            continue
+                        if not has_large_scale(operation):
+                            continue
+                        print(operation.to_result())
+                        break
+                    except:
+                        continue
+            except:
+                continue
+    except:
+        continue

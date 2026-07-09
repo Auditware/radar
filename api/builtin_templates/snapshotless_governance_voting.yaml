@@ -1,0 +1,29 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Snapshotless Governance Voting
+description: Governance functions that read live token balanceOf for vote weight instead of a historical snapshot are vulnerable to flash loan attacks where an attacker borrows tokens, votes, and repays within one transaction.
+severity: High
+certainty: Medium
+rule: |
+  vote_func_names = ("castVote", "vote", "propose", "_castVote", "_countVote")
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                if function.metadata.get("name") not in vote_func_names:
+                    continue
+                balance_nodes = function.find_nodes_by_member_names("balanceOf")
+                if len(balance_nodes) == 0:
+                    continue
+                snapshot_nodes = function.find_nodes_by_member_names("getPastVotes", "getPriorVotes", "getVotes", "balanceOfAt", "votingPowerAt")
+                if len(snapshot_nodes) > 0:
+                    continue
+                for node in balance_nodes:
+                    print(node.to_result())
+            except:
+                continue
+    except:
+        continue
