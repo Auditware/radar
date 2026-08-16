@@ -1,0 +1,32 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Cross-Chain Message Missing Source Validation
+description: Inbound cross-chain message handlers must verify the source chain and the sending contract against a trusted allowlist before acting on the message. Without this check, an attacker can send a forged message from any chain or contract and drain or mint assets. Scoped to Chainlink CCIP and custom handlers, where the base contract does not validate the source (LayerZero's OApp validates the peer in its base lzReceive, so its _lzReceive is excluded to avoid false positives).
+severity: High
+certainty: Medium
+rule: |
+  handler_names = ("ccipReceive", "_ccipReceive", "handleMessage", "_handleMessage", "onMessage", "onMessageReceived", "receiveMessage", "_receiveMessage", "executeMessage", "_executeMessage")
+  source_markers = ("sourceChainSelector", "sourceChainId", "srcChainId", "sourceChain", "srcChain", "sourceAddress", "srcAddress", "trustedRemote", "trustedRemotes", "trustedSender", "trustedSenders", "peer", "peers", "whitelistedSender", "sourceConfig", "sourceConfigs", "selectorToChainId")
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                if function.metadata.get("name", "") not in handler_names:
+                    continue
+                # Safe pattern: the handler references a source-chain / trusted-sender
+                # allowlist identifier (used to validate where the message came from).
+                validated = False
+                for marker in source_markers:
+                    if len(function.find_nodes_by_names(marker)) > 0 or len(function.find_nodes_by_member_names(marker)) > 0:
+                        validated = True
+                        break
+                if validated:
+                    continue
+                print(function.to_result())
+            except:
+                continue
+    except:
+        continue

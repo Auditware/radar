@@ -1,0 +1,16 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Init If Needed Reinitialization
+description: Anchor accounts declared with init_if_needed can be reinitialized on a subsequent call, so the handler must guard against re-init (for example an is_initialized flag) to prevent an attacker from resetting existing account state.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          init_nodes = nodes.find_macro_attribute_by_names("init_if_needed").exit_on_none()
+          # Safe pattern: an explicit already-initialized guard flag in the handler
+          nodes.find_by_names("is_initialized", "initialized").exit_on_value()
+          print(init_nodes.first().to_result())
+      except:
+          continue

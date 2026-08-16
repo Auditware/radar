@@ -1,0 +1,21 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Invoke Signed Unvalidated Seeds
+description: invoke_signed lends the program's PDA signature to a cross-program invocation. When the target program or account keys derive from caller-supplied accounts without a require_keys_eq check, an attacker can redirect the signed invocation to a malicious target.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  invoke_calls = func.find_by_names("invoke_signed").exit_on_none()
+                  # Safe pattern: an explicit key equality check before the signed CPI
+                  func.find_by_names("require_keys_eq", "require_eq").exit_on_value()
+                  print(invoke_calls.first().to_result())
+              except:
+                  continue
+      except:
+          continue

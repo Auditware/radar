@@ -1,0 +1,16 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Deprecated Chainlink Latest Answer
+description: The Chainlink functions latestAnswer, latestRound, latestTimestamp, and getAnswer are deprecated and provide no staleness or round-completeness data. Use latestRoundData and validate its fields instead.
+severity: Medium
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        deprecated_calls = nodes.find_nodes_by_member_names("latestAnswer", "latestRound", "latestTimestamp", "getAnswer").exit_on_none()
+        for call in deprecated_calls:
+            print(call.to_result())
+    except:
+        continue

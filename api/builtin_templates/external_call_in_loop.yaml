@@ -1,0 +1,27 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: External Call In Loop
+description: Performing an external call, transfer, or send inside a loop lets a single reverting or gas-griefing recipient block the entire batch, a denial-of-service pattern. Prefer a pull-payment model.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        loops = []
+        for loop in nodes.find_nodes_by_types("ForStatement"):
+            loops.append(loop)
+        for loop in nodes.find_nodes_by_types("WhileStatement"):
+            loops.append(loop)
+        if len(loops) == 0:
+            continue
+        for loop in loops:
+            try:
+                call_nodes = loop.find_nodes_by_member_names("transfer", "send", "call")
+                if len(call_nodes) > 0:
+                    print(call_nodes.first().to_result())
+            except:
+                continue
+    except:
+        continue

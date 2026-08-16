@@ -1,0 +1,53 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Unprotected Mint Entrypoint
+description: Public or external mint functions without access control allow any caller to create unlimited tokens, breaking the token supply and economic model.
+severity: High
+certainty: Medium
+rule: |
+  access_modifiers = ("onlyOwner", "onlyAdmin", "onlyMinter", "onlyRole", "onlyGovernance", "auth", "restricted", "onlyOperator")
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                name = function.metadata.get("name", "")
+                if name not in ("mint", "mintTo"):
+                    continue
+                if function.metadata.get("visibility", "") not in ("public", "external"):
+                    continue
+                if len(function.find_modifiers_by_names(*access_modifiers)) > 0:
+                    continue
+                protected_by_require = False
+                for require_call in function.find_nodes_by_names("require"):
+                    scope = require_call.parent
+                    if len(scope.find_nodes_by_member_names("sender")) > 0 and len(scope.find_nodes_by_names("owner", "admin", "minter")) > 0:
+                        protected_by_require = True
+                        break
+                # Inline access control: if (msg.sender != X) revert / require(msg.sender == X)
+                for comparison in function.find_nodes_by_operators("==", "!="):
+                    if len(comparison.find_nodes_by_member_names("sender")) > 0:
+                        protected_by_require = True
+                        break
+                if protected_by_require:
+                    continue
+                # ERC4626 vault mint is mint(uint256 shares, address receiver) and is public by design.
+                # A supply-inflating mint takes the recipient address as its first parameter.
+                params = []
+                for parameter in function.find_nodes_by_types("VariableDeclaration"):
+                    if parameter.parent and parameter.parent.node_type == "ParameterList":
+                        params.append(parameter)
+                if len(params) == 0:
+                    continue
+                if "address" not in params[0].metadata.get("type_string", ""):
+                    continue
+                # Must actually inflate supply (not a disabled revert stub)
+                if len(function.find_nodes_by_names("_mint", "totalSupply", "balanceOf")) == 0:
+                    continue
+                print(function.to_result())
+            except:
+                continue
+    except:
+        continue

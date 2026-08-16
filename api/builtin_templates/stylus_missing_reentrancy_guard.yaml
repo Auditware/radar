@@ -1,0 +1,28 @@
+version: 0.1.0
+author: forefy
+accent: stylus
+name: Stylus Missing Reentrancy Guard
+description: Stylus contracts have no built-in reentrancy protection. A mutable public method that performs an external Call without a reentrancy lock can be re-entered before it completes, exposing inconsistent state.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+      funcs = nodes.find_all_functions().exit_on_none()
+      for func in funcs:
+        try:
+          access_path = func.access_path or ""
+          if ".impl." not in access_path:
+            continue
+          func.find_by_names("call").exit_on_none()
+          # Safe pattern: a reentrancy lock flag guarding the call
+          func.find_by_names("locked", "guard", "reentrant", "nonreentrant", "_status").exit_on_value()
+          func_ident = func.find_by_names(func.ident).exit_on_none().first()
+          if func_ident.parent and func_ident.parent.metadata:
+            print(func_ident.parent.to_result())
+          else:
+            print(func_ident.to_result())
+        except:
+          continue
+    except:
+      continue

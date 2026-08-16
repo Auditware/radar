@@ -3,17 +3,18 @@ author: forefy
 language: solidity
 accent: ""
 name: Mstore Without Free Memory Pointer Update
-description: |
+description: Inline assembly that writes to memory with mstore but never updates the free memory pointer at slot 0x40 can corrupt Solidity's memory allocator, causing later allocations to overlap and overwrite the written data.
 severity: Low
-certainty: Medium
+certainty: Low
 rule: |
   for source, nodes in ast:
     try:
         mstore_nodes = nodes.find_nodes_by_names("mstore").exit_on_none()
-        if len(mstore_nodes) == 1:
-            print(mstore_nodes.first().to_result())
-            continue        
-        elif len(mstore_nodes) % 2 != 0:
+        # A free memory pointer update is an mstore that targets slot 0x40 (64).
+        # If assembly uses mstore but never references 0x40, the allocator is left
+        # inconsistent. Solidity stores the literal either as "0x40" or "64".
+        free_pointer_refs = nodes.find_nodes_by_metadata_key("value", r"^(0x40|64)$")
+        if len(free_pointer_refs) == 0:
             print(mstore_nodes.first().to_result())
     except:
         continue

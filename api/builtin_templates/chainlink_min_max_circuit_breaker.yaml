@@ -12,6 +12,9 @@ rule: |
         latest_round_calls = nodes.find_nodes_by_member_names("latestRoundData").exit_on_none()
         functions = nodes.find_all_functions().exit_on_none()
         for call in latest_round_calls:
+            # Skip the L2 sequencer uptime feed's own round data (not a price read)
+            if call.parent and len(call.parent.find_nodes_by_names("sequencerUptimeOracle", "sequencerUptimeFeed", "uptimeFeed", "uptimeOracle")) > 0:
+                continue
             for function in functions:
                 if call not in function.find_nodes_by_member_names("latestRoundData").nodes:
                     continue

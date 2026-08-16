@@ -3,15 +3,25 @@ author: forefy
 language: solidity
 accent: ""
 name: Unsafe Usage of _mint
-description: The use of the `_mint` function in ERC-20/ERC-721 contracts is generally for internal updates and ownerships. It can be unsafe and it's usually recommended to use _safeMint instead.
+description: In ERC721 contracts, _mint does not check that the recipient can receive the NFT, so a token minted to a contract that does not implement onERC721Received is permanently locked. _safeMint should be used instead. This distinction only applies to ERC721 (ERC20/ERC4626 _mint is standard and safe).
 severity: Medium
-certainty: High
+certainty: Medium
 rule: |
+  erc721_markers = ("ERC721", "IERC721", "ERC721Upgradeable", "onERC721Received", "ownerOf", "tokenURI")
   for source, nodes in ast:
     try:
         mint_nodes = nodes.find_nodes_by_names("_mint").exit_on_none()
+        # _mint vs _safeMint only matters for ERC721 (the receiver hook). Skip ERC20/ERC4626.
+        is_erc721 = False
+        for marker in erc721_markers:
+            if len(nodes.find_nodes_by_names(marker)) > 0:
+                is_erc721 = True
+                break
+        if not is_erc721:
+            continue
         for node in mint_nodes:
-            if not node.find_nodes_by_type_identifiers("require", "modifier").has_results():
+            parent = node.parent
+            if parent and parent.node_type == "FunctionCall":
                 print(node.to_result())
     except:
         continue

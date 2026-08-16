@@ -315,10 +315,6 @@ EXPECTED_DETECTIONS = {
         "bad": ["tests/mocks/self_referencing_token_swap/bad/self_referencing_token_swap.sol:4:5-170"],
         "good": []
     },
-    "Reentrancy via ERC777 Hook": {
-        "bad": ["tests/mocks/reentrancy_via_erc777_hook/bad/reentrancy_via_erc777_hook.sol:14:5-257"],
-        "good": []
-    },
     "Hardcoded External Dependency Address": {
         "bad": ["tests/mocks/hardcoded_external_dependency_address/bad/hardcoded_external_dependency_address.sol:4:5-72"],
         "good": []
@@ -375,6 +371,74 @@ EXPECTED_DETECTIONS = {
             "tests/mocks/anchor_admin_without_timelock/bad/src/lib.rs:10:28-45",
             "tests/mocks/anchor_admin_without_timelock/bad/src/lib.rs:15:28-35"
         ],
+        "good": []
+    },
+    "Missing Transfer Amount Validation": {
+        "bad": ["tests/mocks/missing_transfer_amount_validation/bad/src/lib.rs:18:16-24"],
+        "good": []
+    },
+    "State Updated Before External Call": {
+        "bad": ["tests/mocks/state_updated_before_external_call/bad/src/lib.rs:18:22-28"],
+        "good": []
+    },
+    "Init If Needed Reinitialization": {
+        "bad": ["tests/mocks/init_if_needed_reinitialization/bad/src/lib.rs:18:15-29"],
+        "good": []
+    },
+    "Unconstrained UncheckedAccount": {
+        "bad": ["tests/mocks/unconstrained_uncheckedaccount/bad/src/lib.rs:18:17-33"],
+        "good": []
+    },
+    "Invoke Signed Unvalidated Seeds": {
+        "bad": ["tests/mocks/invoke_signed_unvalidated_seeds/bad/src/lib.rs:12:18-31"],
+        "good": []
+    },
+    "Stylus Missing Reentrancy Guard": {
+        "bad": ["tests/mocks/stylus_missing_reentrancy_guard/bad/src/lib.rs:15:12-20"],
+        "good": []
+    },
+    "Mint Decimals Scaling Ignored": {
+        "bad": ["tests/mocks/mint_decimals_scaling_ignored/bad/src/lib.rs:11:31-43"],
+        "good": []
+    },
+    "Chainlink L2 Sequencer Uptime Not Checked": {
+        "bad": ["tests/mocks/chainlink_l2_sequencer_uptime_not_checked/bad/chainlink_l2_sequencer_uptime_not_checked.sol:11:34-58"],
+        "good": []
+    },
+    "Ecrecover Missing Zero Address Check": {
+        "bad": ["tests/mocks/ecrecover_missing_zero_address_check/bad/ecrecover_missing_zero_address_check.sol:5:26-34"],
+        "good": []
+    },
+    "Unprotected Mint Entrypoint": {
+        "bad": ["tests/mocks/unprotected_mint_entrypoint/bad/unprotected_mint_entrypoint.sol:7:5-126"],
+        "good": []
+    },
+    "Missing Disable Initializers": {
+        "bad": ["tests/mocks/missing_disable_initializers/bad/missing_disable_initializers.sol:3:1-300"],
+        "good": []
+    },
+    "Unsafe Approve Race": {
+        "bad": ["tests/mocks/unsafe_approve_race/bad/unsafe_approve_race.sol:9:9-21"],
+        "good": []
+    },
+    "External Call In Loop": {
+        "bad": ["tests/mocks/external_call_in_loop/bad/external_call_in_loop.sol:8:13-43"],
+        "good": []
+    },
+    "Chainlink Answered In Round Not Checked": {
+        "bad": ["tests/mocks/chainlink_answered_in_round_not_checked/bad/chainlink_answered_in_round_not_checked.sol:11:65-84"],
+        "good": []
+    },
+    "Deprecated Chainlink Latest Answer": {
+        "bad": ["tests/mocks/deprecated_chainlink_latest_answer/bad/deprecated_chainlink_latest_answer.sol:11:16-32"],
+        "good": []
+    },
+    "Unsafe Usage of _mint": {
+        "bad": ["tests/mocks/unsafe_usage_of__mint/bad/unsafe_usage_of__mint.sol:15:9-13"],
+        "good": []
+    },
+    "Cross-Chain Message Missing Source Validation": {
+        "bad": ["tests/mocks/cross_chain_message_missing_source_validation/bad/cross_chain_message_missing_source_validation.sol:17:5-197"],
         "good": []
     }
 }

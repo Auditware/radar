@@ -1,0 +1,22 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Chainlink Answered In Round Not Checked
+description: Chainlink consumers should validate that answeredInRound is greater than or equal to roundId, otherwise a price carried over from a previous round can be treated as current.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        latest_round_calls = nodes.find_nodes_by_member_names("latestRoundData").exit_on_none()
+        # Safe pattern: the round completeness field is referenced
+        if len(nodes.find_nodes_by_names("answeredInRound")) > 0:
+            continue
+        for call in latest_round_calls:
+            # Skip the L2 sequencer uptime feed's own round data (not a price read)
+            if call.parent and len(call.parent.find_nodes_by_names("sequencerUptimeOracle", "sequencerUptimeFeed", "uptimeFeed", "uptimeOracle")) > 0:
+                continue
+            print(call.to_result())
+    except:
+        continue

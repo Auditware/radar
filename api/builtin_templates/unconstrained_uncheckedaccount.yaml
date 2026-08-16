@@ -1,0 +1,17 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Unconstrained UncheckedAccount
+description: UncheckedAccount fields bypass Anchor's ownership and type validation, so without an address, owner, seeds, or constraint attribute a caller can substitute an arbitrary account into the instruction.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+      try:
+          nodes.find_chained_calls("derive", "Accounts").exit_on_none()
+          unchecked = nodes.find_by_names("UncheckedAccount").exit_on_none()
+          # Safe pattern: a validating account constraint on the struct
+          nodes.find_macro_attribute_by_names("address", "owner", "constraint", "seeds").exit_on_value()
+          print(unchecked.first().to_result())
+      except:
+          continue

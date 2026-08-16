@@ -18,9 +18,30 @@ rule: |
                     continue
                 if visibility not in ("public", "external"):
                     continue
-                initializer_modifiers = function.find_modifiers_by_names("initializer")
+                # Library state-struct pattern: initialize(State storage state) is not a
+                # proxy initializer, it just seeds a caller-owned storage struct.
+                takes_storage_param = False
+                for parameter in function.find_nodes_by_types("VariableDeclaration"):
+                    if parameter.parent and parameter.parent.node_type == "ParameterList":
+                        if parameter.metadata.get("storageLocation") == "storage":
+                            takes_storage_param = True
+                            break
+                if takes_storage_param:
+                    continue
+                initializer_modifiers = function.find_modifiers_by_names("initializer", "reinitializer")
                 initialized_names = function.find_nodes_by_names("initialized", "_initialized")
-                if len(initializer_modifiers) == 0 and len(initialized_names) == 0:
+                # Safe delegation pattern: an external initialize that wraps an internal
+                # _initialize/_init (which conventionally carries the initializer guard).
+                delegates_to_internal_init = function.find_nodes_by_names("_initialize", "_init", "__init")
+                # Inline access control / reinit guard (gas-optimized style):
+                #   if (msg.sender != DEPLOYER) revert;  or  require(msg.sender == owner);
+                #   if (initializedFlag != 0) revert;    (a state var compared to guard re-init)
+                inline_guard = False
+                for comparison in function.find_nodes_by_operators("==", "!="):
+                    if len(comparison.find_nodes_by_member_names("sender")) > 0:
+                        inline_guard = True
+                        break
+                if len(initializer_modifiers) == 0 and len(initialized_names) == 0 and len(delegates_to_internal_init) == 0 and not inline_guard:
                     print(function.to_result())
             except:
                 continue

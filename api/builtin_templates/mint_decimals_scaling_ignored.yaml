@@ -1,0 +1,45 @@
+version: 0.1.0
+author: forefy
+accent: anchor
+name: Mint Decimals Scaling Ignored
+description: Scaling a token amount by a hardcoded power-of-ten factor assumes a fixed mint decimals value. When the mint's actual decimals differ, the amount is mispriced, so scaling should derive from mint.decimals instead of a literal.
+severity: Medium
+certainty: Low
+rule: |
+  scale_suffixes = ("u128", "u64", "i128", "i64", "u32", "usize")
+  for source, nodes in ast:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  # Only token-amount contexts
+                  func.find_by_names("transfer", "mint_to", "amount").exit_on_none()
+                  # Safe pattern: scaling derived from the mint's decimals
+                  func.find_by_names("decimals").exit_on_value()
+                  flagged = False
+                  for mul in func.find_binary_operations("*"):
+                      for operand in mul.children:
+                          if ".lit" not in (operand.access_path or ""):
+                              continue
+                          text = operand.ident or ""
+                          for suffix in scale_suffixes:
+                              if text.endswith(suffix):
+                                  text = text[:-len(suffix)]
+                          text = text.replace("_", "")
+                          if len(text) < 7 or not text.startswith("1"):
+                              continue
+                          only_zeros = True
+                          for ch in text[1:]:
+                              if ch != "0":
+                                  only_zeros = False
+                                  break
+                          if only_zeros:
+                              print(operand.to_result())
+                              flagged = True
+                              break
+                      if flagged:
+                          break
+              except:
+                  continue
+      except:
+          continue

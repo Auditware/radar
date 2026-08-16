@@ -1,0 +1,32 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Ecrecover Missing Zero Address Check
+description: ecrecover returns address(0) for malformed signatures. Using the recovered signer for authorization without rejecting address(0) lets an attacker bypass signature checks by supplying invalid signature data.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        functions = nodes.find_all_functions().exit_on_none()
+        for function in functions:
+            try:
+                ecrecover_nodes = function.find_nodes_by_names("ecrecover").exit_on_none()
+                # Safe pattern: a comparison against address(0) (a zero literal)
+                has_zero_check = False
+                for comparison in function.find_nodes_by_operators("==", "!="):
+                    for literal in comparison.find_nodes_by_types("Literal"):
+                        if literal.metadata.get("value") in ("0", 0):
+                            has_zero_check = True
+                            break
+                    if has_zero_check:
+                        break
+                if has_zero_check:
+                    continue
+                for ecrecover_node in ecrecover_nodes:
+                    print(ecrecover_node.to_result())
+            except:
+                continue
+    except:
+        continue

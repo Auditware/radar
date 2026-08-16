@@ -16,17 +16,25 @@ rule: |
       "setTreasury",
       "setRouter",
   }
-  access_modifiers = (
-      "onlyOwner",
-      "onlyAdmin",
-      "onlyRole",
-      "onlyGovernance",
-      "onlyGov",
-      "adminOnly",
-      "governanceOnly",
-      "requiresAuth",
-      "auth",
-  )
+  # Any modifier whose name carries an access-control keyword counts as protection.
+  # This generalizes past a fixed list to custom RBAC (onlyOwnerRole, onlyProtocolConfig,
+  # onlyManager, requiresAuth, ...) commonly used in real protocols.
+  access_keywords = ("owner", "admin", "role", "gov", "auth", "manager", "operator", "config", "guardian", "restrict", "permission", "proxy")
+
+  def modifier_names(func):
+      names = []
+      def recurse(node):
+          try:
+              if (node.access_path or "").endswith("modifierName"):
+                  name = node.metadata.get("name")
+                  if name:
+                      names.append(name)
+              for child in node.children:
+                  recurse(child)
+          except:
+              pass
+      recurse(func)
+      return names
 
   for source, nodes in ast:
     try:
@@ -38,7 +46,16 @@ rule: |
                     continue
                 if function.metadata.get("visibility") not in ("public", "external"):
                     continue
-                if len(function.find_modifiers_by_names(*access_modifiers)) > 0:
+                access_controlled = False
+                for modifier_name in modifier_names(function):
+                    lowered = modifier_name.lower()
+                    for keyword in access_keywords:
+                        if keyword in lowered:
+                            access_controlled = True
+                            break
+                    if access_controlled:
+                        break
+                if access_controlled:
                     continue
 
                 protected_by_require = False

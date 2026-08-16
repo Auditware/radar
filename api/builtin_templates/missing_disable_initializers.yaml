@@ -1,0 +1,29 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Missing Disable Initializers
+description: An upgradeable contract whose implementation does not call _disableInitializers in its constructor leaves the implementation itself initializable, letting an attacker initialize it and, in UUPS setups, take over and brick the proxy.
+severity: High
+certainty: Medium
+rule: |
+  for source, nodes in ast:
+    try:
+        contracts = nodes.find_nodes_by_types("ContractDefinition").exit_on_none()
+        for contract in contracts:
+            try:
+                has_initializer = False
+                for function in contract.find_all_functions():
+                    if len(function.find_modifiers_by_names("initializer", "reinitializer")) > 0:
+                        has_initializer = True
+                        break
+                if not has_initializer:
+                    continue
+                # Safe pattern: the constructor disables initializers on the implementation
+                if len(contract.find_nodes_by_names("_disableInitializers")) > 0:
+                    continue
+                print(contract.to_result())
+            except:
+                continue
+    except:
+        continue

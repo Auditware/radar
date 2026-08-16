@@ -1,0 +1,23 @@
+version: 0.1.0
+author: forefy
+language: solidity
+accent: ""
+name: Unsafe Approve Race
+description: Calling approve with a non-zero amount without first resetting the allowance to zero is vulnerable to the ERC20 approve front-running race and reverts on tokens like USDT. Prefer forceApprove or safeIncreaseAllowance.
+severity: Medium
+certainty: Low
+rule: |
+  for source, nodes in ast:
+    try:
+        approve_calls = nodes.find_nodes_by_member_names("approve").exit_on_none()
+        for call in approve_calls:
+            try:
+                # Skip approve(spender, 0) which is the safe allowance reset
+                zero_args = call.parent.find_nodes_by_metadata_key("value", "^0$")
+                if len(zero_args) > 0:
+                    continue
+                print(call.to_result())
+            except:
+                continue
+    except:
+        continue
