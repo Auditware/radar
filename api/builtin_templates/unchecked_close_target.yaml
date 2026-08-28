@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Unchecked Close Target
@@ -45,7 +45,27 @@ rule: |
               if has_matching_has_one:
                   continue
 
-              nodes.find_comparison_involving(close_target_node.ident).exit_on_value()
+              # Scope the comparison to the struct declaring this close, and
+              # to the handler that takes it. A comparison naming a same-named
+              # field of some other instruction in the file is not a check on
+              # this one.
+              struct_path = close_node.access_path.split(".fields")[0]
+              comparisons = nodes.find_comparison_involving(close_target_node.ident)
+
+              guarded = False
+              for comparison in comparisons:
+                  if not struct_path.endswith(".struct"):
+                      guarded = True
+                      break
+                  if comparison.access_path.startswith(struct_path + "."):
+                      guarded = True
+                      break
+                  if ".fn." in comparison.access_path:
+                      guarded = True
+                      break
+              if guarded:
+                  continue
+
               print(close_target_node.to_result())
       except:
           continue

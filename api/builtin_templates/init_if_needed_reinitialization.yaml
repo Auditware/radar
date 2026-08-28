@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Init If Needed Reinitialization
@@ -9,8 +9,50 @@ rule: |
   for source, nodes in ast:
       try:
           init_nodes = nodes.find_macro_attribute_by_names("init_if_needed").exit_on_none()
-          # Safe pattern: an explicit already-initialized guard flag in the handler
-          nodes.find_by_names("is_initialized", "initialized").exit_on_value()
-          print(init_nodes.first().to_result())
+          guards = nodes.find_by_names("is_initialized", "initialized")
+          contexts = nodes.find_by_names("Context")
+
+          for init_node in init_nodes:
+              # The struct carrying init_if_needed, and the handler that takes
+              # it. Searching the whole file let a guard belonging to one
+              # instruction excuse an unguarded init_if_needed in another.
+              struct_path = init_node.access_path.split(".fields")[0]
+              if not struct_path.endswith(".struct"):
+                  continue
+
+              struct_name = None
+              for candidate in nodes.find_by_access_path(struct_path + ".ident"):
+                  struct_name = candidate.ident
+                  break
+              if struct_name is None:
+                  for candidate in nodes.find_by_access_path(""):
+                      if candidate.access_path == struct_path:
+                          struct_name = candidate.ident
+                          break
+
+              handler_prefixes = []
+              for context in contexts:
+                  if ".inputs[" not in context.access_path:
+                      continue
+                  for arg in context.find_by_access_path(".arguments.angle_bracketed.args[0]"):
+                      if struct_name is not None and arg.ident == struct_name:
+                          handler_prefixes.append(context.access_path.split(".inputs[")[0])
+                      break
+
+              guarded = False
+              for guard in guards:
+                  if not handler_prefixes:
+                      guarded = True
+                      break
+                  for prefix in handler_prefixes:
+                      if guard.access_path.startswith(prefix):
+                          guarded = True
+                          break
+                  if guarded:
+                      break
+              if guarded:
+                  continue
+
+              print(init_node.to_result())
       except:
           continue

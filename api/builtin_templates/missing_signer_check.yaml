@@ -1,18 +1,47 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Missing Signer Check
-description: Signer checks verify whether an account owner has authorized the requested transaction. Failing to perform these checks might result in unintended operations executable by any account.
+description: When an instruction does not verify that a caller signed the transaction, any account may be passed in its place. Anchor proves this with a Signer field, or the handler can check is_signer directly.
 severity: Low
 certainty: Low
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_signer_check/bad/src/lib.rs#L13
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_signer_check/bad/src/lib.rs#L10
 rule: |
   for source, nodes in ast:
       try:
-          nodes.find_by_names("Signer").exit_on_value()
-          derive_account_nodes = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
-          nodes.find_comparison_involving("is_signer").exit_on_value()
-          nodes.find_member_accesses("is_signer").exit_on_value()
-          print(derive_account_nodes.first().first().to_result())
+          groups = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
+
+          # An is_signer check lives in the handler rather than the accounts
+          # struct, so it stays a file-wide search. Anything else here is
+          # scoped per struct.
+          if nodes.find_comparison_involving("is_signer"):
+              continue
+          if nodes.find_member_accesses("is_signer"):
+              continue
+
+          signers = nodes.find_by_names("Signer")
+
+          reported = []
+          for group in groups:
+              for derive_node in group:
+                  struct_path = derive_node.access_path.split(".attrs")[0]
+                  if not struct_path.endswith(".struct"):
+                      continue
+                  if struct_path in reported:
+                      continue
+
+                  # Scope to this struct. Searching the file meant a single
+                  # Signer field anywhere disabled the check for every other
+                  # instruction defined beside it.
+                  signed = False
+                  for signer in signers:
+                      if signer.access_path.startswith(struct_path + "."):
+                          signed = True
+                          break
+                  if signed:
+                      continue
+
+                  reported.append(struct_path)
+                  print(derive_node.to_result())
       except:
           continue

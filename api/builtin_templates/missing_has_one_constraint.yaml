@@ -1,28 +1,53 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Missing has_one Constraint
-description: Anchor account validation should link signer accounts to stored authority pubkeys. Without a has_one constraint, a caller can provide an arbitrary signer instead of the account's recorded authority, owner, or admin key.
+description: An account holding an authority Pubkey should be tied to the signer that claims it, either with a has_one constraint or an explicit key comparison. Without one, any signer can act on another account's behalf.
 severity: Low
 certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_has_one_constraint/bad/src/lib.rs
 rule: |
   for source, nodes in ast:
       try:
-          derive_account_nodes = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
+          groups = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
           signer_nodes = nodes.find_by_names("Signer").exit_on_none()
           pubkey_nodes = nodes.find_by_names("Pubkey").exit_on_none()
-          nodes.find_macro_attribute_by_names("has_one").exit_on_value()
-          found_missing_has_one = False
-          for signer_node in signer_nodes:
-              if signer_node.parent.ident not in ("authority", "owner", "admin"):
-                  continue
-              for pubkey_node in pubkey_nodes:
-                  if pubkey_node.parent.ident == signer_node.parent.ident:
-                      found_missing_has_one = True
-                      break
-              if found_missing_has_one:
-                  break
-          if found_missing_has_one:
-              print(derive_account_nodes.first().first().to_result())
+          has_one_nodes = nodes.find_macro_attribute_by_names("has_one")
+
+          reported = []
+          for group in groups:
+              for derive_node in group:
+                  struct_path = derive_node.access_path.split(".attrs")[0]
+                  if not struct_path.endswith(".struct"):
+                      continue
+                  if struct_path in reported:
+                      continue
+
+                  # Scope to this struct. A has_one anywhere in the file used
+                  # to vouch for every struct in it.
+                  constrained = False
+                  for has_one in has_one_nodes:
+                      if has_one.access_path.startswith(struct_path + "."):
+                          constrained = True
+                          break
+                  if constrained:
+                      continue
+
+                  found_missing_has_one = False
+                  for signer_node in signer_nodes:
+                      if not signer_node.access_path.startswith(struct_path + "."):
+                          continue
+                      if signer_node.parent.ident not in ("authority", "owner", "admin"):
+                          continue
+                      for pubkey_node in pubkey_nodes:
+                          if pubkey_node.parent.ident == signer_node.parent.ident:
+                              found_missing_has_one = True
+                              break
+                      if found_missing_has_one:
+                          break
+
+                  if found_missing_has_one:
+                      reported.append(struct_path)
+                      print(derive_node.to_result())
       except:
           continue
