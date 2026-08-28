@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Unconstrained UncheckedAccount
@@ -10,8 +10,36 @@ rule: |
       try:
           nodes.find_chained_calls("derive", "Accounts").exit_on_none()
           unchecked = nodes.find_by_names("UncheckedAccount").exit_on_none()
-          # Safe pattern: a validating account constraint on the struct
-          nodes.find_macro_attribute_by_names("address", "owner", "constraint", "seeds").exit_on_value()
-          print(unchecked.first().to_result())
+          constraints = nodes.find_macro_attribute_by_names(
+              "address", "owner", "constraint", "seeds"
+          )
+
+          for account in unchecked:
+              try:
+                  # Only account struct fields carry constraints. The same type
+                  # also appears as a parameter on plain helper functions,
+                  # where there is no attribute to look for and nothing to
+                  # report.
+                  if ".fields.named[" not in account.access_path:
+                      continue
+
+                  # Scope the safe pattern to the struct field this type
+                  # belongs to. Checking the whole file lets one constrained
+                  # account vouch for every other account beside it, which
+                  # hides all but the first unconstrained field.
+                  field_path = account.access_path.split(".ty")[0]
+                  if not field_path:
+                      continue
+
+                  guarded = False
+                  for constraint in constraints:
+                      if constraint.access_path.startswith(field_path + "."):
+                          guarded = True
+                          break
+
+                  if not guarded:
+                      print(account.to_result())
+              except:
+                  continue
       except:
           continue
