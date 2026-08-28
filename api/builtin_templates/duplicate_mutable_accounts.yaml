@@ -61,12 +61,18 @@ rule: |
                       if nodes.find_method_calls(field_name, "key"):
                           continue
 
-                      # A field pinned by seeds or address derives to exactly
-                      # one account, so it cannot be the duplicate of anything
-                      # beside it. Checked per field: pinning one account says
-                      # nothing about the rest of the struct.
+                      # A field pinned by seeds, address, or an associated
+                      # token derivation resolves to exactly one account, so it
+                      # cannot be the duplicate of anything beside it. Checked
+                      # per field: pinning one account says nothing about the
+                      # rest of the struct.
+                      #
+                      # `token::mint`/`token::authority` are deliberately not
+                      # here. They constrain what a token account holds, not
+                      # which one it is, and many token accounts can share a
+                      # mint and an authority.
                       pinned = False
-                      for pin in nodes.find_macro_attribute_by_names("seeds", "address"):
+                      for pin in nodes.find_macro_attribute_by_names("seeds", "address", "associated_token"):
                           if pin.access_path.startswith(field_path + "."):
                               pinned = True
                               break
