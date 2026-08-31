@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Account Reinitialization
@@ -10,8 +10,14 @@ rule: |
   for source, nodes in ast:
       try:
           init_funcs = nodes.find_functions_by_names("initialize", "init").exit_on_none()
-          require_with_initialized = init_funcs.find_by_names("require", "initialized")
-          if len(require_with_initialized) >= 2:
+          # An already-initialized guard reads a flag and then sets it, so the
+          # flag name appears at least twice; a handler that only assigns it
+          # (the bug) mentions it once. `discriminator`/`is_initialized`/
+          # `is_init` are the common flag names alongside `initialized`.
+          guard_signals = init_funcs.find_by_names(
+              "require", "initialized", "discriminator", "is_initialized", "is_init"
+          )
+          if len(guard_signals) >= 2:
               continue
           for func in init_funcs:
               print(func.to_result())
