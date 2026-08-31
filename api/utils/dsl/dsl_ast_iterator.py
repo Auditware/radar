@@ -249,13 +249,16 @@ class ASTNode:
     parent: Optional["ASTNode"] = None
     root: bool = False
 
-    def __init__(self, node=None, access_path="", metadata={}):
+    def __init__(self, node=None, access_path="", metadata=None):
         if node:
             self.src = node.get("src")
         else:
             self.root = True
 
-        self.metadata = metadata
+        # A fresh dict per node. A shared `metadata={}` default would alias one
+        # dict across every node built without explicit metadata, so any later
+        # write (node.metadata[...] = ...) would leak to all of them.
+        self.metadata = metadata if metadata is not None else {}
         self.children = []
         self.access_path = access_path
 
@@ -286,7 +289,7 @@ class ASTNode:
 class RustASTNode(ASTNode):
     ident: str = "root"
 
-    def __init__(self, node=None, access_path="", metadata={}):
+    def __init__(self, node=None, access_path="", metadata=None):
         super().__init__(node, access_path, metadata)
         if node:
             self.ident = node.get("ident")

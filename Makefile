@@ -28,6 +28,14 @@ test:
 test-all:
 	cd api/ && poetry run pytest -s -v
 
+test-controller:
+	cd controller/ && poetry run pytest -q
+
+# Generate the ast.json fixtures the accuracy suite reads (gitignored). Rust via
+# rust_syn, Solidity via solc; needs both toolchains (present in the Docker image).
+fixtures:
+	cd api/ && poetry run python scripts/generate_fixtures.py
+
 update-docs:
 	rm -rf radar.wiki/
 	git clone https://github.com/Auditware/radar.wiki.git

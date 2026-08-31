@@ -11,6 +11,11 @@ import toml
 
 logger = logging.getLogger(__name__)
 
+# A Rust lifetime (`'info`) vs a char literal (`'a'`): the lifetime's identifier
+# is not immediately followed by a closing quote. Compiled once and matched at an
+# offset so masking never slices the source tail per apostrophe.
+_LIFETIME_RE = re.compile(r"'[A-Za-z_][A-Za-z0-9_]*(?!')")
+
 
 def generate_ast_for_solidity_file(source_file_path: Path, remappings: list = None, base_path: Path = None) -> dict:
     from utils.solidity_compiler import compile_solidity_file
@@ -74,6 +79,71 @@ def generate_ast_for_rust_file(
 def enrich_ast_with_source_lines(
     ast_items: dict, rust_code: str, source_file_path: Path
 ) -> dict:
+    def mask_comments_and_strings(code: str) -> str:
+        """Blank out comments and string literals, preserving every offset.
+
+        Identifier positions are found by scanning the source text, so prose
+        that happens to contain an identifier - a doc comment naming the very
+        account it documents, say - otherwise contributes phantom positions
+        and pushes every later node onto the wrong line.
+        """
+        out = list(code)
+        i, n = 0, len(code)
+        while i < n:
+            if code.startswith("//", i):
+                while i < n and code[i] != "\n":
+                    out[i] = " "
+                    i += 1
+            elif code.startswith("/*", i):
+                depth = 1
+                out[i] = out[i + 1] = " "
+                i += 2
+                while i < n and depth:
+                    if code.startswith("/*", i):
+                        depth += 1
+                        out[i] = out[i + 1] = " "
+                        i += 2
+                    elif code.startswith("*/", i):
+                        depth -= 1
+                        out[i] = out[i + 1] = " "
+                        i += 2
+                    else:
+                        if code[i] != "\n":
+                            out[i] = " "
+                        i += 1
+            elif code[i] == "'":
+                # A lifetime shares its opening quote with a char literal, and
+                # has no closing one. Match at position i rather than slicing
+                # code[i:], which would copy the file tail on every apostrophe
+                # (lifetimes are dense in Anchor code) and make masking O(n^2).
+                if _LIFETIME_RE.match(code, i):
+                    i += 1
+                    continue
+                i += 1
+                while i < n and code[i] != "'":
+                    if code[i] == "\\":
+                        out[i] = " "
+                        i += 1
+                    if i < n:
+                        if code[i] != "\n":
+                            out[i] = " "
+                        i += 1
+                i += 1
+            elif code[i] == '"':
+                i += 1
+                while i < n and code[i] != '"':
+                    if code[i] == "\\":
+                        out[i] = " "
+                        i += 1
+                    if i < n:
+                        if code[i] != "\n":
+                            out[i] = " "
+                        i += 1
+                i += 1
+            else:
+                i += 1
+        return "".join(out)
+
     def find_ident_positions(code: str, ident: str) -> list[dict]:
         positions = []
         pattern = re.compile(r"\b" + re.escape(ident) + r"\b")
@@ -94,15 +164,19 @@ def enrich_ast_with_source_lines(
             )
         return positions
 
-    def enrich_node(node: Any, scanned_idents: dict[str, list[dict]]) -> None:
+    def enrich_node(
+        node: Any,
+        scanned_idents: dict[str, list[dict]],
+        consumed: dict[str, int],
+    ) -> None:
         if isinstance(node, dict):
             items = list(node.items())
             for key, value in items:
                 if isinstance(value, dict):
-                    enrich_node(value, scanned_idents)
+                    enrich_node(value, scanned_idents, consumed)
                 elif isinstance(value, list):
                     for item in value:
-                        enrich_node(item, scanned_idents)
+                        enrich_node(item, scanned_idents, consumed)
                 elif key in ("ident", "method", "int"):
                     ident = value
                     if key == "method":
@@ -110,22 +184,32 @@ def enrich_ast_with_source_lines(
                     if key == "int":
                         node["ident"] = str(node["int"])
                     if ident not in scanned_idents:
-                        positions = find_ident_positions(rust_code, ident)
-                        if positions:
-                            node["src"] = positions[0]
-                            scanned_idents[ident] = positions
-                    else:
-                        for pos in scanned_idents[ident]:
-                            if pos not in node.get("src", []):
-                                node["src"] = pos
-                                break
-                    
+                        scanned_idents[ident] = find_ident_positions(
+                            masked_code, ident
+                        )
+                        consumed[ident] = 0
+
+                    positions = scanned_idents[ident]
+                    if positions:
+                        # Hand each node the next unclaimed occurrence. The
+                        # walk follows source order, so the nth node bearing an
+                        # identifier is the nth place it is written. Assigning
+                        # positions[0] every time - which is what the previous
+                        # membership test did, since it compared against the
+                        # node's own absent "src" - collapsed every repeat of
+                        # an identifier onto its first appearance in the file.
+                        index = min(consumed[ident], len(positions) - 1)
+                        node["src"] = positions[index]
+                        consumed[ident] = index + 1
+
         elif isinstance(node, list):
             for item in node:
-                enrich_node(item, scanned_idents)
+                enrich_node(item, scanned_idents, consumed)
 
+    masked_code = mask_comments_and_strings(rust_code)
     scanned_idents = {}
-    enrich_node(ast_items, scanned_idents)
+    consumed = {}
+    enrich_node(ast_items, scanned_idents, consumed)
     return ast_items
 
 

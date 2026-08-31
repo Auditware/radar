@@ -1,19 +1,84 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Unvalidated Sysvar Account
-description: Sysvars are special Solana accounts that provide access to dynamically updated data. When using them, it's important to verify the interaction is made to the real inteded system variable account, and not to fraudulent or inorrect ones.
+description: A sysvar passed as a raw AccountInfo or UncheckedAccount is not checked against the sysvar's well-known address, so a caller can substitute an account of their own and control what the instruction reads. Anchor's Sysvar type or an address constraint pins it.
 severity: Low
 certainty: Low
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/unvalidated_sysvar_accounts/bad/src/lib.rs#L12-L14
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/unvalidated_sysvar_accounts/bad/src/lib.rs
 rule: |
-  sysvars = ["clock", "epoch_schedule", "instructions", "rent"]
+  sysvars = [
+      "clock", "epoch_schedule", "instructions", "rent", "rewards",
+      "slot_hashes", "slot_history", "stake_history", "recent_blockhashes",
+  ]
   for source, nodes in ast:
-      for sysvar_name in sysvars:
-          try:
-              sysvar_key_calls = nodes.find_chained_calls(sysvar_name, "key").exit_on_none()
-              nodes.find_by_names("Sysvar").exit_on_value()
-              nodes.find_chained_calls("sysvar", sysvar_name, "ID").exit_on_value()
-              print(sysvar_key_calls.first().first().to_result())
-          except:
-              continue
+      try:
+          nodes.find_chained_calls("derive", "Accounts").exit_on_none()
+          raw = nodes.find_by_names("AccountInfo", "UncheckedAccount").exit_on_none()
+          pins = nodes.find_macro_attribute_by_names("address", "constraint")
+
+          for account in raw:
+              try:
+                  if ".fields.named[" not in account.access_path:
+                      continue
+                  # The field this type belongs to, and the field's name.
+                  field_path = account.access_path.split(".ty")[0]
+                  if not field_path:
+                      continue
+                  if account.parent is None:
+                      continue
+                  if account.parent.ident not in sysvars:
+                      continue
+
+                  # An address or constraint attribute on this field pins it.
+                  # Scoped to the field, so pinning one sysvar does not vouch
+                  # for another beside it.
+                  pinned = False
+                  for pin in pins:
+                      if pin.access_path.startswith(field_path + "."):
+                          pinned = True
+                          break
+                  if pinned:
+                      continue
+
+                  # Or the handler compares it against the sysvar's own ID.
+                  # Keyed on this sysvar's name, so a `clock::ID` check does
+                  # not excuse an unpinned `rent`; and scoped to the struct and
+                  # the handler that takes it, so an ID check for one
+                  # instruction's `rent` does not excuse another's.
+                  struct_path = account.access_path.split(".fields")[0]
+                  scopes = []
+                  if struct_path.endswith(".struct"):
+                      scopes.append(struct_path)
+                      struct_name = None
+                      for candidate in nodes.find_by_access_path(struct_path):
+                          if candidate.access_path == struct_path:
+                              struct_name = candidate.ident
+                              break
+                      if struct_name is not None:
+                          for context in nodes.find_by_names("Context"):
+                              if ".inputs[" not in context.access_path:
+                                  continue
+                              for arg in context.find_by_access_path(".arguments.angle_bracketed.args[0]"):
+                                  if arg.ident == struct_name:
+                                      scopes.append(context.access_path.split(".inputs[")[0])
+                                  break
+                  id_checked = False
+                  for group in nodes.find_chained_calls(account.parent.ident, "ID"):
+                      for id_node in group:
+                          for scope in scopes:
+                              if id_node.access_path.startswith(scope + "."):
+                                  id_checked = True
+                                  break
+                          if id_checked:
+                              break
+                      if id_checked:
+                          break
+                  if id_checked:
+                      continue
+
+                  print(account.to_result())
+              except:
+                  continue
+      except:
+          continue

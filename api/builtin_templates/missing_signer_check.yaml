@@ -1,18 +1,75 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Missing Signer Check
-description: Signer checks verify whether an account owner has authorized the requested transaction. Failing to perform these checks might result in unintended operations executable by any account.
+description: When an instruction does not verify that a caller signed the transaction, any account may be passed in its place. Anchor proves this with a Signer field, or the handler can check is_signer directly.
 severity: Low
 certainty: Low
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_signer_check/bad/src/lib.rs#L13
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_signer_check/bad/src/lib.rs#L10
 rule: |
   for source, nodes in ast:
       try:
-          nodes.find_by_names("Signer").exit_on_value()
-          derive_account_nodes = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
-          nodes.find_comparison_involving("is_signer").exit_on_value()
-          nodes.find_member_accesses("is_signer").exit_on_value()
-          print(derive_account_nodes.first().first().to_result())
+          groups = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
+
+          signers = nodes.find_by_names("Signer")
+          # An is_signer check lives in the handler, not the accounts struct.
+          # Collect them once, then attribute each to the handler it sits in so
+          # a manual check in one instruction does not excuse another.
+          is_signer_nodes = []
+          for node in nodes.find_comparison_involving("is_signer"):
+              is_signer_nodes.append(node)
+          for node in nodes.find_member_accesses("is_signer"):
+              is_signer_nodes.append(node)
+
+          reported = []
+          for group in groups:
+              for derive_node in group:
+                  struct_path = derive_node.access_path.split(".attrs")[0]
+                  if not struct_path.endswith(".struct"):
+                      continue
+                  if struct_path in reported:
+                      continue
+
+                  # Scope to this struct. Searching the file meant a single
+                  # Signer field anywhere disabled the check for every other
+                  # instruction defined beside it.
+                  signed = False
+                  for signer in signers:
+                      if signer.access_path.startswith(struct_path + "."):
+                          signed = True
+                          break
+                  if signed:
+                      continue
+
+                  # The struct itself, plus every handler whose Context<T>
+                  # names it, so an is_signer check is credited only to the
+                  # instruction that performs it.
+                  struct_name = None
+                  for candidate in nodes.find_by_access_path(struct_path):
+                      if candidate.access_path == struct_path:
+                          struct_name = candidate.ident
+                          break
+                  scopes = [struct_path]
+                  if struct_name is not None:
+                      for context in nodes.find_by_names("Context"):
+                          if ".inputs[" not in context.access_path:
+                              continue
+                          for arg in context.find_by_access_path(".arguments.angle_bracketed.args[0]"):
+                              if arg.ident == struct_name:
+                                  scopes.append(context.access_path.split(".inputs[")[0])
+                              break
+                  checked = False
+                  for node in is_signer_nodes:
+                      for scope in scopes:
+                          if node.access_path.startswith(scope + "."):
+                              checked = True
+                              break
+                      if checked:
+                          break
+                  if checked:
+                      continue
+
+                  reported.append(struct_path)
+                  print(derive_node.to_result())
       except:
           continue

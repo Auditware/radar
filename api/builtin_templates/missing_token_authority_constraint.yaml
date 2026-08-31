@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Missing Token Authority Constraint
@@ -12,8 +12,6 @@ rule: |
           nodes.find_chained_calls("derive", "Accounts").exit_on_none()
           nodes.find_by_names("Signer").exit_on_none()
           nodes.find_by_names("transfer").exit_on_none()
-          nodes.find_comparisons_between("authority", "key").exit_on_value()
-          nodes.find_by_names("require_keys_eq").exit_on_value()
           flagged_fields = set()
           for from_node in nodes.find_by_names("from"):
               try:
@@ -43,6 +41,25 @@ rule: |
                   if authority_field_name is None:
                       continue
                   function_prefix = transfer_prefix.split(".stmts[")[0]
+
+                  # A token::authority constraint is the Anchor way, but a
+                  # handler that checks the authority itself (require_keys_eq,
+                  # or a comparison against the authority) is equally safe.
+                  # Scoped to this handler so one instruction's check does not
+                  # excuse another's missing constraint.
+                  manually_validated = False
+                  for check in nodes.find_by_names("require_keys_eq", "require_eq"):
+                      if check.access_path.startswith(function_prefix + "."):
+                          manually_validated = True
+                          break
+                  if not manually_validated:
+                      for comparison in nodes.find_comparison_involving(authority_field_name):
+                          if comparison.access_path.startswith(function_prefix + "."):
+                              manually_validated = True
+                              break
+                  if manually_validated:
+                      continue
+
                   context_node = None
                   for candidate in nodes.find_by_names("Context"):
                       if candidate.access_path.startswith(function_prefix + ".inputs["):

@@ -1,18 +1,49 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Missing Bump Seed Canonicalization
-description: If a program is deriving a bump seed for a Program Derived Address (PDA) without ensuring its uniqueness, it could lead to collisions or unexpected insecure logical occurrences. Check for usage of program_id which is not part of Pubkey::find_program_address and there is a usage of "bump"
+description: create_program_address accepts any bump that lands on a valid address, so a caller-supplied bump can derive a second, non-canonical PDA for the same seeds. find_program_address returns the canonical bump and is what a derivation should be checked against.
 severity: Medium
-certainty: Low
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_bump_seed_canonicalization/bad/src/lib.rs#L12-L17
+certainty: Medium
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_bump_seed_canonicalization/bad/src/lib.rs
 rule: |
   for source, nodes in ast:
       try:
-          program_id_usages = nodes.find_member_accesses("program_id").exit_on_none()
-          nodes.find_chained_calls("Pubkey", "find_program_address").exit_on_value()
-          nodes.find_member_accesses("bump").exit_on_none()
-          nodes.find_chained_calls("Pubkey", "create_program_address").exit_on_none()
-          print(program_id_usages.first().to_result())
+          creates = nodes.find_chained_calls("Pubkey", "create_program_address").exit_on_none()
+          finds = nodes.find_chained_calls("Pubkey", "find_program_address")
+          # A bump reaches the derivation as an instruction argument as often as
+          # a struct field, so match the identifier rather than only member
+          # accesses - which is why this rule never fired on its own fixture.
+          bumps = nodes.find_by_names("bump")
+
+          for group in creates:
+              create_node = group.first()
+
+              # Scope to the function doing the derivation. A canonical
+              # derivation elsewhere in the file says nothing about this one.
+              fn_prefix = None
+              if ".fn." in create_node.access_path:
+                  fn_prefix = create_node.access_path.split(".fn.")[0] + ".fn."
+
+              canonical = False
+              for find_node in finds:
+                  for node in find_node:
+                      if fn_prefix is None or node.access_path.startswith(fn_prefix):
+                          canonical = True
+                          break
+                  if canonical:
+                      break
+              if canonical:
+                  continue
+
+              carries_bump = False
+              for bump in bumps:
+                  if fn_prefix is None or bump.access_path.startswith(fn_prefix):
+                      carries_bump = True
+                      break
+              if not carries_bump:
+                  continue
+
+              print(create_node.to_result())
       except:
           continue

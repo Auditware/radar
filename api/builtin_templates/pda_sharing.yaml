@@ -1,16 +1,39 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: PDA Sharing
 description: Reuse of a PDA across multiple authority domains can lead to unauthorized data or funds access.
 severity: Low
 certainty: Low
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/pda_sharing/bad/src/lib.rs#L13-L17
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/pda_sharing/bad/src/lib.rs
 rule: |
   for source, nodes in ast:
       try:
           transfer_nodes = nodes.find_chained_calls("transfer").exit_on_none()
-          nodes.find_macro_attribute_by_names("seeds", "bump").exit_on_value()
+          seed_attrs = nodes.find_macro_attribute_by_names("seeds", "bump")
+
+          groups = nodes.find_chained_calls("derive", "Accounts")
+          struct_paths = []
+          for group in groups:
+              for derive_node in group:
+                  path = derive_node.access_path.split(".attrs")[0]
+                  if path.endswith(".struct") and path not in struct_paths:
+                      struct_paths.append(path)
+
+          # A signing PDA is narrowed by its seeds. Ask whether any accounts
+          # struct in this file actually carries them, per struct, rather than
+          # letting one seeded account elsewhere in the file stand in for all
+          # of them.
+          seeded = []
+          for struct_path in struct_paths:
+              for attr in seed_attrs:
+                  if attr.access_path.startswith(struct_path + "."):
+                      seeded.append(struct_path)
+                      break
+
+          if len(struct_paths) and len(seeded) == len(struct_paths):
+              continue
+
           for transfer_node in transfer_nodes:
               print(transfer_node.first().to_result())
       except:

@@ -1,0 +1,24 @@
+# cargo-deny policy — supply-chain tripwire
+# Run:  cargo deny check bans
+#
+# Guards against the Aug-2026 arrayref / append-only-vec supply-chain attack.
+# The malicious releases were pulled from crates.io, but this fails the build
+# if anything ever re-resolves them (e.g. a re-published version or a stale mirror).
+# Ref: https://www.aikido.dev/blog/two-popular-rust-crates-arrayref-and-append-only-vec-compromised-in-supply-chain-attack
+
+[bans]
+multiple-versions = "allow"
+
+# Exact malicious releases.
+[[bans.deny]]
+name = "arrayref"
+version = "=0.3.10"
+
+[[bans.deny]]
+name = "append-only-vec"
+version = "=0.1.9"
+
+# The injected payload crate — a typosquat of proc-macro2, malware in every
+# version. Ban it wholesale as a second tripwire.
+[[bans.deny]]
+name = "proc-macro1"

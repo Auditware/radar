@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Duplicate Mutable Accounts
@@ -9,20 +9,81 @@ vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks
 rule: |
   for source, nodes in ast:
       try:
-          nodes.find_chained_calls("derive", "Accounts").exit_on_none()
-          mutables = nodes.find_mutables().exit_on_none()
-          nodes.find_macro_attribute_by_names("constraint").exit_on_value()
-          account_typed_mutables = []
-          account_typed_mutables_tracking = set()
-          for mutable in mutables:
-              nodes.find_account_typed_nodes(mutable.ident).exit_on_none()
-              nodes.find_method_calls(mutable.ident, "key").exit_on_value()
-              if mutable.ident not in account_typed_mutables_tracking:
-                  account_typed_mutables_tracking.add(mutable.ident)
-                  account_typed_mutables.append(mutable)
-          if len(account_typed_mutables) < 2:
-              continue
-          for mut in account_typed_mutables:
-              print(mut.to_result())
+          groups = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
+          # `#[account(mut)]` is an attribute token, not a syn mutable, so
+          # find_mutables() never matched it and this rule reported nothing.
+          mutables = nodes.find_macro_attribute_by_names("mut").exit_on_none()
+          constraints = nodes.find_macro_attribute_by_names("constraint")
+
+          seen_structs = []
+          for group in groups:
+              for derive_node in group:
+                  struct_path = derive_node.access_path.split(".attrs")[0]
+                  if not struct_path.endswith(".struct"):
+                      continue
+                  if struct_path in seen_structs:
+                      continue
+                  seen_structs.append(struct_path)
+
+                  # Scope to this struct: a constraint on some other
+                  # instruction's accounts says nothing about this one.
+                  constrained = False
+                  for constraint in constraints:
+                      if constraint.access_path.startswith(struct_path + "."):
+                          constrained = True
+                          break
+                  if constrained:
+                      continue
+
+                  account_typed_mutables = []
+                  seen = set()
+                  for mutable in mutables:
+                      if not mutable.access_path.startswith(struct_path + "."):
+                          continue
+                      # Soft skips. These were exit_on_none/exit_on_value,
+                      # which abort the entire rule rather than this candidate,
+                      # so one non-account mutable anywhere suppressed every
+                      # finding in the file.
+                      # The attribute sits on the field; the field's name is
+                      # what the rest of the checks are about.
+                      field_path = mutable.access_path.split(".attrs")[0]
+                      field_name = None
+                      type_name = None
+                      for candidate in nodes.find_by_access_path(field_path + ".ty"):
+                          if candidate.parent is not None:
+                              field_name = candidate.parent.ident
+                              type_name = candidate.ident
+                              break
+                      if field_name is None or field_name in seen:
+                          continue
+                      if not nodes.find_account_typed_nodes(field_name):
+                          continue
+                      if nodes.find_method_calls(field_name, "key"):
+                          continue
+
+                      # A field pinned by seeds, address, or an associated
+                      # token derivation resolves to exactly one account, so it
+                      # cannot be the duplicate of anything beside it. Checked
+                      # per field: pinning one account says nothing about the
+                      # rest of the struct.
+                      #
+                      # `token::mint`/`token::authority` are deliberately not
+                      # here. They constrain what a token account holds, not
+                      # which one it is, and many token accounts can share a
+                      # mint and an authority.
+                      pinned = False
+                      for pin in nodes.find_macro_attribute_by_names("seeds", "address", "associated_token"):
+                          if pin.access_path.startswith(field_path + "."):
+                              pinned = True
+                              break
+                      if pinned:
+                          continue
+                      seen.add(field_name)
+                      account_typed_mutables.append((type_name, mutable))
+
+                  if len(account_typed_mutables) < 2:
+                      continue
+                  for type_name, mutable in account_typed_mutables:
+                      print(mutable.to_result())
       except:
           continue

@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from helpers import (
     check_path,
@@ -77,11 +78,31 @@ def main():
 
     ast = generate_ast_for_file_or_folder(container_path, path_type)
     run_scan(container_path, path_type, templates_path)
-    results = poll_results(container_path, path_type, local_path)
-    
+    results, errors = poll_results(container_path, path_type, local_path)
+
     print_write_outputs(
-        results, ast["ast"], args.ast, local_path, output_type, args.ignore, args.debug if hasattr(args, 'debug') else False
+        results,
+        ast["ast"],
+        args.ast,
+        local_path,
+        output_type,
+        args.ignore,
+        args.debug if hasattr(args, "debug") else False,
+        getattr(args, "fail_on", "low"),
+        errors,
+        "/baseline" if getattr(args, "baseline", None) else None,
+        getattr(args, "write_baseline", False),
     )
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        # Intentional exit codes from print_write_outputs (0 clean / 1 findings)
+        # and the API-call layer (2 operational). Let them through unchanged.
+        raise
+    except Exception as exc:
+        # Any uncaught failure is an operational error, not a clean run. Exit 2
+        # so a CI gate never mistakes a crash for "no findings".
+        print(f"[e] radar failed: {exc}")
+        sys.exit(2)

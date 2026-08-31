@@ -284,13 +284,22 @@ class PollResultsView(APIView):
             )
 
         results = []
+        errors = []
         all_done = True
 
         for task_id in generated_ast.task_ids:
             result = AsyncResult(task_id)
             if result.ready():
                 if result.successful():
-                    task_result = result.get()
+                    task_result = result.get() or {}
+                    # A template that raised records its error but keeps the
+                    # scan going, so one broken rule no longer discards every
+                    # other finding.
+                    if task_result.get("error"):
+                        errors.append(
+                            {"name": task_result.get("name", task_id),
+                             "error": task_result["error"]}
+                        )
                     task_result_results = task_result.get("results")
                     if task_result_results and (
                         task_result_results.get("locations")
@@ -298,14 +307,11 @@ class PollResultsView(APIView):
                     ):
                         results.append(task_result_results)
                 else:
-                    print(dir(result))
-                    return Response(
-                        {
-                            "error": f"Task '{task_id}' failed",
-                            "details": str(result.result),
-                            "traceback": result.traceback.split("\n "),
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
+                    # An unexpected worker-level failure (e.g. the process was
+                    # killed) is surfaced as an error, not swallowed and not a
+                    # hard abort of the whole scan.
+                    errors.append(
+                        {"name": task_id, "error": str(result.result)}
                     )
             else:
                 all_done = False
@@ -314,7 +320,8 @@ class PollResultsView(APIView):
             template_count = len(generated_ast.task_ids)
             return Response({
                 "results": results,
-                "template_count": template_count
+                "template_count": template_count,
+                "errors": errors,
             }, status=status.HTTP_200_OK)
         else:
             return Response(

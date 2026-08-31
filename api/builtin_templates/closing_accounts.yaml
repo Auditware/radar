@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Closing Accounts Insecurely
@@ -11,8 +11,26 @@ rule: |
       try:
           nodes.find_method_calls("lamports", "borrow_mut").exit_on_none()
           borrow_zero_assignments = nodes.find_assignments("borrow_mut", 0).exit_on_none()
-          nodes.find_by_names("CLOSED_ACCOUNT_DISCRIMINATOR").exit_on_value()
+          sentinels = nodes.find_by_names("CLOSED_ACCOUNT_DISCRIMINATOR")
+
           for borrow_zero_group in borrow_zero_assignments:
-              print(borrow_zero_group.first().to_result())
+              node = borrow_zero_group.first()
+
+              # Scope the sentinel to the function that drains the account. One
+              # correctly-closed account elsewhere in the file used to vouch for
+              # every other close in it.
+              fn_prefix = None
+              if ".fn." in node.access_path:
+                  fn_prefix = node.access_path.split(".fn.")[0] + ".fn."
+
+              guarded = False
+              for sentinel in sentinels:
+                  if fn_prefix is None or sentinel.access_path.startswith(fn_prefix):
+                      guarded = True
+                      break
+              if guarded:
+                  continue
+
+              print(node.to_result())
       except:
         continue

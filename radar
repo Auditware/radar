@@ -20,6 +20,9 @@ usage() {
     echo "  -s, --source          Specific source/scope within the contract path                                           (optional) (default - project root)"
     echo "  -t, --templates       Path to the templates directory                                                          (optional) (default - builtin_templates folder)"
     echo "  -i, --ignore          Comma-separated severities to ignore (low,medium,high,uncertain)                                   (optional)"
+    echo "  -f, --fail-on         Min severity that makes radar exit 1 for CI gating: critical|high|medium|low|none                 (optional) (default - low, i.e. any finding; errors always exit 2)"
+    echo "  -b, --baseline        Path to a baseline file; findings it lists are not reported or gated                     (optional)"
+    echo "      --write-baseline  Snapshot current findings to the --baseline path instead of reporting/gating             (optional)"
     echo "  -o, --output          Results output file path (output type controlled by extension e.g. .json/.md/.sarif)     (optional) (default - current directory)"
     echo "  -a, --ast             Additionally output the scanned contract's parsed AST                                    (optional)"
     echo "  -d, --dev             Use development docker-compose file for local builds and enable debug output             (optional)"
@@ -251,6 +254,9 @@ while [[ "$#" -gt 0 ]]; do
         -t|--templates) templates_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -a|--ast) generate_ast=true ;;
         -i|--ignore) ignore_severities="$2"; shift ;;
+        -f|--fail-on) fail_on="$2"; shift ;;
+        -b|--baseline) baseline_file=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
+        --write-baseline) write_baseline=true ;;
         -o|--output) output_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -k|--kill-after) shutdown_containers=true ;;
         -d|--dev) development_mode=true ;;
@@ -475,6 +481,10 @@ docker_command="docker compose -f \"$compose_file\" run --rm -T -v \"${path}\":/
 if [ -n "$templates_directory" ]; then
     docker_command+=" -v \"${templates_directory}\":/templates"
 fi
+# Mount an existing baseline file read-only so the scan can filter known findings.
+if [ -n "$baseline_file" ] && [ -f "$baseline_file" ]; then
+    docker_command+=" -v \"${baseline_file}\":/baseline:ro"
+fi
 docker_command+=" controller --path \"${path}\" --container-path \"${container_path}\""
 if [ -n "$templates_directory" ]; then
     docker_command+=" --templates /templates"
@@ -493,13 +503,30 @@ fi
 if [ -n "$ignore_severities" ]; then
     docker_command+=" --ignore \"${ignore_severities}\""
 fi
+if [ -n "$fail_on" ]; then
+    docker_command+=" --fail-on \"${fail_on}\""
+fi
+if [ "$write_baseline" = true ]; then
+    docker_command+=" --write-baseline"
+elif [ -n "$baseline_file" ] && [ -f "$baseline_file" ]; then
+    docker_command+=" --baseline /baseline"
+fi
 if [ "$development_mode" = true ]; then
     docker_command+=" --debug"
 fi
 
 
 # echo "[d] Executing command: $docker_command"
+# Capture the controller's exit code without letting `set -e` abort before the
+# output file is copied out of the container. 0 = clean, 1 = findings at/above
+# the fail-on threshold, 2 = operational error. Propagated as radar's own exit
+# code at the end so CI gates work.
+set +e
 eval "$docker_command"
+controller_rc=$?
+# Stay in `set +e` for the rest of the script: shutdown and copying the output
+# out of the container are best-effort and must not overwrite the controller's
+# exit code (e.g. a failed `docker cp` when a scan errored before writing).
 
 if [ "$shutdown_containers" = true ]; then
     echo "[i] Shutting down radar containers"
@@ -541,3 +568,11 @@ if [ "$generate_ast" = true ]; then
     echo "[i] Generating AST file at $ast_output"
     docker cp radar-api:/radar_data/ast.json "$ast_output" >/dev/null 2>&1
 fi
+if [ "$write_baseline" = true ] && [ -n "$baseline_file" ]; then
+    docker cp radar-api:/radar_data/baseline.json "$baseline_file" >/dev/null 2>&1 \
+        && echo "[i] Baseline written to $baseline_file"
+fi
+
+# Propagate the controller's exit code: 0 = clean, 1 = findings at/above the
+# --fail-on threshold, 2 = operational error.
+exit "${controller_rc:-0}"
