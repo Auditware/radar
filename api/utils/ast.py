@@ -11,6 +11,11 @@ import toml
 
 logger = logging.getLogger(__name__)
 
+# A Rust lifetime (`'info`) vs a char literal (`'a'`): the lifetime's identifier
+# is not immediately followed by a closing quote. Compiled once and matched at an
+# offset so masking never slices the source tail per apostrophe.
+_LIFETIME_RE = re.compile(r"'[A-Za-z_][A-Za-z0-9_]*(?!')")
+
 
 def generate_ast_for_solidity_file(source_file_path: Path, remappings: list = None, base_path: Path = None) -> dict:
     from utils.solidity_compiler import compile_solidity_file
@@ -108,8 +113,10 @@ def enrich_ast_with_source_lines(
                         i += 1
             elif code[i] == "'":
                 # A lifetime shares its opening quote with a char literal, and
-                # has no closing one.
-                if re.match(r"'[A-Za-z_][A-Za-z0-9_]*(?!')", code[i:]):
+                # has no closing one. Match at position i rather than slicing
+                # code[i:], which would copy the file tail on every apostrophe
+                # (lifetimes are dense in Anchor code) and make masking O(n^2).
+                if _LIFETIME_RE.match(code, i):
                     i += 1
                     continue
                 i += 1

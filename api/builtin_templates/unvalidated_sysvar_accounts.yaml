@@ -43,8 +43,38 @@ rule: |
 
                   # Or the handler compares it against the sysvar's own ID.
                   # Keyed on this sysvar's name, so a `clock::ID` check does
-                  # not excuse an unpinned `rent`.
-                  if nodes.find_chained_calls(account.parent.ident, "ID"):
+                  # not excuse an unpinned `rent`; and scoped to the struct and
+                  # the handler that takes it, so an ID check for one
+                  # instruction's `rent` does not excuse another's.
+                  struct_path = account.access_path.split(".fields")[0]
+                  scopes = []
+                  if struct_path.endswith(".struct"):
+                      scopes.append(struct_path)
+                      struct_name = None
+                      for candidate in nodes.find_by_access_path(struct_path):
+                          if candidate.access_path == struct_path:
+                              struct_name = candidate.ident
+                              break
+                      if struct_name is not None:
+                          for context in nodes.find_by_names("Context"):
+                              if ".inputs[" not in context.access_path:
+                                  continue
+                              for arg in context.find_by_access_path(".arguments.angle_bracketed.args[0]"):
+                                  if arg.ident == struct_name:
+                                      scopes.append(context.access_path.split(".inputs[")[0])
+                                  break
+                  id_checked = False
+                  for group in nodes.find_chained_calls(account.parent.ident, "ID"):
+                      for id_node in group:
+                          for scope in scopes:
+                              if id_node.access_path.startswith(scope + "."):
+                                  id_checked = True
+                                  break
+                          if id_checked:
+                              break
+                      if id_checked:
+                          break
+                  if id_checked:
                       continue
 
                   print(account.to_result())

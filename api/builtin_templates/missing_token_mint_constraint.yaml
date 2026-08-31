@@ -18,6 +18,39 @@ rule: |
                   field_node = account_node.parent
                   struct_node = field_node.parent
                   struct_node.find_chained_calls("derive", "Accounts").exit_on_none()
+
+                  # A token::mint constraint is the Anchor way, but a handler
+                  # that checks the mint itself (require_keys_eq, or a
+                  # comparison against the mint) is equally safe. Scoped to the
+                  # struct and the handlers that take it, so one instruction's
+                  # check does not excuse another's missing constraint.
+                  scopes = [struct_node.access_path]
+                  for context in nodes.find_by_names("Context"):
+                      if ".inputs[" not in context.access_path:
+                          continue
+                      for arg in context.find_by_access_path(".arguments.angle_bracketed.args[0]"):
+                          if arg.ident == struct_node.ident:
+                              scopes.append(context.access_path.split(".inputs[")[0])
+                          break
+                  manually_validated = False
+                  for check in nodes.find_by_names("require_keys_eq", "require_eq"):
+                      for scope in scopes:
+                          if check.access_path.startswith(scope + "."):
+                              manually_validated = True
+                              break
+                      if manually_validated:
+                          break
+                  if not manually_validated:
+                      for comparison in nodes.find_comparison_involving("mint"):
+                          for scope in scopes:
+                              if comparison.access_path.startswith(scope + "."):
+                                  manually_validated = True
+                                  break
+                          if manually_validated:
+                              break
+                  if manually_validated:
+                      continue
+
                   field_node.find_macro_attribute_by_names("token").exit_on_none()
                   field_node.find_macro_attribute_by_names("mint").exit_on_none()
               except:

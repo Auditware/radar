@@ -48,20 +48,37 @@ rule: |
               # Scope the comparison to the struct declaring this close, and
               # to the handler that takes it. A comparison naming a same-named
               # field of some other instruction in the file is not a check on
-              # this one.
+              # this one. Matching the bare substring ".fn." would treat a
+              # check in *any* handler as a check on this close, which is the
+              # file-wide suppression this rule is meant to avoid.
               struct_path = close_node.access_path.split(".fields")[0]
+              if not struct_path.endswith(".struct"):
+                  continue
               comparisons = nodes.find_comparison_involving(close_target_node.ident)
+
+              # The struct itself, plus every handler whose Context<T> names it.
+              struct_name = None
+              for candidate in nodes.find_by_access_path(struct_path):
+                  if candidate.access_path == struct_path:
+                      struct_name = candidate.ident
+                      break
+              scopes = [struct_path]
+              if struct_name is not None:
+                  for context in nodes.find_by_names("Context"):
+                      if ".inputs[" not in context.access_path:
+                          continue
+                      for arg in context.find_by_access_path(".arguments.angle_bracketed.args[0]"):
+                          if arg.ident == struct_name:
+                              scopes.append(context.access_path.split(".inputs[")[0])
+                          break
 
               guarded = False
               for comparison in comparisons:
-                  if not struct_path.endswith(".struct"):
-                      guarded = True
-                      break
-                  if comparison.access_path.startswith(struct_path + "."):
-                      guarded = True
-                      break
-                  if ".fn." in comparison.access_path:
-                      guarded = True
+                  for scope in scopes:
+                      if comparison.access_path.startswith(scope + "."):
+                          guarded = True
+                          break
+                  if guarded:
                       break
               if guarded:
                   continue
