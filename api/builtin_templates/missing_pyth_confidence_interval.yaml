@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Missing Pyth Confidence Interval
@@ -12,9 +12,13 @@ rule: |
           for func in funcs:
               try:
                   pyth_calls = func.find_by_names("get_price_no_older_than", "get_price_unchecked", "get_price").exit_on_none()
-                  conf_refs = func.find_member_accesses("conf")
+                  # The confidence field can be read as a plain field access
+                  # (`price_data.conf`), which find_member_accesses does not
+                  # match; find_by_names catches it wherever it appears in the
+                  # function.
+                  conf_refs = func.find_by_names("conf")
                   if not conf_refs.nodes:
-                      print(pyth_calls.first().first().to_result())
+                      print(pyth_calls.first().to_result())
               except:
                   continue
       except:

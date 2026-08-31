@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Decimal To U64 Without Sign Check
@@ -12,8 +12,12 @@ rule: |
           funcs = nodes.find_all_functions().exit_on_none()
           for func in funcs:
               try:
-                  to_u64_calls = func.find_chained_calls("to_u64", "unwrap")
-                  if not to_u64_calls.node_lists:
+                  # A method chain is nested in the AST, not flat siblings, so
+                  # find_chained_calls("to_u64","unwrap") never matched
+                  # `.to_u64().unwrap()`. Match the to_u64 conversion itself;
+                  # the unwrap is incidental to the sign-check concern.
+                  to_u64_calls = func.find_by_names("to_u64")
+                  if not to_u64_calls.nodes:
                       continue
                   subtraction_refs = func.find_by_names(*subtraction_names)
                   binary_subtractions = func.find_binary_operations("-")
@@ -22,7 +26,7 @@ rule: |
                   sign_checks = func.find_binary_operations(">", ">=", "<", "<=")
                   if sign_checks.nodes:
                       continue
-                  print(to_u64_calls.first().first().to_result())
+                  print(to_u64_calls.first().to_result())
               except:
                   continue
       except:
