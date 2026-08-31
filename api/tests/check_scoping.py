@@ -20,7 +20,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tests.test_templates import run_template_on_rust_source  # noqa: E402
 
-TEMPLATES = Path("/api/builtin_templates")
+# Prefer the repo-relative templates dir so this runs from a dev checkout; fall
+# back to the container path (`/api/builtin_templates`) when run inside the
+# Docker image where the repo root is `/api`.
+_REPO_TEMPLATES = Path(__file__).resolve().parent.parent / "builtin_templates"
+TEMPLATES = _REPO_TEMPLATES if _REPO_TEMPLATES.is_dir() else Path("/api/builtin_templates")
 MOCKS = Path(__file__).resolve().parent / "mocks"
 
 
@@ -28,20 +32,46 @@ def sources(directory: Path):
     return sorted(p for p in directory.rglob("*.rs"))
 
 
-def check(stem: str):
+def anchor_stems_with_rust_fixtures():
+    """Every Anchor template stem that has bad/ and good/ Rust mock sources.
+
+    Shared with the pytest gate so the script and CI check the same set.
+    """
+    stems = []
+    for template_path in sorted(TEMPLATES.glob("*.yaml")):
+        stem = template_path.stem
+        try:
+            data = yaml.safe_load(template_path.read_text())
+        except Exception:
+            continue
+        if not isinstance(data, dict) or data.get("accent") != "anchor":
+            continue
+        mock = MOCKS / stem
+        if not (mock / "bad").is_dir() or not (mock / "good").is_dir():
+            continue
+        if not sources(mock / "bad"):
+            continue  # Solidity fixtures; this harness only drives the Rust path
+        stems.append(stem)
+    return stems
+
+
+def scan_variants(stem: str):
+    """Run template `stem` against its bad/good mocks; return {variant: [hits]}.
+
+    A hit is a detection location, or an ``ERROR ...`` string if the rule threw.
+    Returns None if the template or its Rust fixtures are absent.
+    """
     template_path = TEMPLATES / f"{stem}.yaml"
     if not template_path.exists():
         return None
     data = yaml.safe_load(template_path.read_text())
-
     if data.get("accent") != "anchor":
         return None
-
     mock = MOCKS / stem
     if not (mock / "bad").is_dir() or not (mock / "good").is_dir():
         return None
     if not sources(mock / "bad"):
-        return None  # Solidity fixtures; this harness only drives the Rust path
+        return None
 
     counts = {}
     for variant in ("bad", "good"):
@@ -54,6 +84,14 @@ def check(stem: str):
                 continue
             hits.extend(result.get("locations", []))
         counts[variant] = hits
+    return counts
+
+
+def check(stem: str):
+    counts = scan_variants(stem)
+    if counts is None:
+        return None
+    data = yaml.safe_load((TEMPLATES / f"{stem}.yaml").read_text())
 
     detects = len(counts["bad"]) > 0
     clean = len(counts["good"]) == 0

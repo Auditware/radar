@@ -4,25 +4,70 @@ on:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
+  # Fast suite: unit tests, sandbox-security tests, suppression, field-order,
+  # and the fixture-based accuracy tests for any committed fixtures. No native
+  # toolchain required.
   test:
     runs-on: ubuntu-latest
     container:
-      image: python:3.11
-
+      image: python:3.12
     defaults:
       run:
         working-directory: api/
-        
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Poetry
         run: pip install poetry
-
       - name: Install dependencies
         run: poetry install --no-root
-
       - name: Run pytest
         run: poetry run pytest -m "not active_runtime"
+
+  # Controller reporting / exit-code / baseline logic.
+  controller-tests:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.12
+    defaults:
+      run:
+        working-directory: controller/
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Install dependencies
+        run: poetry install --no-root
+      - name: Run pytest
+        run: poetry run pytest -q
+
+  # Template accuracy gate: parses Rust live via rust_syn, so it builds the
+  # native extension first. Runs the span-agnostic bad/good scoping gate over
+  # every Anchor template (see api/tests/test_scoping.py).
+  template-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build rust_syn extension
+        working-directory: api/rust_syn_wrapper
+        env:
+          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+        run: cargo build --release
+      - name: Install the extension where ast.py expects it
+        run: |
+          sudo mkdir -p /api/utils
+          sudo cp api/rust_syn_wrapper/target/release/librust_syn.so /api/utils/rust_syn.so
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Install dependencies
+        working-directory: api/
+        run: poetry install --no-root
+      - name: Run template scoping gate
+        working-directory: api/
+        run: poetry run pytest tests/test_scoping.py -q

@@ -1,0 +1,20 @@
+name: Cargo Deny
+
+# Supply-chain policy for the native Rust parser. deny.toml bans the packages
+# from the August 2026 crates.io compromise; this enforces it on every change.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: api/rust_syn_wrapper/Cargo.toml
+          command: check bans
