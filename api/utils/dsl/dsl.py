@@ -87,7 +87,13 @@ def wrapped_exec(code: str) -> list:
         tree = parse(code)
         transformer = SandboxTransformer()
         transformer.visit(tree)
-        exec(compile(tree, filename="<ast>", mode="exec"), sandbox_globals)
+        # Execute into a fresh copy of the base globals. Celery prefork workers
+        # are long-lived and run many templates per process; a shared globals
+        # dict lets one template's top-level names (ast, nodes, loop vars, …)
+        # leak into the next, making a scan's results depend on execution order
+        # and which worker ran it. A per-exec copy keeps each template isolated.
+        exec_globals = dict(sandbox_globals)
+        exec(compile(tree, filename="<ast>", mode="exec"), exec_globals)
     finally:
         sys.stdout = old_stdout
 

@@ -5,25 +5,32 @@ from utils.dsl.dsl import extract_json_output, inject_code_lines, process_templa
 
 @shared_task
 def run_scan_task(yaml_data, generated_ast_id):
-    generated_ast = GeneratedAST.objects.get(id=generated_ast_id)
-    try:       
-        task_result = {
-            "name": yaml_data["name"],
-            "severity": yaml_data["severity"],
-            "certainty": yaml_data["certainty"],
-            "description": yaml_data["description"],
-        }
+    task_result = {
+        "name": yaml_data["name"],
+        "severity": yaml_data["severity"],
+        "certainty": yaml_data["certainty"],
+        "description": yaml_data["description"],
+    }
 
-        code = yaml_data["rule"]
-        template_language = yaml_data.get("language", "rust")
-        code = inject_code_lines(code, [f"ast = parse_ast({generated_ast.ast}, '{template_language}').items()"])
-
-        template_outputs = wrapped_exec(code)
-        print(template_outputs)
-
-        # Save to task results backend and end task successfully
-        task_result["results"] = process_template_outputs(template_outputs, yaml_data)
+    try:
+        generated_ast = GeneratedAST.objects.get(id=generated_ast_id)
+    except GeneratedAST.DoesNotExist:
+        print("[e] No matching GeneratedAST found")
+        task_result["error"] = "No matching GeneratedAST found"
         return task_result
 
-    except GeneratedAST.DoesNotExist:
-        print(f"[e] No matching GeneratedAST found")
+    code = yaml_data["rule"]
+    template_language = yaml_data.get("language", "rust")
+    code = inject_code_lines(code, [f"ast = parse_ast({generated_ast.ast}, '{template_language}').items()"])
+
+    try:
+        template_outputs = wrapped_exec(code)
+        task_result["results"] = process_template_outputs(template_outputs, yaml_data)
+    except Exception as exc:
+        # A template that raises must not vanish (its findings would silently be
+        # zero) nor abort the whole scan. Record the error, keep other templates
+        # running, and let the controller surface it and exit non-zero.
+        print(f"[e] Template '{yaml_data.get('name')}' failed: {exc}")
+        task_result["error"] = f"{type(exc).__name__}: {exc}"
+
+    return task_result

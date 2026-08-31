@@ -10,7 +10,7 @@ class SolidityASTNode(ASTNode):
     src_calculated: str = None
 
     def __init__(
-        self, node=None, file=None, src_calculated=None, access_path="", metadata={}
+        self, node=None, file=None, src_calculated=None, access_path="", metadata=None
     ):
         super().__init__(node, access_path, metadata)
         self.file = file
