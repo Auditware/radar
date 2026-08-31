@@ -77,7 +77,7 @@ EXPECTED_DETECTIONS = {
         "good": []
     },
      "PDA Sharing": {
-        "bad": ["tests/mocks/pda_sharing/bad/src/lib.rs:18:16-24"],
+        "bad": ["tests/mocks/pda_sharing/bad/src/lib.rs:23:16-24"],
         "good": []
     },
     "Division Before Multiplication": {
@@ -151,7 +151,7 @@ EXPECTED_DETECTIONS = {
         "good": []
     },
     "Type Cosplay": {
-        "bad": ["tests/mocks/type_cosplay/bad/src/lib.rs:11:33-48"],
+        "bad": ["tests/mocks/type_cosplay/bad/src/lib.rs:14:26-40"],
         "good": []
     },
     "Unchecked Arithmetics": {

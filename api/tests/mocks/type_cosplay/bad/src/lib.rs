@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use borsh::{BorshDeserialize, BorshSerialize};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -6,17 +7,33 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod type_cosplay {
     use super::*;
 
-    pub fn process_account(ctx: Context<ProcessAccount>) -> Result<()> {
-        let account_info = &ctx.accounts.user_account;
-        let data = account_info.try_borrow_data()?;
-        
-        msg!("Processing account data of length: {}", data.len());
+    pub fn update_user(ctx: Context<UpdateUser>) -> Result<()> {
+        // Vulnerable: the raw account is deserialized as User with no type
+        // discriminant check, so a different account type with a compatible
+        // layout can masquerade as a User.
+        let user = User::try_from_slice(&ctx.accounts.user.data.borrow()).unwrap();
+        if user.authority != ctx.accounts.authority.key() {
+            return err!(ErrorCode::Unauthorized);
+        }
+        msg!("GM {}", user.authority);
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-pub struct ProcessAccount<'info> {
-    pub user_account: AccountInfo<'info>,
-    pub signer: Signer<'info>,
+pub struct UpdateUser<'info> {
+    /// CHECK: raw account, deserialized manually
+    pub user: AccountInfo<'info>,
+    pub authority: Signer<'info>,
+}
+
+#[derive(BorshSerialize, BorshDeserialize)]
+pub struct User {
+    pub authority: Pubkey,
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("unauthorized")]
+    Unauthorized,
 }

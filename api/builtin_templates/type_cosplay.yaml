@@ -1,24 +1,33 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Type Cosplay
 description: Type cosplay vulnerability occurs when a program fails to validate that an account is of the expected type, allowing malicious accounts to masquerade as legitimate program accounts.
 severity: Low
 certainty: Low
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/type_cosplay/bad/lib.rs#L12-L14
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/type_cosplay/bad/src/lib.rs
 rule: |
   for source, nodes in ast:
       try:
           funcs = nodes.find_all_functions().exit_on_none()
           for func in funcs:
-              has_borrow = func.find_by_names("try_borrow_data", "try_borrow_mut_data", "borrow_data", "borrow_mut_data")
-              if not has_borrow.nodes:
+              # The bug: raw account bytes are deserialized into a type without
+              # proving the account is actually of that type. Keyed on the
+              # deserialization (`try_from_slice`/`try_deserialize`), not a plain
+              # data borrow - zeroing an account's data when closing it
+              # (`try_borrow_mut_data`) is a different operation entirely.
+              reads_raw = func.find_by_names("try_from_slice", "try_deserialize")
+              if not reads_raw.nodes:
                   continue
-              
-              has_validation = func.find_functions_by_names("try_from", "try_from_slice", "try_into")
-              if has_validation.nodes:
+
+              # A type discriminant/discriminator check proves the type, and
+              # Anchor's `Account::try_from` / `Account<T>` validates the account
+              # discriminator for you.
+              if func.find_by_names("discriminant", "discriminator").nodes:
                   continue
-              
-              print(has_borrow.first().to_result())
+              if func.find_chained_calls("Account", "try_from").node_lists:
+                  continue
+
+              print(reads_raw.first().to_result())
       except:
           continue

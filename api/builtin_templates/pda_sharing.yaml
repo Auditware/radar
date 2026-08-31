@@ -1,4 +1,4 @@
-version: 0.1.1
+version: 0.2.0
 author: forefy
 accent: anchor
 name: PDA Sharing
@@ -9,6 +9,11 @@ vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks
 rule: |
   for source, nodes in ast:
       try:
+          # PDA sharing is a risk only when the program signs a CPI with a PDA.
+          # A transfer whose authority is a plain Signer (CpiContext::new) has no
+          # PDA to reuse, so it carries no PDA-sharing risk.
+          nodes.find_by_names("with_signer", "new_with_signer").exit_on_none()
+
           transfer_nodes = nodes.find_chained_calls("transfer").exit_on_none()
           seed_attrs = nodes.find_macro_attribute_by_names("seeds", "bump")
 
@@ -32,6 +37,28 @@ rule: |
                       break
 
           if len(struct_paths) and len(seeded) == len(struct_paths):
+              continue
+
+          # When the signing seeds are built inline (not via `#[account(seeds)]`),
+          # the PDA is safe only if its seed is tied to a specific account. A
+          # `has_one` constraint binds a field to one counterpart, so a seed
+          # derived from a has_one-bound field cannot be reused across domains.
+          # The canonical bug derives the seed from a shared field (e.g. `mint`)
+          # that no has_one covers.
+          has_one_fields = set()
+          for has_one in nodes.find_macro_attribute_by_names("has_one"):
+              siblings = has_one.parent.children
+              for index in range(len(siblings)):
+                  if siblings[index].access_path == has_one.access_path and index + 1 < len(siblings):
+                      has_one_fields.add(siblings[index + 1].ident)
+                      break
+
+          seed_fields = set()
+          for as_ref in nodes.find_by_names("as_ref"):
+              if as_ref.children:
+                  seed_fields.add(as_ref.children[0].ident)
+
+          if seed_fields and seed_fields.issubset(has_one_fields):
               continue
 
           for transfer_node in transfer_nodes:
