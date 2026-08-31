@@ -89,3 +89,47 @@ repos:
       pass_filenames: false
       always_run: true
 ```
+## 5. 🚦 Exit codes, gating, and incremental adoption
+
+radar sets its exit code so a pipeline can gate on it:
+
+| Code | Meaning |
+|------|---------|
+| `0`  | Clean — no findings at or above the fail-on threshold |
+| `1`  | Findings at or above the fail-on threshold |
+| `2`  | Operational error (parse/scan failure, or a template errored out) |
+
+Control what fails the build with `--fail-on` (default `low` — any finding):
+
+```bash
+radar -p . --fail-on high     # only high/critical findings fail
+radar -p . --fail-on none     # report only, never fail on findings
+```
+
+### Baseline
+
+Accept everything present today and fail only on new findings:
+
+```bash
+radar -p . --baseline .radar-baseline.json --write-baseline   # snapshot
+radar -p . --baseline .radar-baseline.json                    # gate on new findings only
+```
+
+The baseline fingerprints each finding by rule and project-relative location.
+Commit the file so every developer and the CI share the same accepted set.
+
+### Inline suppression
+
+Silence a specific line in the source:
+
+```rust
+// radar-disable-next-line Missing_Signer_Check
+pub struct UpdateAuthority<'info> { /* ... */ }
+
+let x = risky(); // radar-disable-line
+```
+
+A bare marker suppresses any rule on the target line; listing rule ids (space or
+comma separated) suppresses only those. Rule ids match the finding name loosely,
+so `Missing_Signer_Check`, `missing-signer-check`, and `Missing Signer Check` all
+work.
