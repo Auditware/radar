@@ -26,7 +26,9 @@ jobs:
       - name: Run pytest
         run: poetry run pytest -m "not active_runtime"
 
-  # Controller reporting / exit-code / baseline logic.
+  # Controller reporting / exit-code / baseline logic. The tests import only the
+  # controller helpers plus pytest (no runtime deps), so install pytest directly
+  # and skip the poetry env to keep this independent of controller/poetry.lock.
   controller-tests:
     runs-on: ubuntu-latest
     container:
@@ -36,12 +38,10 @@ jobs:
         working-directory: controller/
     steps:
       - uses: actions/checkout@v4
-      - name: Install Poetry
-        run: pip install poetry
-      - name: Install dependencies
-        run: poetry install --no-root
+      - name: Install pytest
+        run: pip install pytest
       - name: Run pytest
-        run: poetry run pytest -q
+        run: pytest -q
 
   # Template accuracy gate: parses Rust live via rust_syn, so it builds the
   # native extension first. Runs the span-agnostic bad/good scoping gate over

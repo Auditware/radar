@@ -29,7 +29,7 @@ test-all:
 	cd api/ && poetry run pytest -s -v
 
 test-controller:
-	cd controller/ && poetry run pytest -q
+	cd controller/ && python -m pytest -q
 
 # Generate the ast.json fixtures the accuracy suite reads (gitignored). Rust via
 # rust_syn, Solidity via solc; needs both toolchains (present in the Docker image).
