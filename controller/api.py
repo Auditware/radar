@@ -56,11 +56,11 @@ def handle_response(response):
             except:
                 print(f"[e] {e}")
                 print("[e] Failed to parse response from API")
-                sys.exit(0)
+                sys.exit(2)
         else:
             print(f"[e] Unexpectedly errored out with {response.status_code} response from API")
             print(e)
-        sys.exit(0)
+        sys.exit(2)
 
 
 def detect_language_from_path(path: Path) -> tuple[str, str]:
@@ -146,11 +146,11 @@ def generate_ast_for_file_or_folder(path: Path, path_type: str):
             return result
         else:
             print(f"[e] Failed to generate AST for {path}")
-            sys.exit(0)
+            sys.exit(2)
 
     except requests.exceptions.RequestException as e:
         print(f"[e] Request failed: {e}")
-        sys.exit(0)
+        sys.exit(2)
 
 
 def run_scan(path: Path, path_type: str, templates_path: Path = None):
@@ -169,11 +169,11 @@ def run_scan(path: Path, path_type: str, templates_path: Path = None):
             return result
         else:
             print(f"[e] Scan execution failed for {path}")
-            sys.exit(0)
+            sys.exit(2)
 
     except requests.exceptions.RequestException as e:
         print(f"[e] Request failed: {e}")
-        sys.exit(0)
+        sys.exit(2)
 
 
 def poll_results(
@@ -191,15 +191,16 @@ def poll_results(
             if response.status_code == 200:
                 response_data = response.json()
                 results = response_data.get("results") or []
+                errors = response_data.get("errors") or []
                 template_count = response_data.get("template_count", 0)
-                
+
                 # Print template count
                 if template_count:
                     print(f"[i] Ran {template_count} template{'s' if template_count != 1 else ''}")
-                
+
                 if local_path is not None:
                     results = localize_results(results, local_path)
-                return results
+                return results, errors
             elif response.status_code == 202:
                 retries += 1
                 time.sleep(delay)
@@ -208,6 +209,6 @@ def poll_results(
 
         except requests.exceptions.RequestException as e:
             print(f"[e] Request failed: {e}")
-            sys.exit(0)
+            sys.exit(2)
     print("[w] Exceeded maximum retries. Tasks did not complete in time.")
-    sys.exit(0)
+    sys.exit(2)

@@ -27,6 +27,23 @@ no_results_sarif = {
 }
 
 
+SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+
+def meets_fail_threshold(severity: str, fail_on: str) -> bool:
+    """True if a finding of `severity` should make radar exit non-zero.
+
+    A finding gates the build when it is at least as severe as `fail_on`.
+    `fail_on == "none"` never gates. Unknown severities are treated as the
+    least severe so an unrecognised label never silently fails a build.
+    """
+    if not fail_on or fail_on.lower() == "none":
+        return False
+    threshold = SEVERITY_ORDER.get(fail_on.lower(), max(SEVERITY_ORDER.values()))
+    rank = SEVERITY_ORDER.get(severity.lower(), max(SEVERITY_ORDER.values()))
+    return rank <= threshold
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="radar")
     parser.add_argument(
@@ -67,6 +84,19 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         required=False,
         help="Comma-separated severities to ignore in the scan (e.g. low,medium)",
+    )
+    parser.add_argument(
+        "--fail-on",
+        type=str,
+        required=False,
+        default="low",
+        choices=["critical", "high", "medium", "low", "none"],
+        help=(
+            "Minimum severity that makes radar exit non-zero for CI gating: "
+            "any reported finding at or above this severity yields exit 1. "
+            "'none' never fails on findings. Operational errors always exit 2. "
+            "(default: low - fail on any finding)"
+        ),
     )
     parser.add_argument(
         "--debug",
@@ -150,6 +180,19 @@ def localize_results(results, local_path):
     return results
 
 
+def location_sort_key(location: str):
+    """Order locations by file, then line, then column, for stable output.
+
+    Falls back to the raw string when a location does not parse, so ordering
+    never throws on an unexpected shape.
+    """
+    try:
+        file_path, start_line, start_column, _ = parse_location(location)
+        return (file_path, start_line, start_column, location)
+    except Exception:
+        return (location, 0, 0, location)
+
+
 def print_write_outputs(
     results: list,
     ast: dict,
@@ -158,9 +201,12 @@ def print_write_outputs(
     output_type: str,
     ignore_severities: str | None,
     debug: bool = False,
+    fail_on: str = "low",
+    errors: list | None = None,
 ):
     container_output_file_path = Path(f"/radar_data/output.{output_type}")
     container_output_path_ast = Path("/radar_data/ast.json")
+    errors = errors or []
 
     if ignore_severities:
         ignored = set(
@@ -183,10 +229,23 @@ def print_write_outputs(
     
     # Filter out findings with no locations (no actual issues found)
     results = [
-        finding for finding in results 
+        finding for finding in results
         if finding.get("locations") and len(finding["locations"]) > 0
     ]
-    
+
+    # Deduplicate repeated locations within each finding, preserving order.
+    # Findings are aggregated per template with no dedup upstream, so the same
+    # location can appear more than once; duplicates inflate counts and make
+    # baseline diffs noisy.
+    for finding in results:
+        seen = set()
+        deduped = []
+        for location in finding["locations"]:
+            if location not in seen:
+                seen.add(location)
+                deduped.append(location)
+        finding["locations"] = sorted(deduped, key=location_sort_key)
+
     # Remove debug field from results if not in debug mode
     if not debug:
         for finding in results:
@@ -210,6 +269,14 @@ def print_write_outputs(
                     for i in range(0, len(result["debug"])):
                         print(result['debug'][i])
 
+    if errors:
+        print(
+            f"[e] {len(errors)} template(s) failed to run; their findings are "
+            f"not included in this report:"
+        )
+        for err in errors:
+            print(f"    - {err.get('name', 'unknown')}: {err.get('error', 'unknown error')}")
+
     if len(results) == 0:
         if output_type == "sarif":
             print("[i] Writing empty SARIF to indicate no results.")
@@ -221,11 +288,21 @@ def print_write_outputs(
             with open(container_output_path_ast, "w") as f:
                 json.dump(ast, f, indent=4)
 
+        if errors:
+            # A scan where templates errored out is not a clean scan, even with
+            # no findings: exit 2 so CI does not read a partial run as "clean".
+            print("[e] radar completed with template errors and no findings.")
+            sys.exit(2)
+
         print("[i] radar completed successfully. No results found.")
         sys.exit(0)
 
-    severity_order = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
-    results = sorted(results, key=lambda x: severity_order.get(x["severity"], 4))
+    # Stable ordering: severity first, then finding name, so two scans of the
+    # same tree emit findings in the same order (needed for baseline diffs).
+    results = sorted(
+        results,
+        key=lambda x: (SEVERITY_ORDER.get(x["severity"].lower(), 4), x.get("name", "")),
+    )
     
     color_map = {
         "Critical": "\033[38;2;139;0;0m",  # Dark red (RGB)
@@ -269,6 +346,24 @@ def print_write_outputs(
     print(
         f"[i] radar completed successfully. {output_type} results were saved to disk."
     )
+
+    # CI gating: exit non-zero when any reported finding is at or above the
+    # fail-on threshold. radar historically exited 0 on findings, which
+    # silently broke every exit-code-based gate (the shipped pre-commit hook
+    # included). Operational errors take precedence and exit 2.
+    if errors:
+        print("[e] radar completed with template errors — exiting 2.")
+        sys.exit(2)
+
+    gating = [f for f in results if meets_fail_threshold(f["severity"], fail_on)]
+    if gating:
+        gating_count = sum(len(f["locations"]) for f in gating)
+        print(
+            f"[i] {gating_count} finding(s) at or above severity '{fail_on}' "
+            f"— exiting 1 for CI gating (override with --fail-on)."
+        )
+        sys.exit(1)
+    sys.exit(0)
 
 
 def convert_severity_to_sarif_level(severity: str) -> str:
