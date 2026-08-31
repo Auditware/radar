@@ -90,6 +90,8 @@ def main():
         args.debug if hasattr(args, "debug") else False,
         getattr(args, "fail_on", "low"),
         errors,
+        "/baseline" if getattr(args, "baseline", None) else None,
+        getattr(args, "write_baseline", False),
     )
 
 if __name__ == "__main__":

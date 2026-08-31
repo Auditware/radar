@@ -104,6 +104,18 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Enable debug output including AST information",
     )
+    parser.add_argument(
+        "--baseline",
+        type=str,
+        required=False,
+        help="Path (in-container) to a baseline file; findings it lists are not reported or gated",
+    )
+    parser.add_argument(
+        "--write-baseline",
+        required=False,
+        action="store_true",
+        help="Snapshot current findings as the baseline instead of reporting/gating",
+    )
     return parser.parse_args()
 
 
@@ -180,6 +192,64 @@ def localize_results(results, local_path):
     return results
 
 
+def _relativize(file_path: str, root: Optional[Path]) -> str:
+    """Best-effort project-relative path so baselines are portable across
+    machines and container/host path differences."""
+    if root is None:
+        return file_path
+    try:
+        return str(Path(file_path).relative_to(root))
+    except ValueError:
+        return file_path
+
+
+def finding_fingerprints(finding: dict, root: Optional[Path]):
+    """Stable identity for each location of a finding: (rule, rel-file, line:cols).
+
+    Location-based, so it survives across runs but not across large line moves —
+    a deliberate simplicity trade-off for a first baseline; inline suppression
+    covers the churny cases.
+    """
+    name = finding.get("name", "")
+    prints = []
+    for location in finding.get("locations", []):
+        try:
+            file_path, start_line, start_column, end_column = parse_location(location)
+            rel = _relativize(file_path, root)
+            prints.append(f"{name}::{rel}:{start_line}:{start_column}-{end_column}")
+        except Exception:
+            prints.append(f"{name}::{location}")
+    return prints
+
+
+def load_baseline(baseline_path: Path):
+    """Read a baseline file into a set of fingerprints. Missing/invalid → empty."""
+    try:
+        data = json.loads(Path(baseline_path).read_text())
+    except (OSError, json.JSONDecodeError):
+        return set()
+    if isinstance(data, dict):
+        data = data.get("fingerprints", [])
+    return set(data) if isinstance(data, list) else set()
+
+
+def apply_baseline(results: list, baseline: set, root: Optional[Path]) -> list:
+    """Drop locations already in the baseline; drop findings left with none."""
+    surviving = []
+    for finding in results:
+        kept = []
+        for location, fp in zip(
+            finding.get("locations", []), finding_fingerprints(finding, root)
+        ):
+            if fp not in baseline:
+                kept.append(location)
+        if kept:
+            new_finding = dict(finding)
+            new_finding["locations"] = kept
+            surviving.append(new_finding)
+    return surviving
+
+
 def location_sort_key(location: str):
     """Order locations by file, then line, then column, for stable output.
 
@@ -203,9 +273,12 @@ def print_write_outputs(
     debug: bool = False,
     fail_on: str = "low",
     errors: list | None = None,
+    baseline_path: str | None = None,
+    write_baseline: bool = False,
 ):
     container_output_file_path = Path(f"/radar_data/output.{output_type}")
     container_output_path_ast = Path("/radar_data/ast.json")
+    container_baseline_path = Path("/radar_data/baseline.json")
     errors = errors or []
 
     if ignore_severities:
@@ -245,6 +318,31 @@ def print_write_outputs(
                 seen.add(location)
                 deduped.append(location)
         finding["locations"] = sorted(deduped, key=location_sort_key)
+
+    # Baseline handling. --write-baseline snapshots the current findings (after
+    # --ignore filtering) so a team can accept everything present today and have
+    # CI fail only on new findings; a subsequent run with --baseline filters
+    # those known findings out before gating.
+    if write_baseline:
+        fingerprints = sorted(
+            fp for finding in results for fp in finding_fingerprints(finding, path)
+        )
+        container_baseline_path.write_text(
+            json.dumps({"fingerprints": fingerprints}, indent=2)
+        )
+        print(
+            f"[i] Wrote baseline with {len(fingerprints)} finding(s). Future runs "
+            f"with --baseline will not fail on these."
+        )
+        sys.exit(0)
+
+    if baseline_path:
+        baseline = load_baseline(baseline_path)
+        before = sum(len(f.get("locations", [])) for f in results)
+        results = apply_baseline(results, baseline, path)
+        after = sum(len(f.get("locations", [])) for f in results)
+        if before != after:
+            print(f"[i] Baseline suppressed {before - after} known finding(s).")
 
     # Remove debug field from results if not in debug mode
     if not debug:

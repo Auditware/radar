@@ -1,6 +1,7 @@
 from api.models import GeneratedAST
 from celery import shared_task
 from utils.dsl.dsl import extract_json_output, inject_code_lines, process_template_outputs, wrapped_exec
+from utils.suppression import filter_suppressed_locations
 
 
 @shared_task
@@ -25,7 +26,13 @@ def run_scan_task(yaml_data, generated_ast_id):
 
     try:
         template_outputs = wrapped_exec(code)
-        task_result["results"] = process_template_outputs(template_outputs, yaml_data)
+        results = process_template_outputs(template_outputs, yaml_data)
+        # Honour inline `// radar-disable[-next]-line` markers in the source.
+        if results.get("locations"):
+            results["locations"] = filter_suppressed_locations(
+                results["locations"], results.get("name", yaml_data["name"])
+            )
+        task_result["results"] = results
     except Exception as exc:
         # A template that raises must not vanish (its findings would silently be
         # zero) nor abort the whole scan. Record the error, keep other templates
