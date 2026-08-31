@@ -205,6 +205,13 @@ on that line; adding rule ids (space or comma separated) suppresses only those.
             <sub><b>T-rustdev</b></sub>
         </a>
     </td>
+    <td align="center">
+        <a href="https://github.com/anthonyra">
+            <img src="https://avatars.githubusercontent.com/u/29146879?v=4" width="100;" alt="anthonyra"/>
+            <br />
+            <sub><b>anthonyra</b></sub>
+        </a>
+    </td>
 </tr>
 </table>
 
