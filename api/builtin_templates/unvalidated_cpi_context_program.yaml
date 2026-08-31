@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Unvalidated CPI Context Program
@@ -14,7 +14,7 @@ rule: |
                   cpi_ctx = func.find_by_names("CpiContext").exit_on_none()
                   remaining = func.find_by_names("remaining_accounts").exit_on_none()
                   func.find_by_names("require_keys_eq", "require_eq").exit_on_value()
-                  print(cpi_ctx.first().first().to_result())
+                  print(cpi_ctx.first().to_result())
               except:
                   continue
       except:

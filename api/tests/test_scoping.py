@@ -16,15 +16,11 @@ from tests.check_scoping import anchor_stems_with_rust_fixtures, scan_variants
 
 STEMS = anchor_stems_with_rust_fixtures()
 
-# Templates that miss their own bad fixture on main, independent of the
-# per-scope work — the rules never fired correctly. Tracked for a separate fix
-# rather than hidden; xfail (non-strict) keeps CI honest without blocking, and
-# flips to a visible xpass the moment one is repaired.
-KNOWN_BROKEN = {
-    "decimal_to_u64_without_sign_check",
-    "missing_pyth_confidence_interval",
-    "unvalidated_cpi_context_program",
-}
+# Every Anchor template with Rust fixtures is now expected to detect its bad
+# mock and stay clean on good. (Three rules that missed their own fixtures were
+# repaired; keep this set empty so a future regression fails loudly rather than
+# hiding behind an xfail.)
+KNOWN_BROKEN = set()
 
 
 @pytest.mark.active_runtime
