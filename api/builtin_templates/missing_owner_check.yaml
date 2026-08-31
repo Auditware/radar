@@ -1,31 +1,38 @@
-version: 0.1.1
+version: 0.2.0
 author: forefy
 accent: anchor
 name: Missing Owner Check
-description: The Account struct includes an owner field indicating the key associated with that account's owner. This field should be used to ensure a caller of an owner-only intended functionality, is in fact the owner.
+description: Deserializing or unpacking a raw account's data without verifying the account is owned by the expected program lets a caller substitute an attacker-controlled account with a compatible layout. The account's owner should be checked against the program ID, or the account should be typed as Anchor's Account<T> which validates it.
 severity: Low
 certainty: Low
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_owner_check/bad/src/lib.rs#L13
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_owner_check/bad/src/lib.rs
 rule: |
   for source, nodes in ast:
       try:
           derive_account_nodes = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
 
-          # An owner check needs an account whose owner is in question.
-          # `Signer` proves itself by signature and `Program` by address, so a
-          # struct built only from those has nothing to check and no way to
-          # satisfy this rule short of inventing a constraint that does not
-          # hold.
+          # The check only matters for a raw account whose owner Anchor does not
+          # already prove. `Signer` proves itself by signature, `Program` by
+          # address, and `Account<T>` validates the program owner for you.
           if not nodes.find_by_names(
               "UncheckedAccount", "AccountInfo", "AccountLoader", "SplTokenAccount"
           ):
               continue
 
-          if nodes.find_by_names("SplTokenAccount"):
-              nodes.find_by_names("require", "require_eq", "require_keys_eq").exit_on_value()
-              nodes.find_comparison_involving("owner").exit_on_value()
-          elif nodes.find_comparison_involving("owner") or nodes.find_member_accesses("owner"):
+          # The bug requires the raw account's data to actually be trusted -
+          # unpacked or deserialized into a type. Merely holding an unchecked
+          # account (with no data access) is what Unconstrained UncheckedAccount
+          # covers; flagging every such struct here was noise.
+          if not nodes.find_by_names("unpack", "try_from_slice", "try_deserialize").nodes:
               continue
+
+          # Safe when the account's program owner is compared against a program
+          # ID (`account.owner == spl_token::ID` / `== program_id`). A comparison
+          # of a deserialized account's own `.owner` field against the authority
+          # is a different check and does not prove program ownership.
+          if nodes.find_comparisons_between("owner", "ID") or nodes.find_comparisons_between("owner", "program_id"):
+              continue
+
           print(derive_account_nodes.first().first().to_result())
       except:
           continue

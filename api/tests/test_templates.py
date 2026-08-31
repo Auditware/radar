@@ -131,7 +131,7 @@ EXPECTED_DETECTIONS = {
         "good": []
     },
     "Missing Owner Check": {
-        "bad": ["tests/mocks/missing_owner_check/bad/src/lib.rs:20:3-9"],
+        "bad": ["tests/mocks/missing_owner_check/bad/src/lib.rs:21:3-9"],
         "good": []
     },
     "Missing Rent Exemption Check": {
