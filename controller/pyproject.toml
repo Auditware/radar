@@ -11,12 +11,6 @@ python = "^3.11"
 requests = "^2.32.4"
 urllib3 = "^2.5.0"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.2"
-
-[tool.pytest.ini_options]
-pythonpath = ["."]
-
 
 [build-system]
 requires = ["poetry-core"]
