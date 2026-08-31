@@ -1,4 +1,4 @@
-version: 0.1.1
+version: 0.1.2
 author: forefy
 accent: anchor
 name: Closing Accounts Insecurely
@@ -13,22 +13,29 @@ rule: |
           borrow_zero_assignments = nodes.find_assignments("borrow_mut", 0).exit_on_none()
           sentinels = nodes.find_by_names("CLOSED_ACCOUNT_DISCRIMINATOR")
 
+          # A written sentinel only closes the hole if it is also enforced -
+          # checked against on a later load (the force_defund pattern). Written
+          # but never compared, it does nothing and the account can still be
+          # revived within the transaction.
+          sentinel_enforced = nodes.find_comparison_involving("CLOSED_ACCOUNT_DISCRIMINATOR").nodes
+
           for borrow_zero_group in borrow_zero_assignments:
               node = borrow_zero_group.first()
 
-              # Scope the sentinel to the function that drains the account. One
-              # correctly-closed account elsewhere in the file used to vouch for
-              # every other close in it.
+              # Scope the sentinel write to the function that drains the account.
+              # One correctly-closed account elsewhere in the file used to vouch
+              # for every other close in it.
               fn_prefix = None
               if ".fn." in node.access_path:
                   fn_prefix = node.access_path.split(".fn.")[0] + ".fn."
 
-              guarded = False
+              sentinel_written = False
               for sentinel in sentinels:
                   if fn_prefix is None or sentinel.access_path.startswith(fn_prefix):
-                      guarded = True
+                      sentinel_written = True
                       break
-              if guarded:
+
+              if sentinel_written and sentinel_enforced:
                   continue
 
               print(node.to_result())

@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Account Data Matching
@@ -12,12 +12,20 @@ rule: |
           unpack_calls = function.find_chained_calls("unpack")
           if not unpack_calls:
               continue
-          
-          require_macros = function.find_by_names("require")
-          owner_access = function.find_member_accesses("owner")
-          
-          has_owner_validation = (require_macros and owner_access and len(owner_access) > 1)
-          
-          if not has_owner_validation:
-              for unpack_call in unpack_calls:
-                  print(unpack_call.to_result())
+
+          # Validated when the unpacked account's stored key (`owner`) is
+          # compared against the expected signer. A plain `if authority.key !=
+          # token.owner` guard counts as much as a `require!` - the previous
+          # rule only recognised `require!`, so it false-positived on the
+          # if-guarded form.
+          owner_comparison = function.find_comparison_involving("owner").nodes
+          require_with_owner = (
+              function.find_by_names("require", "require_keys_eq", "require_eq").nodes
+              and function.find_member_accesses("owner").nodes
+          )
+
+          if owner_comparison or require_with_owner:
+              continue
+
+          for unpack_call in unpack_calls:
+              print(unpack_call.to_result())
