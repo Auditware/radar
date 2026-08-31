@@ -1,30 +1,37 @@
-version: 0.1.1
+version: 0.2.0
 author: forefy
 accent: anchor
 name: Account Reinitialization
 description: When account initialization is not properly validated against reinitialization attempts, callers of the program may try to reinitialize an existing account to manipulate its data and state.
 severity: High
 certainty: High
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_reinitialization/bad/src/lib.rs#L9-L14
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_reinitialization/bad/src/lib.rs
 rule: |
   for source, nodes in ast:
       try:
           init_funcs = nodes.find_functions_by_names("initialize", "init").exit_on_none()
-          # An already-initialized guard reads a flag and then sets it, so the
-          # flag name appears at least twice; a handler that only assigns it
-          # (the bug) mentions it once. `discriminator`/`is_initialized`/
-          # `is_init` are the common flag names alongside `initialized`.
-          guard_signals = init_funcs.find_by_names(
-              "require", "initialized", "discriminator", "is_initialized", "is_init"
-          )
-          if len(guard_signals) >= 2:
-              continue
           for func in init_funcs:
+              # The reinitialization bug is manual deserialization of an
+              # account's data followed by a write, with no already-initialized
+              # guard - a caller can pass an existing account and have it
+              # overwritten. Anchor's `#[account(init)]` prevents reinit at the
+              # framework level, so a handler that relies on it (and does not
+              # hand-deserialize) is not vulnerable and must not be flagged.
+              raw_deserialize = func.find_by_names("try_from_slice", "try_deserialize")
+              if not raw_deserialize.nodes:
+                  continue
+
+              # An already-initialized guard reads a flag and then sets it, so
+              # the flag name appears at least twice; a handler that only assigns
+              # it once (the bug) does not. `discriminator`/`is_initialized`/
+              # `is_init` are the common flag names alongside `initialized`, and
+              # a `require!` guard counts too.
+              guard_signals = func.find_by_names(
+                  "require", "initialized", "discriminator", "is_initialized", "is_init"
+              )
+              if len(guard_signals) >= 2:
+                  continue
+
               print(func.to_result())
       except:
           continue
-
-
-
-
-          
