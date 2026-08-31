@@ -45,7 +45,7 @@ EXPECTED_DETECTIONS = {
         "good": []
     },
     "Account Reinitialization": {
-        "bad": ["tests/mocks/account_reinitialization/bad/src/lib.rs:9:12-22"],
+        "bad": ["tests/mocks/account_reinitialization/bad/src/lib.rs:11:12-22"],
         "good": []
     },
     "Arbitrary Cross-Program Invocation": {

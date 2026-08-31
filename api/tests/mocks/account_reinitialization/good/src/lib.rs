@@ -1,4 +1,6 @@
 use anchor_lang::prelude::*;
+use borsh::{BorshDeserialize, BorshSerialize};
+use std::ops::DerefMut;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -6,30 +8,34 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod account_reinitialization {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, owner: Pubkey) -> Result<()> {
-        let config = &mut ctx.accounts.config;
-        
-        require!(!config.initialized, ErrorCode::AlreadyInitialized); // Fix: Check prevents reinitialization
-        
-        config.owner = owner;
-        config.initialized = true;
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        // Fix: an already-initialized guard (a discriminator flag) rejects a
+        // caller that passes an account which was already initialized.
+        let mut user = User::try_from_slice(&ctx.accounts.user.data.borrow()).unwrap();
+        if user.discriminator {
+            return Err(ErrorCode::AlreadyInitialized.into());
+        }
+        user.discriminator = true;
+        user.authority = ctx.accounts.authority.key();
+
+        let mut storage = ctx.accounts.user.try_borrow_mut_data()?;
+        user.serialize(storage.deref_mut()).unwrap();
         Ok(())
     }
 }
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(init, payer = payer, space = 8 + 33)]
-    pub config: Account<'info, Config>,
+    /// CHECK: raw account, deserialized manually
     #[account(mut)]
-    pub payer: Signer<'info>,
-    pub system_program: Program<'info, System>,
+    pub user: AccountInfo<'info>,
+    pub authority: Signer<'info>,
 }
 
-#[account]
-pub struct Config {
-    pub owner: Pubkey,
-    pub initialized: bool,
+#[derive(BorshSerialize, BorshDeserialize)]
+pub struct User {
+    pub discriminator: bool,
+    pub authority: Pubkey,
 }
 
 #[error_code]
