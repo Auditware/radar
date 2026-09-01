@@ -1,10 +1,10 @@
-version: 0.1.1
+version: 0.1.2
 author: forefy
 accent: anchor
 name: Missing Token Mint Constraint
 description: Anchor account structs that accept TokenAccount fields without token::mint constraints can allow wrong-mint token accounts to be passed into sensitive flows.
 severity: Medium
-certainty: Medium
+certainty: Low
 rule: |
   for source, nodes in ast:
       try:
@@ -49,6 +49,20 @@ rule: |
                           if manually_validated:
                               break
                   if manually_validated:
+                      continue
+
+                  # A token account already pinned to one specific account - by
+                  # has_one, seeds or address - cannot be swapped for a
+                  # wrong-mint account, so the mint constraint adds nothing.
+                  # Without this the rule fires on every token account in an
+                  # otherwise correct program, which is noise rather than a
+                  # finding.
+                  pinned = False
+                  for pin in nodes.find_macro_attribute_by_names("has_one", "seeds", "address"):
+                      if pin.access_path.startswith(struct_node.access_path + "."):
+                          pinned = True
+                          break
+                  if pinned:
                       continue
 
                   field_node.find_macro_attribute_by_names("token").exit_on_none()

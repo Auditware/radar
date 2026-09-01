@@ -1,4 +1,4 @@
-version: 0.1.1
+version: 0.1.2
 author: forefy
 accent: anchor
 name: Missing has_one Constraint
@@ -31,6 +31,18 @@ rule: |
                           constrained = True
                           break
                   if constrained:
+                      continue
+
+                  # An `#[account(init)]` struct is creating the account, so
+                  # there is no stored authority yet to bind a has_one against -
+                  # the constraint would have nothing to compare. Flagging
+                  # initialization structs is noise on correct code.
+                  initializing = False
+                  for init_attr in nodes.find_macro_attribute_by_names("init", "init_if_needed"):
+                      if init_attr.access_path.startswith(struct_path + "."):
+                          initializing = True
+                          break
+                  if initializing:
                       continue
 
                   found_missing_has_one = False
