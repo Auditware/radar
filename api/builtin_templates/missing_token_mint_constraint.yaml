@@ -1,4 +1,4 @@
-version: 0.1.3
+version: 0.1.4
 author: forefy
 accent: anchor
 name: Missing Token Mint Constraint
@@ -51,17 +51,50 @@ rule: |
                   if manually_validated:
                       continue
 
-                  # A token account already pinned to one specific account - by
-                  # has_one, seeds or address - cannot be swapped for a
-                  # wrong-mint account, so the mint constraint adds nothing.
-                  # Without this the rule fires on every token account in an
-                  # otherwise correct program, which is noise rather than a
-                  # finding.
+                  # A wrong-mint account is only harmful if the program records
+                  # something based on it. Where the program keeps no state of
+                  # its own, substituting a mint changes at most what the caller
+                  # sees about their own tokens - SPL Token still enforces that
+                  # a transfer is authorised by the account's owner or delegate.
+                  # Require a program state account (`#[account] struct ...`,
+                  # which appears as a bare `.meta.path` attribute rather than a
+                  # field-level `#[account(...)]` list).
+                  # (`continue`, not exit_on_none: in this rule the except block
+                  # is the reporting path, so raising here would report.)
+                  has_program_state = False
+                  for attr in nodes.find_by_names("account"):
+                      if ".struct.attrs" in attr.access_path and ".meta.path." in attr.access_path:
+                          has_program_state = True
+                          break
+                  if not has_program_state:
+                      continue
+
+                  # A token account already pinned to one specific account
+                  # cannot be swapped for a wrong-mint one, so the mint
+                  # constraint adds nothing. Pinning takes three forms:
+                  #   * has_one/seeds/address on the field itself
+                  #   * an inline constraint on the field
+                  #   * a SIBLING account's `has_one = <this field>`, which
+                  #     Anchor lowers to `sibling.<field> == <field>.key()` and
+                  #     which pins it to an exact pubkey - strictly stronger
+                  #     than pinning its mint.
                   pinned = False
-                  for pin in nodes.find_macro_attribute_by_names("has_one", "seeds", "address"):
+                  for pin in nodes.find_macro_attribute_by_names("seeds", "address", "constraint", "has_one"):
                       if pin.access_path.startswith(field_node.access_path + "."):
                           pinned = True
                           break
+                  if not pinned:
+                      for has_one in nodes.find_macro_attribute_by_names("has_one"):
+                          if not has_one.access_path.startswith(struct_node.access_path + "."):
+                              continue
+                          siblings = has_one.parent.children
+                          for index in range(len(siblings)):
+                              if siblings[index].access_path == has_one.access_path:
+                                  if index + 1 < len(siblings) and siblings[index + 1].ident == field_node.ident:
+                                      pinned = True
+                                  break
+                          if pinned:
+                              break
                   if pinned:
                       continue
 

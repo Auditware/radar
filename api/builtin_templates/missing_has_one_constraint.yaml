@@ -1,4 +1,4 @@
-version: 0.1.3
+version: 0.1.4
 author: forefy
 accent: anchor
 name: Missing has_one Constraint
@@ -33,6 +33,26 @@ rule: |
                   if constrained:
                       continue
 
+                  # `has_one` is a constraint on a typed Anchor account
+                  # (`Account<'info, T>` / `AccountLoader<'info, T>`); it cannot
+                  # be written on a raw `AccountInfo`/`UncheckedAccount`. When a
+                  # struct carries no typed account there is no field a has_one
+                  # could bind to, so a "missing has_one" is not expressible
+                  # there - the authority-holding data is reached by hand-rolled
+                  # deserialization, which the owner-check rules cover instead.
+                  # Without this the rule fired on manual-init handlers that keep
+                  # their state in an AccountInfo (e.g. the sealevel
+                  # reinitialization `secure` variant, which stores its authority
+                  # in a raw account and *assigns* it from the signer rather than
+                  # verifying it), reporting a constraint that could not apply.
+                  typed_account = False
+                  for typed in nodes.find_by_names("Account", "AccountLoader"):
+                      if typed.access_path.startswith(struct_path + ".fields.named["):
+                          typed_account = True
+                          break
+                  if not typed_account:
+                      continue
+
                   # An `#[account(init)]` account is being created, so there is
                   # no stored authority yet for a has_one to bind against. Skip
                   # only when EVERY account in the struct is being initialised -
@@ -61,10 +81,22 @@ rule: |
                   for signer_node in signer_nodes:
                       if not signer_node.access_path.startswith(struct_path + "."):
                           continue
-                      if signer_node.parent.ident not in ("authority", "owner", "admin"):
+                      authority_name = signer_node.parent.ident
+                      if authority_name not in ("authority", "owner", "admin"):
                           continue
+
+                      # The binding may be written by hand instead of declared:
+                      # `if stored.authority != ctx.accounts.authority.key() {
+                      # return Err(..) }` enforces exactly what has_one would.
+                      # This rule's own description accepts that form, so an
+                      # explicit key comparison on the field counts as satisfied.
+                      # `has_one` is not even expressible on a raw AccountInfo,
+                      # which is precisely when the manual check gets written.
+                      if nodes.find_comparison_involving(authority_name).nodes:
+                          continue
+
                       for pubkey_node in pubkey_nodes:
-                          if pubkey_node.parent.ident == signer_node.parent.ident:
+                          if pubkey_node.parent.ident == authority_name:
                               found_missing_has_one = True
                               break
                       if found_missing_has_one:

@@ -1,40 +1,68 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: stylus
 name: Loop Break Continue Confusion
-description: Using break in validation loops can skip critical checks, allowing invalid data to pass through.
+description: A check inside a validation loop whose branch only breaks or continues abandons the check instead of enforcing it. The loop then ends normally and the fallible function returns Ok, so the invalid element - and in the break case every element after it - passes unvalidated. The branch should return an error.
 severity: Medium
 certainty: Low
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/loop_break_continue_confusion/bad/lib.rs#L14-L16
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/loop_break_continue_confusion/bad/src/lib.rs#L14-L16
 rule: |
+  loop_markers = (".for_loop.", ".while.", ".loop.")
   for source, nodes in ast:
-    try:
-      funcs = nodes.find_all_functions().exit_on_none()
-      for func in funcs:
-        access_path = func.access_path or ""
-        if ".impl." not in access_path:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  if ".impl." not in (func.access_path or ""):
+                      continue
+
+                  # Only a fallible function can be skipping a rejection.
+                  fallible = False
+                  for output in func.find_by_names("Result"):
+                      if ".output." in (output.access_path or ""):
+                          fallible = True
+                  if not fallible:
+                      continue
+
+                  # `for` / `while` / `if` are path structure, not identifiers,
+                  # so the guard is reached through its condition's nodes.
+                  seen = set()
+                  for cond in func.find_by_access_path(".if.cond."):
+                      cond_path = cond.access_path or ""
+
+                      loop_prefix = ""
+                      for marker in loop_markers:
+                          marker_index = cond_path.rfind(marker)
+                          if marker_index != -1:
+                              candidate = cond_path[:marker_index + len(marker) - 1]
+                              if len(candidate) > len(loop_prefix):
+                                  loop_prefix = candidate
+                      if not loop_prefix:
+                          continue
+
+                      cond_index = cond_path.rfind(".if.cond.")
+                      if_prefix = cond_path[:cond_index] + ".if"
+                      if if_prefix in seen:
+                          continue
+                      seen.add(if_prefix)
+
+                      # `break;` and `continue;` carry no identifier and no
+                      # operands, so a branch holding nothing else leaves no
+                      # node behind at all.
+                      if len(func.find_by_access_path(if_prefix + ".then_branch")):
+                          continue
+
+                      # An error raised anywhere else in the same loop means
+                      # the loop does enforce something.
+                      propagates = False
+                      for raiser in func.find_by_names("Err", "panic", "revert", "abort", "assert", "require"):
+                          if (raiser.access_path or "").startswith(loop_prefix):
+                              propagates = True
+                      if propagates:
+                          continue
+
+                      print(cond.to_result())
+              except:
+                  continue
+      except:
           continue
-        
-        has_loop = func.find_by_names("for", "while")
-        if not has_loop.nodes:
-          continue
-        
-        has_break = func.find_by_names("break")
-        if not has_break.nodes:
-          continue
-        
-        has_condition = func.find_by_names("if")
-        if not has_condition.nodes:
-          continue
-        
-        has_validation = func.find_by_names("require", "assert", "ensure", "Err")
-        if not has_validation.nodes:
-          continue
-        
-        func_ident = func.find_by_names(func.ident).exit_on_none().first()
-        if func_ident.parent and func_ident.parent.metadata:
-          print(func_ident.parent.to_result())
-        else:
-          print(func_ident.to_result())
-    except:
-      continue

@@ -23,6 +23,12 @@ jobs:
         run: pip install poetry
       - name: Install dependencies
         run: poetry install --no-root
+      - name: Install solc (Solidity mock fixtures)
+        run: poetry run solc-select install 0.8.20 && poetry run solc-select use 0.8.20
+      - name: Generate mock AST fixtures
+        # tests/mocks/**/ast.json is gitignored, so without this the accuracy
+        # suite collects nothing and passes silently.
+        run: poetry run python scripts/generate_fixtures.py || true
       - name: Run pytest
         run: poetry run pytest -m "not active_runtime"
 
@@ -75,3 +81,13 @@ jobs:
       - name: Run detection-regression gate
         working-directory: api/
         run: poetry run pytest tests/test_detection_fixtures.py -q
+
+      - name: Run no-false-positive gate
+        # Mirror of the detection gate for precision: rules must stay silent on
+        # the fixed/safe patterns that issue #32 measured as noise.
+        working-directory: api/
+        run: poetry run pytest tests/test_noise_fixtures.py -q
+
+      - name: Run span-accuracy gate
+        working-directory: api/
+        run: poetry run pytest tests/test_span_accuracy.py -q

@@ -46,6 +46,35 @@ def _solidity_ast(sol_path):
     return result
 
 
+def _solidity_project_ast(sol_paths, base_path: Path):
+    """Compile a multi-file Solidity mock as one unit, rooted at the variant dir.
+
+    A single-file mock is compiled with its absolute path as the source unit
+    name, which is fine for rules that only look at nodes. Rules that key on
+    *import paths* (duplicate_imports matches `absolutePath` against `^lib/…`)
+    can only ever fire on the relative, project-rooted source unit names solc
+    produces for a real Foundry tree - which is what api/views.py passes at scan
+    time via base_path. Mirroring that here lets such a mock be a faithful
+    miniature of the layout the rule targets, instead of being unfixturable.
+
+    Only reached when a variant dir holds more than one .sol file, so existing
+    single-file mocks keep their absolute source keys untouched.
+    """
+    from generate_mock_ast import enrich_ast_with_src_calculated
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from utils.solidity_compiler import compile_solidity_files
+
+    result = compile_solidity_files(list(sol_paths), base_path=base_path)
+    for file_key, file_data in result.get("sources", {}).items():
+        source_file = base_path / file_key
+        if not source_file.is_file():
+            continue
+        enrich_ast_with_src_calculated(
+            file_data.get("ast", {}), source_file.read_text(), file_key
+        )
+    return result
+
+
 def generate_variant(variant_dir: Path, force: bool):
     out = variant_dir / "ast.json"
     if out.exists() and not force:
@@ -56,6 +85,8 @@ def generate_variant(variant_dir: Path, force: bool):
     try:
         if rs:
             data = _rust_ast(rs)
+        elif len(sol) > 1:
+            data = _solidity_project_ast(sol, variant_dir)
         elif sol:
             data = _solidity_ast(sol[0])
         else:

@@ -1,19 +1,38 @@
-version: 0.1.0
+version: 0.2.1
 author: avigaildanesh
 accent: anchor
 name: Missing Transfer Amount Validation
-description: Ensure that token transfers validate the amount being transferred. Transfers should not allow negative values or amounts exceeding the account balance.
+description: A program that signs a token transfer with its own PDA moves tokens it custodies. If the amount comes from the caller and is never checked against what that caller is entitled to, one caller can drain the vault. SPL Token only enforces that the balance is sufficient, not that the withdrawer is owed it.
 severity: Low
 certainty: Low
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_transfer_amount_validation/bad/src/lib.rs#L13-L18
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_transfer_amount_validation/bad/src/lib.rs
 rule: |
   require_macros = ("require", "require_eq", "require_gte", "require_gt", "require_neq")
   for source, nodes in ast:
       try:
+          # Only a PDA-signed transfer moves tokens the program custodies. With a
+          # plain CpiContext::new the authority is the caller's own signer, so
+          # SPL Token already limits them to their own tokens and an unchecked
+          # amount is not a vulnerability.
+          nodes.find_by_names("with_signer", "new_with_signer").exit_on_none()
+
           funcs = nodes.find_all_functions().exit_on_none()
           for func in funcs:
               try:
                   transfer_calls = func.find_chained_calls("token", "transfer").exit_on_none()
+
+                  # The amount must come from the caller. When it is read from an
+                  # account balance (`let amount = ctx.accounts.vault.amount;`)
+                  # the transfer is bounded by the source account itself and the
+                  # check the rule asks for reduces to `require!(x >= x)`.
+                  caller_supplied = False
+                  for param in func.find_by_access_path(".fn.inputs"):
+                      if param.ident == "amount":
+                          caller_supplied = True
+                          break
+                  if not caller_supplied:
+                      continue
+
                   # Skip when a require! statement validates the transferred amount before the CPI
                   validated = False
                   for require_node in func.find_by_names(*require_macros):
