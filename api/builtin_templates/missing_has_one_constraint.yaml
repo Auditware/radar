@@ -1,4 +1,4 @@
-version: 0.1.2
+version: 0.1.3
 author: forefy
 accent: anchor
 name: Missing has_one Constraint
@@ -33,16 +33,28 @@ rule: |
                   if constrained:
                       continue
 
-                  # An `#[account(init)]` struct is creating the account, so
-                  # there is no stored authority yet to bind a has_one against -
-                  # the constraint would have nothing to compare. Flagging
-                  # initialization structs is noise on correct code.
-                  initializing = False
-                  for init_attr in nodes.find_macro_attribute_by_names("init", "init_if_needed"):
-                      if init_attr.access_path.startswith(struct_path + "."):
-                          initializing = True
+                  # An `#[account(init)]` account is being created, so there is
+                  # no stored authority yet for a has_one to bind against. Skip
+                  # only when EVERY account in the struct is being initialised -
+                  # if any pre-existing account is present it still needs the
+                  # constraint, so a struct-wide skip would suppress a real
+                  # finding (the same over-broad scoping this rule set has been
+                  # removing elsewhere).
+                  init_attrs = nodes.find_macro_attribute_by_names("init", "init_if_needed")
+                  has_preexisting_account = False
+                  for account in nodes.find_by_names("Account"):
+                      if not account.access_path.startswith(struct_path + ".fields.named["):
+                          continue
+                      field_path = account.access_path.split(".ty")[0]
+                      is_init = False
+                      for init_attr in init_attrs:
+                          if init_attr.access_path.startswith(field_path + "."):
+                              is_init = True
+                              break
+                      if not is_init:
+                          has_preexisting_account = True
                           break
-                  if initializing:
+                  if init_attrs.nodes and not has_preexisting_account:
                       continue
 
                   found_missing_has_one = False

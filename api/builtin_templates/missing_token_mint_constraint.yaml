@@ -1,4 +1,4 @@
-version: 0.1.2
+version: 0.1.3
 author: forefy
 accent: anchor
 name: Missing Token Mint Constraint
@@ -59,7 +59,7 @@ rule: |
                   # finding.
                   pinned = False
                   for pin in nodes.find_macro_attribute_by_names("has_one", "seeds", "address"):
-                      if pin.access_path.startswith(struct_node.access_path + "."):
+                      if pin.access_path.startswith(field_node.access_path + "."):
                           pinned = True
                           break
                   if pinned:

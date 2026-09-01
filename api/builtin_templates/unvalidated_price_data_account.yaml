@@ -1,4 +1,4 @@
-version: 0.1.1
+version: 0.1.2
 author: forefy
 accent: anchor
 name: Unvalidated Price Data Account
@@ -12,10 +12,24 @@ rule: |
           # actually deal with one. Without this it fired on any `try_borrow_data`
           # - reporting a High-severity price-oracle finding against programs
           # that have no oracle at all.
-          nodes.find_by_names(
-              "price", "price_account", "price_feed", "oracle", "pyth",
-              "PriceFeed", "PriceAccount", "Price"
-          ).exit_on_none()
+          oracle_terms = (
+              "price", "oracle", "pyth", "switchboard", "chainlink",
+              "aggregator", "feed", "quote", "spot", "twap",
+          )
+          has_oracle_context = False
+          for candidate in nodes.find_by_access_path(""):
+              ident = candidate.ident
+              if ident is None:
+                  continue
+              lowered = ident.lower()
+              for term in oracle_terms:
+                  if term in lowered:
+                      has_oracle_context = True
+                      break
+              if has_oracle_context:
+                  break
+          if not has_oracle_context:
+              continue
 
           funcs = nodes.find_all_functions().exit_on_none()
           for func in funcs:
