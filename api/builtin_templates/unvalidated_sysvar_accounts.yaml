@@ -12,6 +12,22 @@ rule: |
       "slot_hashes", "slot_history", "stake_history", "recent_blockhashes",
   ]
   for source, nodes in ast:
+      # Native path (no Anchor accounts struct). The instructions sysvar can be
+      # read straight from an account with `load_instruction_at` /
+      # `load_current_index` / `load_instruction_at_relative`, none of which
+      # verify the account is the real sysvar - a caller can pass any account and
+      # control what the program introspects. Solana added the `_checked`
+      # variants precisely to pin the address, so the unchecked names are the
+      # native form of this exact vulnerability (the Anchor form, an unpinned
+      # sysvar field, is handled below). Matching is by call name, so the
+      # `_checked` variants - a distinct identifier - never match.
+      try:
+          for loader in nodes.find_by_names(
+              "load_instruction_at", "load_current_index", "load_instruction_at_relative"
+          ).nodes:
+              print(loader.to_result())
+      except:
+          pass
       try:
           nodes.find_chained_calls("derive", "Accounts").exit_on_none()
           raw = nodes.find_by_names("AccountInfo", "UncheckedAccount").exit_on_none()
