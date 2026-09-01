@@ -1,4 +1,4 @@
-version: 0.1.1
+version: 0.1.2
 author: forefy
 accent: anchor
 name: Missing Signer Check
@@ -67,6 +67,35 @@ rule: |
                       if checked:
                           break
                   if checked:
+                      continue
+
+                  # A missing signer only matters where authority is actually
+                  # claimed: a raw account standing in for a caller
+                  # (authority/owner/admin/user/payer). A struct of PDA-derived
+                  # data, sysvars, or a lamport destination asserts no authority,
+                  # so reporting it is noise on already-correct code rather than
+                  # a finding an auditor can act on.
+                  authority_names = ("authority", "owner", "admin", "user", "payer", "signer")
+                  claims_authority = False
+                  for raw in nodes.find_by_names("AccountInfo", "UncheckedAccount"):
+                      if not raw.access_path.startswith(struct_path + ".fields.named["):
+                          continue
+                      if raw.parent is None:
+                          continue
+                      field_path = raw.access_path.split(".ty")[0]
+                      # A field pinned by seeds/address is proven by the
+                      # framework, not by a signature.
+                      pinned = False
+                      for pin in nodes.find_macro_attribute_by_names("seeds", "address"):
+                          if pin.access_path.startswith(field_path + "."):
+                              pinned = True
+                              break
+                      if pinned:
+                          continue
+                      if raw.parent.ident in authority_names:
+                          claims_authority = True
+                          break
+                  if not claims_authority:
                       continue
 
                   reported.append(struct_path)

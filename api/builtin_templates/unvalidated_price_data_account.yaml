@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: anchor
 name: Unvalidated Price Data Account
@@ -8,6 +8,15 @@ certainty: Medium
 rule: |
   for source, nodes in ast:
       try:
+          # This rule is about oracle price accounts, so require the program to
+          # actually deal with one. Without this it fired on any `try_borrow_data`
+          # - reporting a High-severity price-oracle finding against programs
+          # that have no oracle at all.
+          nodes.find_by_names(
+              "price", "price_account", "price_feed", "oracle", "pyth",
+              "PriceFeed", "PriceAccount", "Price"
+          ).exit_on_none()
+
           funcs = nodes.find_all_functions().exit_on_none()
           for func in funcs:
               try:
