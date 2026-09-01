@@ -21,7 +21,7 @@ celery = "^5.4.0"
 django-celery-results = "^2.5.1"
 watchdog = "^4.0.1"
 pyyaml = "^6.0.1"
-pytest = "^8.2.2"
+pytest = "^9.0.3"
 solc-select = "^1.0.4"
 semantic-version = "^2.10.0"
 
