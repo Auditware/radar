@@ -71,3 +71,7 @@ jobs:
       - name: Run template scoping gate
         working-directory: api/
         run: poetry run pytest tests/test_scoping.py -q
+
+      - name: Run detection-regression gate
+        working-directory: api/
+        run: poetry run pytest tests/test_detection_fixtures.py -q
