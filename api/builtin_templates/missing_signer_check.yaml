@@ -1,4 +1,4 @@
-version: 0.1.3
+version: 0.1.4
 author: forefy
 accent: anchor
 name: Missing Signer Check
@@ -93,17 +93,49 @@ rule: |
                       if pinned:
                           continue
                       if raw.parent.ident in authority_names:
+                          # An authority forwarded into a CPI has its signature
+                          # enforced by the callee: privileges can be dropped
+                          # across an invoke but never gained, so a non-signing
+                          # authority is rejected by the runtime before the
+                          # invoked program runs. Declaring `Signer` there is
+                          # style, not a missing check. State mutated directly
+                          # by this program is still caught below.
+                          if nodes.find_by_names("invoke", "invoke_signed").nodes:
+                              continue
                           at_stake = True
                           break
 
-                  # Or the instruction can change state: a writable account with
-                  # nobody signing for it means anyone may call the handler and
-                  # mutate it. Checking only for an authority-named field would
-                  # miss that, which is the core of this vulnerability class.
+                  # Or the instruction can change state: a writable *typed*
+                  # account (`Account<T>`/`AccountLoader<T>`) with nobody signing
+                  # for it means anyone may call the handler and mutate this
+                  # program's own state. Two writable shapes are deliberately not
+                  # treated as state at stake:
+                  #   * a raw `AccountInfo`/`UncheckedAccount` marked `mut` - it
+                  #     is almost always a lamport destination or CPI passthrough
+                  #     rather than this program's typed state, so requiring a
+                  #     Signer beside it is noise on ordinary transfer/close code;
+                  #   * a typed account being closed via `#[account(mut, close =
+                  #     ..)]` - closing is a lifecycle operation, not a business
+                  #     mutation. Counting its `mut` flagged exactly the idiomatic
+                  #     close that auditors recommend (the sealevel
+                  #     closing-accounts `recommended` variant) while staying
+                  #     silent on the insecure/secure ones that omit `mut`, i.e.
+                  #     the rule fired only on the safest variant.
                   if not at_stake:
-                      for mut_attr in nodes.find_macro_attribute_by_names("mut"):
-                          if mut_attr.access_path.startswith(struct_path + "."):
-                              at_stake = True
+                      close_field_paths = set()
+                      for close_attr in nodes.find_macro_attribute_by_names("close"):
+                          close_field_paths.add(close_attr.access_path.split(".attrs")[0])
+                      for typed in nodes.find_by_names("Account", "AccountLoader"):
+                          field_path = typed.access_path.split(".ty")[0]
+                          if not field_path.startswith(struct_path + ".fields.named["):
+                              continue
+                          if field_path in close_field_paths:
+                              continue
+                          for mut_attr in nodes.find_macro_attribute_by_names("mut"):
+                              if mut_attr.access_path.startswith(field_path + "."):
+                                  at_stake = True
+                                  break
+                          if at_stake:
                               break
 
                   if not at_stake:

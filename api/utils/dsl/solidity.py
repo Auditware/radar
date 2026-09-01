@@ -203,6 +203,15 @@ class SolidityASTNode(ASTNode):
         matching_nodes = []
 
         def match_pattern(value):
+            # Node metadata is copied verbatim from the compiler AST, where
+            # several node types (YulAssignment, YulVariableDeclaration, an
+            # initialised VariableDeclaration) put a dict here rather than a
+            # string. Regexing that raises TypeError, and every caller wraps its
+            # loop in a bare `except: continue`, so the exception silently
+            # aborted the rule for the WHOLE file - the rule reported nothing and
+            # looked clean. Skip non-string values instead.
+            if not isinstance(value, str):
+                return False
             # Check if the value matches any of the patterns (either substring or regex)
             for pattern in patterns:
                 if re.search(pattern, value) or pattern in value:
@@ -232,6 +241,15 @@ class SolidityASTNode(ASTNode):
         matching_nodes = []
 
         def match_pattern(value):
+            # Node metadata is copied verbatim from the compiler AST, where
+            # several node types (YulAssignment, YulVariableDeclaration, an
+            # initialised VariableDeclaration) put a dict here rather than a
+            # string. Regexing that raises TypeError, and every caller wraps its
+            # loop in a bare `except: continue`, so the exception silently
+            # aborted the rule for the WHOLE file - the rule reported nothing and
+            # looked clean. Skip non-string values instead.
+            if not isinstance(value, str):
+                return False
             # Check if the value matches any of the patterns (either substring or regex)
             for pattern in patterns:
                 if re.search(pattern, value) or pattern in value:
@@ -356,6 +374,15 @@ class SolidityASTNode(ASTNode):
         matching_nodes = []
 
         def match_pattern(value):
+            # Node metadata is copied verbatim from the compiler AST, where
+            # several node types (YulAssignment, YulVariableDeclaration, an
+            # initialised VariableDeclaration) put a dict here rather than a
+            # string. Regexing that raises TypeError, and every caller wraps its
+            # loop in a bare `except: continue`, so the exception silently
+            # aborted the rule for the WHOLE file - the rule reported nothing and
+            # looked clean. Skip non-string values instead.
+            if not isinstance(value, str):
+                return False
             for pattern in patterns:
                 if re.search(pattern, value) or pattern in value:
                     return True
@@ -439,6 +466,15 @@ class SolidityASTNode(ASTNode):
         matching_function_nodes = []
 
         def match_pattern(value: str) -> bool:
+            # Node metadata is copied verbatim from the compiler AST, where
+            # several node types (YulAssignment, YulVariableDeclaration, an
+            # initialised VariableDeclaration) put a dict here rather than a
+            # string. Regexing that raises TypeError, and every caller wraps its
+            # loop in a bare `except: continue`, so the exception silently
+            # aborted the rule for the WHOLE file - the rule reported nothing and
+            # looked clean. Skip non-string values instead.
+            if not isinstance(value, str):
+                return False
             for pattern in patterns:
                 if re.search(pattern, value) or pattern in value:
                     return True

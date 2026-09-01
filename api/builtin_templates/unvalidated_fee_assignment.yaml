@@ -1,54 +1,76 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: stylus
 name: Unvalidated Fee Assignment
-description: Detects direct assignments of fee configuration fields when there is no preceding require check in the same function.
+description: Detects a fee configuration field being written from a caller-supplied argument with no bounds or validation check on that argument anywhere in the same function, letting a caller set an arbitrary (e.g. 100%) fee.
 severity: Medium
 certainty: Medium
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/unvalidated_fee_assignment/bad/lib.rs#L13-L15
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/unvalidated_fee_assignment/bad/src/lib.rs#L14-L16
 rule: |
   for source, nodes in ast:
-      try:
-          assigns = nodes.find_by_access_path("assign")
-          for a in assigns:
-              if a.ident != "fee_rate":
-                  continue
-              found_config = False
-              found_accounts = False
-              found_ctx = False
-              for c in a.children:
-                  if c.ident == "config":
-                      found_config = True
-                      for g in c.children:
-                          if g.ident == "accounts":
-                              found_accounts = True
-                              for h in g.children:
-                                  if h.ident == "ctx":
-                                      found_ctx = True
-              if not (found_config and found_accounts and found_ctx):
-                  continue
-              func_node = a.parent
-              if not func_node:
-                  continue
-              require_found = False
-              for child in func_node.children:
-                  if child.ident == "require" or child.ident == "require!":
-                      require_found = True
-                      break
-                  for c2 in child.children:
-                      if c2.ident == "require" or c2.ident == "require!":
-                          require_found = True
-                          break
-                      for c3 in c2.children:
-                          if c3.ident == "require" or c3.ident == "require!":
-                              require_found = True
-                              break
-                      if require_found:
-                          break
-                  if require_found:
-                      break
-              # Report only if no require! was found in the function
-              if not require_found:
-                  print(a.to_result())
-      except:
+    try:
+      funcs = nodes.find_all_functions().exit_on_none()
+      for func in funcs:
+        fn_path = func.access_path or ""
+
+        # Caller-supplied arguments of this function. A fee written from a
+        # constant or from other storage is not the bug this rule is about.
+        params = []
+        for param in func.find_by_access_path(".typed.pat.ident").nodes:
+          param_path = param.access_path or ""
+          if not param_path.startswith(fn_path + ".inputs["):
+            continue
+          if not param_path.endswith(".typed.pat.ident"):
+            continue
+          if param.ident:
+            params.append(param.ident)
+        if not params:
           continue
+
+        writes = []
+
+        # Storage shape: self.<fee field>.set(arg) - a method call, not an assign.
+        for call in func.find_by_names("set", "setter", "replace", "insert").nodes:
+          if not call.access_path.endswith("method_call"):
+            continue
+          from_self = False
+          fee_field = False
+          for recv in call.find_by_access_path(".receiver").nodes:
+            if recv.ident == "self":
+              from_self = True
+            elif recv.ident and "fee" in recv.ident.lower():
+              fee_field = True
+          if not from_self or not fee_field:
+            continue
+          values = []
+          for arg in call.find_by_access_path(".args[").nodes:
+            if arg.ident in params:
+              values.append(arg.ident)
+          if values:
+            writes.append((call, values))
+
+        # Plain assignment shape: <...>.fee_rate = arg
+        for lhs in func.find_by_access_path(".assign.left").nodes:
+          if not lhs.ident or "fee" not in lhs.ident.lower():
+            continue
+          rhs_prefix = lhs.access_path.split(".assign.left")[0] + ".assign.right"
+          values = []
+          for rhs in func.find_by_access_path(rhs_prefix).nodes:
+            if rhs.ident in params:
+              values.append(rhs.ident)
+          if values:
+            writes.append((lhs, values))
+
+        for write, values in writes:
+          # Validation means the written value itself is compared somewhere in
+          # the function - an if/while condition, or a require!/assert! macro.
+          validated = False
+          for value in values:
+            for occurrence in func.find_by_names(value).nodes:
+              occurrence_path = occurrence.access_path or ""
+              if ".cond." in occurrence_path or ".macro.tokens" in occurrence_path:
+                validated = True
+          if not validated:
+            print(write.to_result())
+    except:
+      continue

@@ -164,16 +164,62 @@ def enrich_ast_with_source_lines(
             )
         return positions
 
+    def source_ordered_items(node: dict) -> list:
+        """Yield a node's entries in the order they appear in Rust source.
+
+        Positions are handed out by walking the tree and consuming successive
+        textual occurrences, so the walk has to follow source order. The parser's
+        JSON does not: a struct field carries `ident` before `attrs`, while in
+        source the `#[account(...)]` attribute is written above the field name,
+        and a `where` clause is nested under `generics` although it is written
+        after the parameter list and return type. Visiting keys in declaration
+        order therefore assigned those nodes each other's positions.
+
+        Keys not listed keep their original relative order (the sort is stable),
+        so unknown shapes behave exactly as before.
+        """
+        rank = {
+            "attrs": 0,          # attributes precede everything they decorate
+            "vis": 1,
+            "defaultness": 2, "constness": 2, "asyncness": 2,
+            "unsafety": 2, "abi": 2, "mutability": 2,
+            "ident": 3,
+            "generics": 4,       # <T> parameters (where-clause split out below)
+            "inputs": 5, "fields": 5, "variants": 5, "args": 5,
+            "self_ty": 5, "trait": 5, "ty": 5, "colon_token": 5,
+            "output": 6,
+            "where_clause": 7,   # written after the parameter list/return type
+            "block": 8, "stmts": 8, "body": 8, "expr": 8,
+        }
+        # A where-clause lives under `generics` but is written last, so it is
+        # visited separately after `inputs`/`output`. The generics entry keeps
+        # the original object (never a copy, so enrichment still writes through
+        # to the real tree) and the walk is told to skip that one key.
+        deferred = []
+        rebuilt = []
+        for key, value in node.items():
+            if key == "generics" and isinstance(value, dict) and "where_clause" in value:
+                rebuilt.append((key, value, frozenset({"where_clause"})))
+                deferred.append(("where_clause", value["where_clause"], frozenset()))
+            else:
+                rebuilt.append((key, value, frozenset()))
+        rebuilt.extend(deferred)
+
+        return sorted(rebuilt, key=lambda kv: rank.get(kv[0], 5))
+
     def enrich_node(
         node: Any,
         scanned_idents: dict[str, list[dict]],
         consumed: dict[str, int],
+        skip_keys: frozenset = frozenset(),
     ) -> None:
         if isinstance(node, dict):
-            items = list(node.items())
-            for key, value in items:
+            items = source_ordered_items(node)
+            for key, value, child_skip in items:
+                if key in skip_keys:
+                    continue
                 if isinstance(value, dict):
-                    enrich_node(value, scanned_idents, consumed)
+                    enrich_node(value, scanned_idents, consumed, child_skip)
                 elif isinstance(value, list):
                     for item in value:
                         enrich_node(item, scanned_idents, consumed)

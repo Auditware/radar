@@ -12,6 +12,10 @@ pub struct Contract {
 
 #[public]
 impl Contract {
+    /// # Security
+    /// Transfers ownership of the contract.
+    /// Only the current owner may call this; callers must verify `new_owner`
+    /// is a controlled address, as ownership cannot be recovered afterwards.
     pub fn transfer_ownership(&mut self, new_owner: Address) {
         self.owner.set(new_owner);
     }

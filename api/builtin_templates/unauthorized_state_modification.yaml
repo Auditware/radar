@@ -1,35 +1,54 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: stylus
 name: Unauthorized State Modification
 description: Functions that modify critical state variables without proper access control checks allow any user to manipulate contract state, leading to unauthorized changes and potential exploitation.
 severity: High
 certainty: Medium
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/unauthorized_state_modification/bad/lib.rs#L13-L15
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/unauthorized_state_modification/bad/src/lib.rs#L13-L16
 rule: |
   for source, nodes in ast:
     try:
       funcs = nodes.find_all_functions().exit_on_none()
+      public_attrs = nodes.find_by_names("public", "external")
+
       for func in funcs:
         access_path = func.access_path or ""
         if ".impl." not in access_path:
           continue
-        
-        has_address_param = func.find_by_names("Address")
-        if not has_address_param.nodes:
+
+        # Only externally reachable methods matter - the storage write has to be
+        # callable by an arbitrary caller. In Stylus that is an impl block
+        # carrying #[public] (or the legacy #[external]).
+        impl_attrs_prefix = access_path.split(".impl.")[0] + ".impl.attrs"
+        is_public = False
+        for attr in public_attrs.nodes:
+          if attr.access_path.startswith(impl_attrs_prefix):
+            is_public = True
+        if not is_public:
           continue
-        
-        modifies_mapping = func.find_by_names("setter", "set")
-        if not modifies_mapping.nodes:
+
+        # Any caller/authority check in the body clears the function.
+        guards = func.find_by_names(
+          "msg", "sender", "msg_sender", "vm", "require", "require!", "assert",
+          "assert_eq", "ensure", "only_owner", "onlyOwner", "authority",
+          "caller", "tx_origin", "revert", "panic",
+        )
+        if guards.nodes:
           continue
-        
-        has_msg_sender = func.find_by_names("msg", "sender")
-        has_require = func.find_by_names("require", "assert", "ensure")
-        
-        if not has_msg_sender.nodes and not has_require.nodes:
-          body_nodes = func.find_by_names("setter", "set", "get")
-          if body_nodes.nodes:
-            func_ident = func.find_by_names(func.ident).exit_on_none()
-            print(func_ident.first().to_result())
+
+        # A storage write is a setter method call whose receiver chain starts at self,
+        # e.g. self.value.set(x) / self.balances.setter(a).set(x).
+        writes = func.find_by_names("set", "setter", "insert", "push", "replace", "erase")
+        for write in writes.nodes:
+          if not write.access_path.endswith("method_call"):
+            continue
+          writes_self = False
+          for base in write.find_by_names("self").nodes:
+            if ".receiver" in base.access_path:
+              writes_self = True
+          if writes_self:
+            print(func.to_result())
+            break
     except:
       continue

@@ -1,34 +1,57 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: stylus
 name: Incorrect Ceiling Division
-description: Financial calculations involving division should use ceiling division (div_ceil or checked_ceil_div) to avoid rounding errors that benefit attackers.
+description: Dividing a token or value amount with `/` truncates toward zero, so the remainder is silently given away. Financial divisions should round up - through div_ceil / checked_ceil_div, a `(a + b - 1) / b` numerator, or an explicit remainder correction - whenever rounding down favours the caller.
 severity: Medium
 certainty: Low
-vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/incorrect_ceiling_division/bad/lib.rs#L12
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/incorrect_ceiling_division/bad/src/lib.rs#L13
 rule: |
+  value_words = ("share", "asset", "amount", "fee", "price", "balance", "supply", "total", "deposit", "withdraw", "reward", "collateral", "debt", "interest", "payout", "principal", "dividend", "premium")
   for source, nodes in ast:
-    try:
-      funcs = nodes.find_all_functions().exit_on_none()
-      for func in funcs:
-        access_path = func.access_path or ""
-        if ".impl." not in access_path:
+      try:
+          funcs = nodes.find_all_functions().exit_on_none()
+          for func in funcs:
+              try:
+                  if ".impl." not in (func.access_path or ""):
+                      continue
+
+                  # An explicit rounding helper means the direction was chosen.
+                  if len(func.find_by_names("div_ceil", "checked_div_ceil", "ceil_div", "checked_ceil_div", "ceiling_div", "div_euclid")):
+                      continue
+
+                  # So does a remainder correction (`if a % b != 0 { q + 1 }`).
+                  if len(func.find_binary_operations("%")):
+                      continue
+
+                  for division in func.find_binary_operations("/"):
+                      division_path = division.access_path or ""
+                      if not division_path.endswith(".binary"):
+                          continue
+
+                      # Rounding only matters over money. The function name and
+                      # the operands of this division are the context.
+                      context = (func.ident or "").lower()
+                      for operand in division.find_by_access_path(division_path + "."):
+                          context = context + " " + (operand.ident or "").lower()
+                      financial = False
+                      for word in value_words:
+                          if word in context:
+                              financial = True
+                      if not financial:
+                          continue
+
+                      # `(a + b - 1) / b` is ceiling division written out - the
+                      # round-up sits in this division's own numerator.
+                      rounds_up = False
+                      for addition in func.find_binary_operations("+"):
+                          if (addition.access_path or "").startswith(division_path + ".left"):
+                              rounds_up = True
+                      if rounds_up:
+                          continue
+
+                      print(division.to_result())
+              except:
+                  continue
+      except:
           continue
-        
-        has_financial_keywords = func.find_by_names("fee", "price", "amount", "balance", "supply")
-        if not has_financial_keywords.nodes:
-          continue
-        
-        has_div_op = func.find_binary_operations("/")
-        if not has_div_op:
-          continue
-        
-        has_ceil_div = func.find_by_names("div_ceil", "checked_ceil_div", "div_euclid")
-        if has_ceil_div.nodes:
-          continue
-        
-        for div_op in has_div_op:
-          print(div_op.parent.to_result())
-          break
-    except:
-      continue

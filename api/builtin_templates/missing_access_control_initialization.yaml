@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 author: forefy
 accent: stylus
 name: Missing Access Control in Initialization
@@ -13,34 +13,57 @@ rule: |
         continue
       funcs = nodes.find_all_functions().exit_on_none()
       for func in funcs:
-        if func.ident in ["initialize", "init", "setup"]:
-          access_path = func.access_path or ""
-          if ".impl." not in access_path:
+        if func.ident not in ["initialize", "init", "setup"]:
+          continue
+        access_path = func.access_path or ""
+        if ".impl." not in access_path:
+          continue
+
+        # Only initializers that install a privileged address.
+        has_address_param = False
+        for param in func.find_by_names("Address").nodes:
+          if ".fn.inputs" in param.access_path:
+            has_address_param = True
+        if not has_address_param:
+          continue
+
+        # Only initializers that actually write contract storage, i.e. a
+        # method call whose receiver chain goes through `self`.
+        writes_state = False
+        for writer in func.find_by_names("set", "push", "insert", "replace").nodes:
+          if not writer.access_path.endswith("method_call"):
             continue
-          
-          has_self = func.find_by_names("self")
-          if not has_self.nodes:
-            continue
-          
-          has_address_param = func.find_by_names("Address")
-          if not has_address_param.nodes:
-            continue
-          
-          modifies_state = func.find_by_names("set")
-          if not modifies_state.nodes:
-            continue
-          
-          has_msg = func.find_by_names("msg")
-          has_sender = func.find_by_names("sender")
-          has_require = func.find_by_names("require", "assert", "ensure")
-          
-          checks_msg_sender = has_msg.nodes and has_sender.nodes
-          
-          if not checks_msg_sender and not has_require.nodes:
-            func_ident = func.find_by_names(func.ident).exit_on_none().first()
-            if func_ident.parent and func_ident.parent.metadata:
-              print(func_ident.parent.to_result())
-            else:
-              print(func_ident.to_result())
+          if writer.find_by_names("self").nodes:
+            writes_state = True
+        if not writes_state:
+          continue
+
+        # A guard is a conditional or assertion that reads contract state:
+        # `if self.initialized.get()`, `assert!(!self.initialized.get())`,
+        # `match self.owner.get()`. Validating only the parameters
+        # (`if owner.is_zero()`) is not reinitialization protection, so the
+        # `self` node has to sit inside the condition itself.
+        has_state_guard = False
+        for state in func.find_by_names("self").nodes:
+          guard_path = state.access_path
+          if ".if.cond" in guard_path:
+            has_state_guard = True
+          if ".while.cond" in guard_path:
+            has_state_guard = True
+          if ".match.expr" in guard_path:
+            has_state_guard = True
+          if ".macro.tokens" in guard_path:
+            has_state_guard = True
+
+        # Caller authorization: the function inspects msg::sender, or defers
+        # to a named ownership helper.
+        checks_caller = False
+        if func.find_by_names("msg").nodes and func.find_by_names("sender").nodes:
+          checks_caller = True
+        if func.find_by_names("only_owner", "require_owner", "assert_owner", "check_owner", "ensure_owner").nodes:
+          checks_caller = True
+
+        if not has_state_guard and not checks_caller:
+          print(func.to_result())
     except:
       continue
