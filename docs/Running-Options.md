@@ -95,11 +95,11 @@ radar sets its exit code so a pipeline can gate on it:
 
 | Code | Meaning |
 |------|---------|
-| `0`  | Clean — no findings at or above the fail-on threshold |
+| `0`  | Clean - no findings at or above the fail-on threshold |
 | `1`  | Findings at or above the fail-on threshold |
 | `2`  | Operational error (parse/scan failure, or a template errored out) |
 
-Control what fails the build with `--fail-on` (default `low` — any finding):
+Control what fails the build with `--fail-on` (default `low` - any finding):
 
 ```bash
 radar -p . --fail-on high     # only high/critical findings fail

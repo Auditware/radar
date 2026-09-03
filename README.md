@@ -136,7 +136,7 @@ radar returns an exit code you can gate a build on:
 
 | Code | Meaning |
 |------|---------|
-| `0`  | Clean — no findings at or above the fail-on threshold |
+| `0`  | Clean - no findings at or above the fail-on threshold |
 | `1`  | Findings at or above the fail-on threshold |
 | `2`  | Operational error (parse/scan failure, or a template errored out) |
 

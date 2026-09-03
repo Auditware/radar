@@ -1,4 +1,4 @@
-# cargo-deny policy — supply-chain tripwire
+# cargo-deny policy - supply-chain tripwire
 # Run:  cargo deny check bans
 #
 # Guards against the Aug-2026 arrayref / append-only-vec supply-chain attack.
@@ -18,7 +18,7 @@ version = "=0.3.10"
 name = "append-only-vec"
 version = "=0.1.9"
 
-# The injected payload crate — a typosquat of proc-macro2, malware in every
+# The injected payload crate - a typosquat of proc-macro2, malware in every
 # version. Ban it wholesale as a second tripwire.
 [[bans.deny]]
 name = "proc-macro1"
