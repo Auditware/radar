@@ -147,6 +147,14 @@ radar -p . --fail-on high     # only high/critical findings fail the build
 radar -p . --fail-on none     # never fail on findings (report only)
 ```
 
+**Test code is skipped by default** — tests break production rules deliberately,
+so reporting them is a cost on every scan rather than a finding. Covers `tests/`
+directories, test-named files, and items behind `#[cfg(test)]` / `#[test]`:
+
+```bash
+radar -p . --include-tests    # scan tests too
+```
+
 **Adopting on an existing codebase.** Accept everything present today and gate
 only on new findings with a baseline, or silence individual lines inline:
 

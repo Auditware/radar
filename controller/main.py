@@ -80,7 +80,9 @@ def main():
     if args.path:
         local_path = Path(args.path)
 
-    ast = generate_ast_for_file_or_folder(container_path, path_type)
+    ast = generate_ast_for_file_or_folder(
+        container_path, path_type, getattr(args, "include_tests", False)
+    )
     run_scan(container_path, path_type, templates_path)
     results, errors = poll_results(container_path, path_type, local_path)
 

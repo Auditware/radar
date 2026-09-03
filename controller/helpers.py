@@ -99,6 +99,17 @@ def parse_arguments() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--include-tests",
+        required=False,
+        action="store_true",
+        help=(
+            "Scan test code too. Off by default: tests unwrap, hardcode keys and "
+            "skip checks on purpose, so reporting them is a cost on every scan "
+            "rather than a finding. Covers `tests/` directories, test-named files, "
+            "and items behind #[cfg(test)] / #[test]"
+        ),
+    )
+    parser.add_argument(
         "--debug",
         required=False,
         action="store_true",
