@@ -8,6 +8,9 @@ Makefile.local
 output.md
 *.sarif
 *.json
+# The corpus-2 regression baseline is the gate's reference point; a run can
+# only mean something if the expected verdicts are in the tree.
+!api/tests/corpus2_baseline.json
 *checksum*
 radar.wiki
 **/.DS_Store

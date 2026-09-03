@@ -1,0 +1,47 @@
+name: Corpus-2 Regression (out-of-sample)
+
+# The two fixture gates in pytest.yml are ours, so they measure what we thought to
+# check. This runs the rules over seventeen real-world Solana bugs packaged by the
+# ScannerTruth benchmark author and scores them with that pack's own scorer.
+#
+# Deliberately not a merge gate and not on pull_request: the mapping is upstream's,
+# over public crates, and a `missed` there is a coverage limit rather than a defect.
+# It fails only when a case scores worse than api/tests/corpus2_baseline.json.
+on:
+  schedule:
+    # 04:20 UTC daily, off the hour to avoid the scheduler's peak.
+    - cron: "20 4 * * *"
+  workflow_dispatch:
+
+# The scorer is upstream's code, pinned by full commit SHA in the runner. It gets
+# no more scope than reading this checkout.
+permissions:
+  contents: read
+
+jobs:
+  corpus2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build rust_syn extension
+        working-directory: api/rust_syn_wrapper
+        env:
+          PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+        run: cargo build --release
+      - name: Install the extension where ast.py expects it
+        run: |
+          sudo mkdir -p /api/utils
+          sudo cp api/rust_syn_wrapper/target/release/librust_syn.so /api/utils/rust_syn.so
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Install dependencies
+        working-directory: api/
+        run: poetry install --no-root
+      - name: Run the corpus-2 pack
+        working-directory: api/
+        run: poetry run python tests/corpus2_regression.py
