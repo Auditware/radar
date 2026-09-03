@@ -82,7 +82,7 @@ A rule fighting the DSL is a signal, not a challenge. Median rule body is 23 lin
 2. A new utility on `RustASTNode` / `SolidityASTNode` in `api/utils/dsl/`, following the traversal style of its neighbours. First check whether an existing util is merely faulty and needs a small fix — that is the better patch.
 3. The core enrichment in `api/utils/ast.py` — rare, and only with a span test.
 
-A good utility aggregates a relation that several rules will want (a lookup, a traversal, a comparison shape), not one contract's quirk. `agents/prompts/create_or_edit_radar_template.md` carries the full util-authoring protocol.
+A good utility aggregates a relation that several rules will want (a lookup, a traversal, a comparison shape), not one contract's quirk. `references/util-authoring.md` carries the full protocol.
 
 ## Scanning
 
@@ -102,3 +102,4 @@ Exit codes: `0` clean, `1` findings at or above `--fail-on`, `2` operational err
 - `references/ast-shape.md` — what `ast.json` really contains, and how to read it
 - `references/dsl.md` — corrections to `docs/Rule-Functions.md`, and the Solidity method set
 - `references/contributing.md` — the template schema and the full test contract
+- `references/util-authoring.md` — the protocol for adding a DSL utility

@@ -1,4 +1,6 @@
-This is a reusable prompt to guide users on prompting new radar utility creation.
+# Authoring a DSL utility
+
+The protocol for adding a search or heuristic utility to the radar DSL. Reach for it when a rule is fighting the DSL (see "When to extend the DSL" in SKILL.md).
 
 Prompt inputs:
 - Reference to the relevant ast.json of a chosen contract
