@@ -6,6 +6,8 @@ Either if you have a vulnerability to test in mind, or if you want to improve th
 
 Open a PR to add your template to the built-ins. (See [How to write templates](https://github.com/auditware/radar/wiki/How-to-Write-Templates) )
 
+If you work with an AI coding agent, `.claude/skills/radar/` carries the template-development loop, the sandbox and routing constraints that fail silently, and the test gates each contribution has to clear.
+
 
 ### We can help you to help!
 
