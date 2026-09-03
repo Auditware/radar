@@ -49,6 +49,31 @@ check_docker() {
     exit 1
 }
 
+# Bring the stack up, keeping compose's output so a failure can be reported. This runs
+# under `set -e`, where sending compose to /dev/null turned any startup problem - a
+# taken port, a missing image, an unhealthy dependency - into a bare exit 1 with
+# nothing on screen but the preceding progress line.
+# Copy a result artefact out of the container, reporting what actually happened.
+# docker cp's failure was discarded while the success line printed regardless, so a
+# scan that produced no file still claimed to have written one.
+copy_out() {
+    if docker cp "radar-api:$1" "$2" >/dev/null 2>&1; then
+        echo "[i] Results written to $2"
+    else
+        echo "[w] No results file was produced at $2"
+    fi
+}
+
+compose_up() {
+    local compose_output
+    if ! compose_output=$(docker compose -f "$compose_file" up -d --quiet-pull "$@" 2>&1); then
+        echo "[e] Failed to start radar containers:"
+        echo "$compose_output" | sed 's/^/    /'
+        return 1
+    fi
+    return 0
+}
+
 
 adjust_source_path_for_docker() {
     local base="$1"
@@ -92,7 +117,7 @@ handle_update_command() {
     
     echo "[i] Restarting containers with updated images..."
     docker compose -f "$compose_file" down > /dev/null 2>&1
-    docker compose -f "$compose_file" up -d --quiet-pull > /dev/null 2>&1
+    compose_up
     
     cd "$INITIAL_DIR"
     echo "[i] Radar updated successfully!"
@@ -122,7 +147,7 @@ handle_info_command() {
     fi
     
     # Ensure containers are running
-    docker compose -f "$compose_file" up -d --quiet-pull > /dev/null 2>&1
+    compose_up
     
     # Wait for containers to be ready
     sleep 2
@@ -359,7 +384,7 @@ if [ "$check_update" = true ] && [ "$development_mode" = false ]; then
     
     if [ "$updated" = true ]; then
         echo "[i] Restarting services with updated images..."
-        docker compose -f "$compose_file" up -d --quiet-pull > /dev/null 2>&1
+        compose_up
     fi
     
     cd "$INITIAL_DIR"
@@ -437,8 +462,7 @@ if [ "$development_mode" = true ]; then
         docker compose -f "$compose_file" up -d --build --quiet-pull
         echo "$current_dev_checksum" > "$dev_checksum_file"
     else
-        docker compose -f "$compose_file" up -d --no-build --quiet-pull > /dev/null 2>&1
-        if [ $? -ne 0 ]; then
+        if ! compose_up --no-build; then
             echo "[d] Failed to start containers, rebuilding..."
             docker compose -f "$compose_file" up -d --build --quiet-pull
             echo "$current_dev_checksum" > "$dev_checksum_file"
@@ -460,15 +484,15 @@ elif [ -f "$checksum_file" ]; then
     stored_checksum=$(cat "$checksum_file")
     if [ "$current_checksum" != "$stored_checksum" ]; then
         echo "[i] Configuration changed, building images.. (if frozen - make sure Docker is available)"
-        docker compose -f "$compose_file" up -d --build --quiet-pull > /dev/null 2>&1
+        compose_up --build
         echo "$current_checksum" > "$checksum_file"
     else
         echo "[i] Running images.. (if frozen - make sure Docker is available)" 
-        docker compose -f "$compose_file" up -d --no-build --quiet-pull > /dev/null 2>&1
+        compose_up --no-build
     fi
 else
     echo "[i] First run, building images.. (if frozen - make sure Docker is available)"
-    docker compose -f "$compose_file" up -d --build --quiet-pull > /dev/null 2>&1
+    compose_up --build
     echo "$current_checksum" > "$checksum_file"
 fi
 
@@ -540,22 +564,18 @@ cd "$INITIAL_DIR"
 # Determine output file paths based on whether output_directory is a file or directory
 if [[ "$output_directory" == *".sarif" ]]; then
     output_file="$output_directory"
-    docker cp radar-api:/radar_data/output.sarif "$output_file" >/dev/null 2>&1
-    echo "[i] Results written to $output_file"
+    copy_out "/radar_data/output.sarif" "$output_file"
 elif [[ "$output_directory" == *".md" ]]; then
     output_file="$output_directory"
-    docker cp radar-api:/radar_data/output.md "$output_file" >/dev/null 2>&1
-    echo "[i] Results written to $output_file"
+    copy_out "/radar_data/output.md" "$output_file"
 elif [[ "$output_directory" == *".json" ]]; then
     output_file="$output_directory"
-    docker cp radar-api:/radar_data/output.json "$output_file" >/dev/null 2>&1
-    echo "[i] Results written to $output_file"
+    copy_out "/radar_data/output.json" "$output_file"
 else
     mkdir -p "$output_directory"
     output_dir="${output_directory%/}"
     output_file="$output_dir/output.json"
-    docker cp radar-api:/radar_data/output.json "$output_file" >/dev/null 2>&1
-    echo "[i] Results written to $output_file"
+    copy_out "/radar_data/output.json" "$output_file"
 fi
 
 if [ "$generate_ast" = true ]; then

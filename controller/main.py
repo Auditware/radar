@@ -22,8 +22,12 @@ def main():
             output_type = "md"
 
     print(f"[i] Copying {path_type} from radar container to a shared docker volume")
+    # Copy what was actually scoped, not the whole mount. `--container-path` may point
+    # at a single file or a subdirectory inside /contract, and the destination mirrors
+    # it; sourcing from /contract copied the wrong tree for a subdirectory and failed
+    # outright for a file, since /contract is a directory.
     copy_to_docker_mount(
-        Path("/contract"),
+        container_path,
         Path("/radar_data" / container_path.relative_to("/")),
         path_type,
     )

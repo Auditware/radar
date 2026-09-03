@@ -360,16 +360,27 @@ def generate_aggregate_program_ast(base_path: Path) -> dict | None:
     project_ast = {"sources": {}, "metadata": {}}
     found_cargo_toml = False
 
-    def process_directory(directory):
+    def add_program(directory):
         nonlocal found_cargo_toml
+        found_cargo_toml = True
+        program_ast = generate_ast_for_rust_program(directory)
+        for file_path, ast in program_ast["sources"].items():
+            project_ast["sources"][file_path] = ast
+
+    def process_directory(directory):
         for subdir in directory.iterdir():
             if subdir.is_dir():
                 if (subdir / "Cargo.toml").exists():
-                    found_cargo_toml = True
-                    program_ast = generate_ast_for_rust_program(subdir)
-                    for file_path, ast in program_ast["sources"].items():
-                        project_ast["sources"][file_path] = ast
+                    add_program(subdir)
                 process_directory(subdir)
+
+    # A crate whose Cargo.toml sits at the root of the scanned path is the common
+    # shape for a native Solana program. Only a manifest that declares a [package]
+    # counts, so a pure [workspace] root is still left to its members below; sources
+    # are keyed by absolute path, so a root that is both cannot double-add.
+    root_manifest = base_path / "Cargo.toml"
+    if root_manifest.exists() and parse_toml_keys(root_manifest, ["package.name"])[0]:
+        add_program(base_path)
 
     process_directory(base_path)
 

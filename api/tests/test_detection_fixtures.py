@@ -2,7 +2,7 @@
 
 The bad/good mocks prove a rule works on its canonical example, and the scoping
 gate proves it discriminates within a file. Neither catches the failure mode
-where a rule is *narrowed* — to cut noise, or to score better on a corpus — until
+where a rule is *narrowed* - to cut noise, or to score better on a corpus - until
 it no longer detects a real vulnerability of its own class that happens to look
 different from its mock.
 

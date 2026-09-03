@@ -153,6 +153,10 @@ def copy_to_docker_mount(
         else:
             api_dst_path.unlink()
 
+    # A scoped source nests under the mount (/radar_data/contract/src/lib.rs), so the
+    # intermediate directories will not exist on the first copy.
+    api_dst_path.parent.mkdir(parents=True, exist_ok=True)
+
     try:
         if path_type == "file":
             if radar_src_path.is_symlink():
@@ -206,7 +210,7 @@ def _relativize(file_path: str, root: Optional[Path]) -> str:
 def finding_fingerprints(finding: dict, root: Optional[Path]):
     """Stable identity for each location of a finding: (rule, rel-file, line:cols).
 
-    Location-based, so it survives across runs but not across large line moves —
+    Location-based, so it survives across runs but not across large line moves -
     a deliberate simplicity trade-off for a first baseline; inline suppression
     covers the churny cases.
     """
@@ -376,11 +380,21 @@ def print_write_outputs(
             print(f"    - {err.get('name', 'unknown')}: {err.get('error', 'unknown error')}")
 
     if len(results) == 0:
+        # A clean scan still owes --output the file it promised. The CLI copies this
+        # path out of the container and reports "Results written to ..." either way,
+        # so writing nothing left the caller with a success message and no artefact.
+        container_output_file_path.parent.mkdir(parents=True, exist_ok=True)
+        output_file = Path(container_output_file_path)
         if output_type == "sarif":
             print("[i] Writing empty SARIF to indicate no results.")
-            output_file = Path(container_output_file_path)
-            with output_file.open("w") as outfile:
+            with open(output_file, "w") as outfile:
                 json.dump(no_results_sarif, outfile, indent=4)
+        elif output_type == "md":
+            with open(output_file, "w") as outfile:
+                outfile.write("# radar\n\nNo results found.\n")
+        else:
+            with open(output_file, "w") as outfile:
+                json.dump([], outfile, indent=4)
 
         if write_ast:
             with open(container_output_path_ast, "w") as f:
@@ -450,7 +464,7 @@ def print_write_outputs(
     # silently broke every exit-code-based gate (the shipped pre-commit hook
     # included). Operational errors take precedence and exit 2.
     if errors:
-        print("[e] radar completed with template errors — exiting 2.")
+        print("[e] radar completed with template errors - exiting 2.")
         sys.exit(2)
 
     gating = [f for f in results if meets_fail_threshold(f["severity"], fail_on)]
@@ -458,7 +472,7 @@ def print_write_outputs(
         gating_count = sum(len(f["locations"]) for f in gating)
         print(
             f"[i] {gating_count} finding(s) at or above severity '{fail_on}' "
-            f"— exiting 1 for CI gating (override with --fail-on)."
+            f"- exiting 1 for CI gating (override with --fail-on)."
         )
         sys.exit(1)
     sys.exit(0)

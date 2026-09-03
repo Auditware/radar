@@ -39,7 +39,7 @@ def test_anchor_template_scoping(stem, request):
     assert not good_errors, f"{stem}: rule threw on good fixture: {good_errors}"
 
     bad_hits = [h for h in counts["bad"] if not str(h).startswith("ERROR")]
-    assert bad_hits, f"{stem}: MISSED the bug — no detection on bad fixture"
+    assert bad_hits, f"{stem}: MISSED the bug - no detection on bad fixture"
     assert counts["good"] == [], f"{stem}: FALSE POSITIVE on good fixture: {counts['good']}"
 
 
