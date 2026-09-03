@@ -609,6 +609,35 @@ def test_template_accuracy(template_data):
         f"Expected good locations should be empty list, got {expected_good_locations}"
 
 
+def test_every_template_has_a_mock_pair_on_disk():
+    """Collection is silent: get_template_test_data appends nothing for a template
+    whose mock folder it cannot resolve, so the suite shrinks without a failure or
+    a skip. That is how rules have stayed broken while CI looked green (see the
+    name-drift fallback in get_template_test_data).
+
+    Asserted against the committed mock folders rather than the generated
+    ast.json, so this stays honest in jobs that have no Rust or solc toolchain
+    and therefore cannot produce fixtures."""
+    mocks_path = Path("tests/mocks").absolute()
+    orphans = []
+
+    for yaml_file in sorted(Path("builtin_templates").absolute().rglob("*.yaml")):
+        yaml_data = yaml.safe_load(open(yaml_file))
+        # Same resolution order as get_template_test_data: display name first,
+        # then the filename it drifted from.
+        by_name = mocks_path / normalize_template_name(yaml_data["name"])
+        by_stem = mocks_path / yaml_file.stem
+        if by_name.is_dir() or by_stem.is_dir():
+            continue
+        orphans.append(f"{yaml_file.name} ({yaml_data['name']})")
+
+    assert not orphans, (
+        f"{len(orphans)} template(s) resolve to no mock folder and are dropped from "
+        f"the accuracy suite silently: {', '.join(orphans)}. Add "
+        f"tests/mocks/<name>/{{bad,good}}/ for each."
+    )
+
+
 def test_all_templates_have_required_fields_in_order():
     """Verify all templates have required fields in the correct order."""
     templates_path = Path("builtin_templates").absolute()

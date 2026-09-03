@@ -1,0 +1,65 @@
+name: CLI End-to-End (image layer)
+
+# Every other suite runs the template engine in-process, importing rust_syn from the
+# virtualenv, so nothing in CI exercises the built image: the Dockerfile, the baked
+# template copy, the rust_syn build, the gunicorn/celery wiring, the entrypoint, and
+# dependency bumps are all invisible to them. tests/test_cli.py drives the real CLI
+# through the real containers and is the only suite that covers that layer - it is
+# marked active_runtime, which every other job excludes, so it has never run here.
+#
+# Not on pull_request and not a merge gate: it builds both images from source, which
+# is minutes rather than seconds, and a red run here means "look at the image", not
+# "this PR is wrong".
+on:
+  schedule:
+    # 03:40 UTC daily, before the corpus-2 job so a broken image is the first thing
+    # reported rather than a confusing scan result.
+    - cron: "40 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cli-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The compose file names the published images. Building from source under the
+      # same tags makes compose resolve them locally, so the run tests this commit
+      # rather than whatever is currently on ghcr.
+      - name: Build images from source
+        run: |
+          docker build -t ghcr.io/auditware/radar-api:main api/
+          docker build -t ghcr.io/auditware/radar-controller:main controller/
+
+      # The CLI resolves its own directory as ${XDG_CONFIG_HOME:-$HOME}/.radar and
+      # runs compose from there, so point that at the checkout.
+      - name: Point the CLI's base directory at the checkout
+        run: ln -s "$GITHUB_WORKSPACE" "$HOME/.radar"
+
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Install dependencies
+        working-directory: api/
+        run: poetry install --no-root
+
+      - name: Run the CLI end-to-end suite
+        working-directory: api/
+        run: poetry run pytest tests/test_cli.py -q -m active_runtime
+
+      # Addressed by container_name rather than compose project, which differs
+      # because the CLI runs compose from the symlinked base directory.
+      - name: Container logs on failure
+        if: failure()
+        run: |
+          docker ps -a
+          for c in radar-api radar-celeryworker-1 postgres radar-rabbitmq-1; do
+            echo "--- $c"
+            docker logs --tail 200 "$c" 2>&1 || true
+          done
