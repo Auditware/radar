@@ -7,6 +7,7 @@ Run from the controller directory: `python -m pytest tests/`
 """
 
 import sys
+import types
 from pathlib import Path
 from unittest import mock
 
@@ -142,17 +143,20 @@ def test_copy_to_docker_mount_copies_a_scoped_folder(tmp_path):
     assert not (dst.parent / "two").exists()
 
 
-def test_main_copies_the_scoped_path_not_the_whole_mount(tmp_path, monkeypatch):
+def test_main_copies_the_scoped_path_not_the_whole_mount(monkeypatch):
     """main() derives path_type from --container-path, so it must copy that path.
     Sourcing from /contract failed outright for a file and copied the wrong tree
-    for a subdirectory."""
-    # controller.api resolves these at import time; nothing here reaches the API.
-    for var, value in (
-        ("DJANGO_PORT", "8000"),
-        ("DJANGO_HOST", "api"),
-        ("DJANGO_HOST_LOCAL", "localhost"),
-    ):
-        monkeypatch.setenv(var, value)
+    for a subdirectory.
+
+    `main` imports controller.api, which pulls in requests and reads env at import
+    time. Neither belongs in this suite - it is meant to run on a bare pytest with
+    no runtime dependencies - so the module is stubbed at the import boundary."""
+    fake_api = types.ModuleType("api")
+    fake_api.generate_ast_for_file_or_folder = lambda *a: {"ast": {}}
+    fake_api.run_scan = lambda *a: None
+    fake_api.poll_results = lambda *a: ([], [])
+    monkeypatch.setitem(sys.modules, "api", fake_api)
+    monkeypatch.delitem(sys.modules, "main", raising=False)
     import main  # noqa: PLC0415
 
     scoped = Path("/contract/src/lib.rs")
@@ -161,9 +165,6 @@ def test_main_copies_the_scoped_path_not_the_whole_mount(tmp_path, monkeypatch):
     monkeypatch.setattr(
         main, "copy_to_docker_mount", lambda src, dst, kind: copied.append((src, dst))
     )
-    monkeypatch.setattr(main, "generate_ast_for_file_or_folder", lambda *a: {"ast": {}})
-    monkeypatch.setattr(main, "run_scan", lambda *a: None)
-    monkeypatch.setattr(main, "poll_results", lambda *a: ([], []))
     monkeypatch.setattr(main, "print_write_outputs", lambda *a, **k: None)
     monkeypatch.setattr(
         main, "parse_arguments", lambda: mock.Mock(
