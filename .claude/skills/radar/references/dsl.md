@@ -4,7 +4,7 @@ Full Rust reference: `docs/Rule-Functions.md` (published to the wiki). This file
 
 ## Rule shape
 
-`ast` is injected as `dict.items()`; `nodes` is the root node for one file — a `RustASTNode` or `SolidityASTNode` depending on the template's `language`. Nothing inherits anything; the rule is a script.
+`ast` is injected as `dict.items()`; `nodes` is the root node for one file - a `RustASTNode` or `SolidityASTNode` depending on the template's `language`. Nothing inherits anything; the rule is a script.
 
 ```python
 for source, nodes in ast:
@@ -23,13 +23,13 @@ for source, nodes in ast:
 
 A finding is reported by `print()`ing a node's `to_result()`. Anything printed that is not a valid node lands in the finding's `debug` field instead.
 
-Two styles coexist. Explicit iteration with `.nodes` truthiness (above) is the majority and is easier to reason about. The `exit_on_none()` / `exit_on_value()` style raises `StopIteration` to abort the file — compact, but it shares the bare `except` with real errors, so a typo reads as "pattern absent".
+Two styles coexist. Explicit iteration with `.nodes` truthiness (above) is the majority and is easier to reason about. The `exit_on_none()` / `exit_on_value()` style raises `StopIteration` to abort the file - compact, but it shares the bare `except` with real errors, so a typo reads as "pattern absent".
 
 ## Signatures worth checking
 
 | Call | Note |
 |---|---|
-| `find_by_similar_access_path(access_path, stop_keyword)` | **Two** required arguments — the path, and the keyword it is truncated at |
+| `find_by_similar_access_path(access_path, stop_keyword)` | **Two** required arguments - the path, and the keyword it is truncated at |
 | `find_negative_of_operation(operation_name, *args)` | `operation_name` is another ASTNode **method name**, looked up with `getattr` and called with `*args`, e.g. `("find_comparisons_between", "a", "b")` |
 | `find_chained_calls(*idents)` | Matches **consecutive sibling children** whose idents equal the arguments in order, returning an `ASTNodeListGroup`. Not method chaining |
 
@@ -69,4 +69,4 @@ find_comparisons_between(*names)
 
 ## Sandbox
 
-Allowed builtins: `print len range dict list tuple set type`. No imports. Everything else — `any`, `all`, `sorted`, `enumerate`, `str`, `int`, `isinstance`, `min`, `max`, `sum` — raises `RuntimeError`, which the rule's `except` swallows. Methods on objects are fine: `.startswith()`, `.split()`, `.lower()`, `.get()` are used throughout the corpus.
+Allowed builtins: `print len range dict list tuple set type`. No imports. Everything else - `any`, `all`, `sorted`, `enumerate`, `str`, `int`, `isinstance`, `min`, `max`, `sum` - raises `RuntimeError`, which the rule's `except` swallows. Methods on objects are fine: `.startswith()`, `.split()`, `.lower()`, `.get()` are used throughout the corpus.
