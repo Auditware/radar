@@ -6,9 +6,7 @@ compatibility: docker, radar cli
 
 # radar
 
-Radar scans smart contracts by running YAML **templates** - Python rules in a sandboxed DSL - over an enriched AST. Writing a good template is an auditing task, not a scripting task: the bar is a rule that catches a real vulnerability class it has never seen, never fires on correct code, and points at the exact line that is wrong.
-
-This skill covers what you cannot infer from the repo. For CLI flags run `./radar --help` (authoritative, needs no Docker). For the full DSL method list read `docs/Rule-Functions.md`; for the wiki guide, `docs/How-to-Write-Templates.md`.
+Use radar to perform a full, 100% coverage security scan for critical vulnerabilities. start with running all templates per the targeted language, take insights from them as low hanging fruits, and continue to manual audit. at the end - reflect back to templates that could've done better, or engine utility improvements - and offer to PR new improvements for the next cycle.
 
 ## How the pipeline actually works
 
