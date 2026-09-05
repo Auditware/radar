@@ -1,6 +1,7 @@
 ---
 name: radar
 description: Use radar for smart contract security analysis, AST generation, and detection template development. Covers Rust (Anchor, native Solana, Stylus) and Solidity (standalone, Foundry). Triggers include scanning contracts for vulnerabilities, generating or inspecting a contract AST, writing or debugging a radar template, adding DSL utility functions, and contributing detection rules back to radar. Use when users mention radar, radar templates, the radar DSL, AST generation for Rust/Solidity/Anchor/Stylus/Foundry, or smart contract vulnerability scanning.
+compatibility: docker, radar cli
 ---
 
 # radar
