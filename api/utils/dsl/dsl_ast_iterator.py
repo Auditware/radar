@@ -4,6 +4,26 @@ from typing import List, Optional
 import json
 
 
+class RuleSkip(Exception):
+    """Raised by `exit_on_none` / `exit_on_value` to abandon the current item.
+
+    This is control flow, not an error: it means "this node is not the shape I
+    am looking for, move on". It exists as its own type because the two used to
+    share a channel with real failures.
+
+    Every template guards its loop body with a bare `except: continue`, which is
+    the only way to catch an exit_on_* raise. When those raised `StopIteration`
+    - a builtin - that same handler also caught the template's own bugs, and a
+    rule that died read identically to a rule that found nothing: zero findings,
+    no error, a clean scan. Three separate rules shipped broken that way (`min`
+    and `str` not being in the sandbox, `to_result()` being an unhashable dict).
+
+    The sandbox now rewrites those bare handlers to catch this type only, so a
+    genuine error escapes to `run_scan_task`, which already records it and makes
+    the controller exit non-zero.
+    """
+
+
 def dsl_log(func):
     """Decorator for logging DSL function calls and their results.
 
@@ -48,8 +68,8 @@ def dsl_log(func):
             else:
                 print(f"[d] [dsl_log] {func_name}({params}) -> {node_count} nodes")
             return result
-        except StopIteration as e:
-            print(f"[d] [dsl_log] {func_name}({params}) -> StopIteration: {e}")
+        except RuleSkip as e:
+            print(f"[d] [dsl_log] {func_name}({params}) -> RuleSkip: {e}")
             raise
 
     return wrapper
@@ -97,36 +117,36 @@ class ASTNodeListGroup:
         """Get the first node list in the group.
 
         Returns:
-            The first node list in the group, or raises StopIteration if empty.
+            The first node list in the group, or raises RuleSkip if empty.
         """
         return self.node_lists[0] if self.node_lists else self.exit_on_none()
 
     @dsl_log
     def exit_on_none(self):
-        """Exit with StopIteration if no node lists are found.
+        """Exit with RuleSkip if no node lists are found.
 
         Returns:
             Self if node lists exist.
 
         Raises:
-            StopIteration: If no node lists are found.
+            RuleSkip: If no node lists are found.
         """
         if not self.node_lists:
-            raise StopIteration("No node lists found")
+            raise RuleSkip("No node lists found")
         return self
 
     @dsl_log
     def exit_on_value(self):
-        """Exit with StopIteration if node lists are found.
+        """Exit with RuleSkip if node lists are found.
 
         Returns:
             Self if no node lists exist.
 
         Raises:
-            StopIteration: If node lists are found.
+            RuleSkip: If node lists are found.
         """
         if self.node_lists:
-            raise StopIteration("Node lists found")
+            raise RuleSkip("Node lists found")
         return self
 
     def to_raw_ast_debug(self):
@@ -193,36 +213,36 @@ class ASTNodeList:
         """Get the first node in the list.
 
         Returns:
-            The first node in the list, or raises StopIteration if empty.
+            The first node in the list, or raises RuleSkip if empty.
         """
         return self.nodes[0] if self.nodes else self.exit_on_none()
 
     @dsl_log
     def exit_on_none(self):
-        """Exit with StopIteration if no nodes are found.
+        """Exit with RuleSkip if no nodes are found.
 
         Returns:
             Self if nodes exist.
 
         Raises:
-            StopIteration: If no nodes are found.
+            RuleSkip: If no nodes are found.
         """
         if not self.nodes:
-            raise StopIteration("No nodes found")
+            raise RuleSkip("No nodes found")
         return self
 
     @dsl_log
     def exit_on_value(self):
-        """Exit with StopIteration if nodes are found.
+        """Exit with RuleSkip if nodes are found.
 
         Returns:
             Self if no nodes exist.
 
         Raises:
-            StopIteration: If nodes are found.
+            RuleSkip: If nodes are found.
         """
         if self.nodes:
-            raise StopIteration("Nodes found")
+            raise RuleSkip("Nodes found")
         return self
 
     def to_raw_ast_debug(self):

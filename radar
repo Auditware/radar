@@ -25,6 +25,7 @@ usage() {
     echo "      --write-baseline  Snapshot current findings to the --baseline path instead of reporting/gating             (optional)"
     echo "  -o, --output          Results output file path (output type controlled by extension e.g. .json/.md/.sarif)     (optional) (default - current directory)"
     echo "  -a, --ast             Additionally output the scanned contract's parsed AST                                    (optional)"
+    echo "      --include-tests   Scan test code too (tests/ dirs, test-named files, #[cfg(test)] / #[test] items)         (optional) (default - tests are skipped)"
     echo "  -d, --dev             Use development docker-compose file for local builds and enable debug output             (optional)"
     echo "  -ss, --store-sarif    Store and accumulate SARIF results from previous runs                                    (optional) (default - clean slate)"
     echo "  -u, --update          Check for and pull latest Docker images before running                                   (optional)"
@@ -243,6 +244,7 @@ shutdown_containers=false
 development_mode=false
 store_sarif=false
 check_update=false
+include_tests=false
 
 # Check if first argument is a command
 command=""
@@ -282,6 +284,7 @@ while [[ "$#" -gt 0 ]]; do
         -f|--fail-on) fail_on="$2"; shift ;;
         -b|--baseline) baseline_file=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         --write-baseline) write_baseline=true ;;
+        --include-tests) include_tests=true ;;
         -o|--output) output_directory=$(realpath "$2" 2>/dev/null || echo "$2"); shift ;;
         -k|--kill-after) shutdown_containers=true ;;
         -d|--dev) development_mode=true ;;
@@ -534,6 +537,9 @@ if [ "$write_baseline" = true ]; then
     docker_command+=" --write-baseline"
 elif [ -n "$baseline_file" ] && [ -f "$baseline_file" ]; then
     docker_command+=" --baseline /baseline"
+fi
+if [ "$include_tests" = true ]; then
+    docker_command+=" --include-tests"
 fi
 if [ "$development_mode" = true ]; then
     docker_command+=" --debug"
