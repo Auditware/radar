@@ -127,18 +127,6 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Snapshot current findings as the baseline instead of reporting/gating",
     )
-    parser.add_argument(
-        "--include-tests",
-        required=False,
-        action="store_true",
-        help=(
-            "Scan test code too. Excluded by default: tests unwrap, hardcode keys "
-            "and skip owner checks on purpose, so reporting them is a fixed cost "
-            "on every scan. Covers tests/ directories, test-named files, and "
-            "#[cfg(test)] / #[test] items inside production files. benches/ and "
-            "examples/ are always scanned."
-        ),
-    )
     return parser.parse_args()
 
 
