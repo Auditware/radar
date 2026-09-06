@@ -145,6 +145,34 @@ radar -p . --baseline .radar-baseline.json                    # gate on new find
 The baseline fingerprints each finding by rule and project-relative location.
 Commit the file so every developer and the CI share the same accepted set.
 
+### Test code
+
+Test code is excluded by default. Tests unwrap, hardcode keys, reuse a PDA
+across two domains and skip owner checks, because writing them the production
+way would obscure what is being tested - so reporting them is a fixed cost on
+every scan, and the cost is not only noise: it trains people to skim the report,
+which is how the finding that mattered gets missed.
+
+```bash
+radar -p .                    # test code excluded (default)
+radar -p . --include-tests    # scan it too
+```
+
+Excluded, judged relative to the scanned path:
+
+- `tests/` directories (Cargo's integration tests)
+- files named `test.rs` / `tests.rs`, `test_*.rs`, `*_test.rs`, `*_tests.rs`
+- `#[cfg(test)]` and `#[test]` items *inside* production files, which no path
+  filter can see
+
+Still scanned: `benches/` and `examples/`. A benchmark is not asserting
+correctness so it has no reason to be written unsafely, and an example is code
+users are invited to copy - a vulnerability in one is worth more, not less.
+
+Paths are judged relative to the path you scanned, so a checkout that happens to
+live under `~/work/tests/my-program` is not classified as test code in its
+entirety. Naming a single file explicitly (`-s src/tests.rs`) always scans it.
+
 ### Inline suppression
 
 Silence a specific line in the source:

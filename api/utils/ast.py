@@ -30,6 +30,51 @@ def generate_ast_for_solidity_file(source_file_path: Path, remappings: list = No
         raise
 
 
+def _scan_rust_files(directory: Path, include_tests: bool, root: Path = None):
+    """The `.rs` files under `directory` a scan should read.
+
+    One place decides, so every entry point - single crate, Anchor workspace,
+    aggregate folder - excludes the same set. `root` is what test paths are
+    judged against and defaults to the directory being walked.
+    """
+    files = sorted(directory.rglob("*.rs"))
+    if include_tests:
+        return files
+    return [f for f in files if not is_test_path(f, relative_to=root or directory)]
+
+
+def _parse_sources(rs_files, package_name=None, package_version=None,
+                   include_tests: bool = True):
+    """Parse each `.rs` file, keeping the ones that parse and naming the ones that do not.
+
+    A single file the parser cannot read used to abort the whole scan: one
+    unsupported construct anywhere in a repository and radar returned an error
+    instead of the findings from every other file. For a tool meant to gate CI
+    on real repositories that is a bad trade.
+
+    The other bad trade would be to swallow it. Skipped files are returned so
+    the caller can report them - a scan that quietly read less than it was asked
+    to is indistinguishable from a clean one, which is the failure this whole
+    change set is about. Raises only when nothing parsed at all.
+    """
+    sources, unparsed = {}, []
+    for rs_file in rs_files:
+        try:
+            sources[str(rs_file)] = generate_ast_for_rust_file(
+                rs_file, package_name, package_version, include_tests
+            )
+        except Exception as exc:
+            unparsed.append({"file": str(rs_file), "error": str(exc)})
+            logger.warning("Could not parse %s: %s", rs_file, exc)
+
+    if rs_files and not sources:
+        raise ValueError(
+            f"None of the {len(rs_files)} Rust source(s) could be parsed. "
+            f"First error: {unparsed[0]['error']}"
+        )
+    return sources, unparsed
+
+
 def parse_toml_keys(toml_path: Path, keys: list) -> list:
     toml_data = toml.load(toml_path)
     results = []
@@ -50,7 +95,7 @@ def generate_ast_for_rust_file(
     source_file_path: Path,
     package_name: str = None,
     package_version: str = None,
-    include_tests: bool = False,
+    include_tests: bool = True,
 ) -> dict:
     rust_code = source_file_path.read_text()
 
@@ -68,15 +113,11 @@ def generate_ast_for_rust_file(
             ast_data.get("items"), rust_code, source_file_path
         )
 
+        # After enrichment, never before. Enrichment hands each node the nth
+        # textual occurrence of its identifier, so dropping items first would
+        # shift the spans of everything that remains - a `#[cfg(test)] mod
+        # tests` above the production code would move the findings below it.
         if not include_tests:
-            # Pruned *after* enrichment, deliberately. Positions are handed out
-            # by scanning the source text and consuming the nth occurrence of
-            # each identifier, and the source still contains the test code
-            # either way. Pruning first would leave the surviving nodes to
-            # consume positions starting from the first occurrence - which for
-            # a `#[cfg(test)] mod tests` placed above the code it tests is the
-            # one inside the tests. Dropping nodes afterwards cannot move the
-            # span of any node that remains.
             enriched_ast = strip_test_items(enriched_ast)
 
         source_sepcific_metadata = {}
@@ -275,30 +316,6 @@ def enrich_ast_with_source_lines(
     return ast_items
 
 
-def collect_rust_sources(directory: Path, include_tests: bool = False) -> list:
-    """Every .rs file under `directory`, minus the ones that are tests.
-
-    Integration tests and fixtures live in files whose path says so. The unit
-    tests inside a production module are invisible here and are pruned from the
-    AST instead; see `utils.test_sources`.
-    """
-    sources = sorted(directory.rglob("*.rs"))
-    if include_tests:
-        return sources
-
-    kept = [s for s in sources if not is_test_path(s, relative_to=directory)]
-    skipped = len(sources) - len(kept)
-    if skipped:
-        # Say so. A scan that quietly drops files is indistinguishable from a
-        # scan that found nothing, which is a failure mode this tool has
-        # already been bitten by.
-        logger.info(
-            f"Skipped {skipped} test source(s) under {directory}; "
-            "pass --include-tests to scan them"
-        )
-    return kept
-
-
 def find_anchor_program_paths(source_file_path, workspace_members):
     program_paths = []
 
@@ -319,53 +336,52 @@ def find_anchor_program_paths(source_file_path, workspace_members):
     return program_paths
 
 
-def generate_ast_for_rust_program(source_file_path: Path, include_tests: bool = False) -> dict:
+def generate_ast_for_rust_program(
+    source_file_path: Path, include_tests: bool = True, root: Path = None
+) -> dict:
     cargo_toml_path = source_file_path / "Cargo.toml"
     package_name, package_version = parse_toml_keys(
         cargo_toml_path, ["package.name", "package.version"]
     )
     directory = cargo_toml_path.parent
-    rs_files = collect_rust_sources(directory, include_tests)
+    rs_files = _scan_rust_files(directory, include_tests, root)
 
-    radar_ast = {"sources": {}, "metadata": {}}
-    for rs_file in rs_files:
-        file_ast = generate_ast_for_rust_file(
-            rs_file, package_name, package_version, include_tests
-        )
-        radar_ast["sources"][str(rs_file)] = file_ast
-
-    sorted_sources = dict(sorted(radar_ast["sources"].items()))
-    radar_ast["sources"] = sorted_sources
+    sources, unparsed = _parse_sources(
+        rs_files, package_name, package_version, include_tests
+    )
+    radar_ast = {"sources": dict(sorted(sources.items())), "metadata": {}}
+    if unparsed:
+        radar_ast["metadata"]["unparsed_sources"] = unparsed
 
     return radar_ast
 
 
 def generate_anchor_project_derived_program_ast(
-    program_path: Path, include_tests: bool = False
+    program_path: Path, include_tests: bool = True, root: Path = None
 ) -> dict:
     cargo_toml_path = program_path / "Cargo.toml"
     package_name, package_version = parse_toml_keys(
         cargo_toml_path, ["package.name", "package.version"]
     )
-    rs_files = collect_rust_sources(program_path, include_tests)
+    rs_files = _scan_rust_files(program_path, include_tests, root)
 
-    program_ast = {"sources": {}, "metadata": {}}
-
-    for rs_file in rs_files:
-        file_ast = generate_ast_for_rust_file(
-            rs_file, package_name, package_version, include_tests
-        )
-        program_ast["sources"][str(rs_file)] = file_ast
-        program_ast["metadata"][str(rs_file)] = {
+    sources, unparsed = _parse_sources(
+        rs_files, package_name, package_version, include_tests
+    )
+    program_ast = {"sources": sources, "metadata": {}}
+    for source in sources:
+        program_ast["metadata"][source] = {
             "package_name": package_name,
             "package_version": package_version,
             "cargo_toml_path": str(cargo_toml_path),
         }
+    if unparsed:
+        program_ast["metadata"]["unparsed_sources"] = unparsed
 
     return program_ast
 
 
-def generate_ast_for_anchor_project(source_path: Path, include_tests: bool = False) -> dict:
+def generate_ast_for_anchor_project(source_path: Path, include_tests: bool = True) -> dict:
     anchor_toml_path = source_path / "Anchor.toml"
     anchor_version, solana_version = parse_toml_keys(
         anchor_toml_path, ["anchor_version", "solana_version"]
@@ -393,8 +409,13 @@ def generate_ast_for_anchor_project(source_path: Path, include_tests: bool = Fal
     }
 
     for program_path in programs:
-        program_ast = generate_anchor_project_derived_program_ast(program_path, include_tests)
+        program_ast = generate_anchor_project_derived_program_ast(
+            program_path, include_tests, root=source_path
+        )
         project_ast["sources"].update(program_ast["sources"])
+        unparsed = program_ast["metadata"].get("unparsed_sources")
+        if unparsed:
+            project_ast["metadata"].setdefault("unparsed_sources", []).extend(unparsed)
 
     sorted_sources = dict(sorted(project_ast["sources"].items()))
     project_ast["sources"] = sorted_sources
@@ -402,16 +423,59 @@ def generate_ast_for_anchor_project(source_path: Path, include_tests: bool = Fal
     return project_ast
 
 
-def generate_aggregate_program_ast(base_path: Path, include_tests: bool = False) -> dict | None:
+def generate_program_ast_for_folder(base_path: Path, include_tests: bool = True) -> dict:
+    """Build the AST for a scanned folder, the way a real scan does.
+
+    The dispatch used to live inline in `views.py`, which meant every harness
+    that wanted to scan a directory - the corpus regression, the measurement
+    rig - had to restate it. A restatement drifts: the template harness parses
+    one file per AST while production parses the whole crate, so the two-pass
+    rules (`pda_sharing`, `init_if_needed_reinitialization`) are structurally
+    unable to fire under the harness while working in production, and no test
+    can see that. One function, called from both, is the fix for that class of
+    hole rather than for one instance of it.
+
+    Raises ValueError when the folder holds no Rust crate at all, which is the
+    same condition `views.py` reported before.
+    """
+    if (base_path / "Xargo.toml").exists():
+        return generate_ast_for_rust_program(base_path, include_tests, root=base_path)
+    if (base_path / "Anchor.toml").exists():
+        return generate_ast_for_anchor_project(base_path, include_tests)
+
+    ast_data = generate_aggregate_program_ast(base_path, include_tests)
+    if ast_data is not None:
+        return ast_data
+
+    # No crate manifest anywhere. A folder of `.rs` files is still Rust the
+    # rules can read, and refusing it turned a legitimate scan target into a
+    # hard error with nothing actionable in it. Parse what is there; only a
+    # folder with no Rust at all is genuinely nothing to scan.
+    rs_files = _scan_rust_files(base_path, include_tests)
+    if not rs_files:
+        raise ValueError(
+            f"No Rust sources found under {base_path} (no Cargo.toml and no .rs files)."
+        )
+    sources, unparsed = _parse_sources(rs_files, include_tests=include_tests)
+    blob = {"sources": dict(sorted(sources.items())), "metadata": {}}
+    if unparsed:
+        blob["metadata"]["unparsed_sources"] = unparsed
+    return blob
+
+
+def generate_aggregate_program_ast(base_path: Path, include_tests: bool = True) -> dict | None:
     project_ast = {"sources": {}, "metadata": {}}
     found_cargo_toml = False
 
     def add_program(directory):
         nonlocal found_cargo_toml
         found_cargo_toml = True
-        program_ast = generate_ast_for_rust_program(directory, include_tests)
+        program_ast = generate_ast_for_rust_program(directory, include_tests, root=base_path)
         for file_path, ast in program_ast["sources"].items():
             project_ast["sources"][file_path] = ast
+        unparsed = program_ast["metadata"].get("unparsed_sources")
+        if unparsed:
+            project_ast["metadata"].setdefault("unparsed_sources", []).extend(unparsed)
 
     def process_directory(directory):
         for subdir in directory.iterdir():

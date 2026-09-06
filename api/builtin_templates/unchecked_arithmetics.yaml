@@ -1,6 +1,6 @@
 version: 0.2.0
 author: avigaildanesh
-accent: rust
+accent: ""
 name: Unchecked Arithmetics
 description: Arithmetic operations without overflow checks can lead to unexpected behavior, incorrect calculations, or security vulnerabilities when values exceed their maximum limits.
 severity: Low
@@ -13,7 +13,7 @@ rule: |
       for func in funcs:
         try:
           # Rust's guarded forms, all of them. `saturating_*` is as deliberate
-          # as `checked_*` — it clamps rather than returning an Option — and
+          # as `checked_*` - it clamps rather than returning an Option - and
           # some codebases mandate it in preference, which this rule then read
           # as no overflow handling at all.
           if func.find_by_names(
@@ -43,7 +43,7 @@ rule: |
           # `a + b + c + d` reported the same line three times over.
           # Report the operation, not its parent. The parent of a top-level
           # operation is the enclosing function, so findings pointed at `fn`
-          # signatures rather than at any arithmetic — and every operation in
+          # signatures rather than at any arithmetic - and every operation in
           # one expression resolved to that same spot, reporting `a + b + c`
           # once per operator.
           seen = set()
@@ -94,7 +94,7 @@ rule: |
 
             # An expression built only from literals and constants is
             # evaluated at compile time, where an overflow is a compile error
-            # rather than a wrap — `8 + Self::INIT_SPACE` and
+            # rather than a wrap - `8 + Self::INIT_SPACE` and
             # `Vec::with_capacity(32 + 4 + 2 + 8 + 32)` cannot overflow at
             # runtime and are not what this rule is for. Constants are
             # recognised by Rust's SCREAMING_CASE convention; `Self` is a type

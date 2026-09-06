@@ -1,0 +1,58 @@
+version: 0.1.0
+author: forefy
+accent: ""
+name: Mint Configuration Unvalidated
+description: Accepting a token mint and pricing amounts in its raw units without checking the mint's decimals. Two mints sharing a symbol and differing in decimals value the same integer amount orders of magnitude apart, so a protocol that never checks credits whatever the caller's mint claims. The fix compares the mint's decimals against the value the protocol prices in.
+severity: Medium
+certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/class_examples/mint-configuration-validation/vulnerable/01_decimals_unvalidated.rs
+rule: |
+  for source, nodes in ast:
+      for function in nodes.find_all_functions():
+          try:
+              names = function.subtree_idents()
+
+              # Only handlers that actually move an amount around.
+              if not (names & set(["amount", "shares", "balance", "liquidity"])):
+                  continue
+
+              # A function handed every account it touches decided none of them,
+              # so it is not where a missing mint check lives - the caller chose
+              # the mint. `fn token_burn(.., mint: AccountInfo, amount: u64)` is
+              # a CPI wrapper, and demanding validation there reports every thin
+              # wrapper in the ecosystem.
+              if function.chose_nothing():
+                  continue
+
+              # Is a mint in scope for *this* handler? In Anchor it is declared
+              # on the Accounts struct the handler names, not inside the body,
+              # so asking the function alone misses every Anchor program - and
+              # asking the whole file makes any mint anywhere implicate every
+              # handler beside it.
+              in_scope = "mint" in names or "Mint" in names
+              if not in_scope:
+                  for struct in nodes.find_chained_calls("derive", "Accounts"):
+                      for node in struct:
+                          struct_path = node.access_path.split(".attrs")[0]
+                          struct_name = None
+                          for candidate in nodes.find_by_access_path(struct_path):
+                              if candidate.access_path == struct_path:
+                                  struct_name = candidate.ident
+                                  break
+                          if struct_name is None or struct_name not in names:
+                              continue
+                          for mint in nodes.find_by_names("Mint"):
+                              if mint.access_path.startswith(struct_path + "."):
+                                  in_scope = True
+                                  break
+              if not in_scope:
+                  continue
+
+              # `decimals` has to be compared against what the protocol prices
+              # in, not merely read out of the mint.
+              if "decimals" in names and function.guarded_idents(subjects=("decimals",)):
+                  continue
+
+              print(function.to_result())
+          except:
+              continue

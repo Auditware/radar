@@ -23,6 +23,7 @@ usage() {
     echo "  -f, --fail-on         Min severity that makes radar exit 1 for CI gating: critical|high|medium|low|none                 (optional) (default - low, i.e. any finding; errors always exit 2)"
     echo "  -b, --baseline        Path to a baseline file; findings it lists are not reported or gated                     (optional)"
     echo "      --write-baseline  Snapshot current findings to the --baseline path instead of reporting/gating             (optional)"
+    echo "      --include-tests   Scan test code too (tests/ dirs, test-named files, #[cfg(test)] items); excluded by default (optional)"
     echo "  -o, --output          Results output file path (output type controlled by extension e.g. .json/.md/.sarif)     (optional) (default - current directory)"
     echo "  -a, --ast             Additionally output the scanned contract's parsed AST                                    (optional)"
     echo "      --include-tests   Scan test code too (tests/ dirs, test-named files, #[cfg(test)] / #[test] items)         (optional) (default - tests are skipped)"
@@ -241,6 +242,7 @@ ignore_severities=""
 output_directory="$INITIAL_DIR"
 generate_ast=false
 shutdown_containers=false
+include_tests=false
 development_mode=false
 store_sarif=false
 check_update=false
@@ -248,7 +250,14 @@ include_tests=false
 
 # Check if first argument is a command
 command=""
-if [[ "$1" == "update" ]]; then
+if [[ $# -eq 0 ]]; then
+    # No arguments at all. Without this the script falls through every branch
+    # below - `-n "$1"` fails on an empty first argument, so the unknown-command
+    # case does not catch it either - and lands in the environment setup further
+    # down, where a first-time user is told the install script is missing. Typing
+    # the bare command should print help, not an install error.
+    usage
+elif [[ "$1" == "update" ]]; then
     command="update"
     shift
 elif [[ "$1" == "info" ]]; then
@@ -533,6 +542,10 @@ fi
 if [ -n "$fail_on" ]; then
     docker_command+=" --fail-on \"${fail_on}\""
 fi
+if [ "$include_tests" = true ]; then
+    docker_command+=" --include-tests"
+fi
+
 if [ "$write_baseline" = true ]; then
     docker_command+=" --write-baseline"
 elif [ -n "$baseline_file" ] && [ -f "$baseline_file" ]; then

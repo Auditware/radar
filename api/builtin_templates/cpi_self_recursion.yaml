@@ -1,0 +1,48 @@
+version: 0.1.0
+author: forefy
+accent: ""
+name: CPI Self Recursion
+description: Invoking a caller-supplied instruction that is permitted to target this program, without constraining which of its own entry points may be re-entered. The outer call is still on the stack, so state it has read is re-read and effects it has applied are applied again - reentrancy reached through CPI rather than a callback. Permitting self-invocation is not the bug; permitting it unconstrained is. The fix rejects the program's own dispatch entry points by discriminator or selector before invoking.
+severity: High
+certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/class_examples/cpi-recursion/vulnerable/01_executor_reenters_itself.rs
+rule: |
+  for source, nodes in ast:
+      for function in nodes.find_all_functions():
+          try:
+              invokes = function.find_by_names("invoke", "invoke_signed").exit_on_none()
+              names = function.subtree_idents()
+
+              # Self-targeting must actually be on the table: the handler
+              # compares the instruction's program against its own.
+              if "program_id" not in names:
+                  continue
+
+              # The instruction being dispatched has to come from somewhere the
+              # caller controls, not be built inline by this handler.
+              decoded = function.find_by_names(
+                  "to_instruction", "decode_instruction", "try_from_slice", "deserialize"
+              )
+              if not decoded.nodes:
+                  continue
+
+              # The fix constrains *which* instruction may be re-entered, by
+              # looking at its leading bytes. Asking merely whether `data`
+              # appears in the handler is not that question - an unrelated
+              # discriminator check elsewhere in the same function then excuses
+              # the missing guard, which is how the first draft of this rule
+              # passed its own example and reported the fixed program too.
+              guarded = False
+              for probe in function.find_by_names("get", "first", "starts_with"):
+                  reached = function.subtree_idents(
+                      probe.access_path.split(".method_call")[0]
+                  ) if ".method_call" in probe.access_path else set()
+                  if "data" in reached or "data" in names:
+                      guarded = True
+                      break
+              if guarded:
+                  continue
+
+              print(invokes.first().to_result())
+          except:
+              continue

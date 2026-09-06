@@ -75,13 +75,16 @@ def _solidity_project_ast(sol_paths, base_path: Path):
     return result
 
 
-def generate_variant(variant_dir: Path, force: bool):
+def generate_variant(variant_dir: Path, force: bool, only: str = None):
     out = variant_dir / "ast.json"
     if out.exists() and not force:
         return "skip (exists)"
 
     rs = sorted(variant_dir.rglob("*.rs"))
     sol = sorted(variant_dir.rglob("*.sol"))
+    language = "rust" if rs else ("solidity" if sol else None)
+    if only and language != only:
+        return f"skip (not {only})"
     try:
         if rs:
             data = _rust_ast(rs)
@@ -102,6 +105,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("names", nargs="*", help="mock names to (re)generate; default all")
     parser.add_argument("--force", action="store_true", help="regenerate existing fixtures too")
+    parser.add_argument(
+        "--only",
+        choices=("rust", "solidity"),
+        help="generate only this language's fixtures. A job without the matching "
+             "toolchain should scope itself with this rather than ignore the exit "
+             "code: a swallowed failure here means the accuracy suite collects "
+             "nothing for that language and passes by collecting nothing.",
+    )
     args = parser.parse_args()
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))  # for generate_mock_ast import
@@ -113,7 +124,7 @@ def main():
             vdir = MOCKS / name / variant
             if not vdir.is_dir():
                 continue
-            status = generate_variant(vdir, args.force)
+            status = generate_variant(vdir, args.force, args.only)
             if status == "written":
                 written += 1
             elif status.startswith("ERROR"):

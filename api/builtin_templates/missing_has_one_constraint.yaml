@@ -1,8 +1,9 @@
-version: 0.1.4
+version: 0.3.0
 author: forefy
 accent: anchor
 name: Missing has_one Constraint
-description: An account holding an authority Pubkey should be tied to the signer that claims it, either with a has_one constraint or an explicit key comparison. Without one, any signer can act on another account's behalf.
+description: An account holding an authority Pubkey should be tied to the signer that claims it, either with a has_one
+  constraint or an explicit key comparison. Without one, any signer can act on another account's behalf.
 severity: Low
 certainty: Low
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/missing_has_one_constraint/bad/src/lib.rs
@@ -92,7 +93,32 @@ rule: |
                       # explicit key comparison on the field counts as satisfied.
                       # `has_one` is not even expressible on a raw AccountInfo,
                       # which is precisely when the manual check gets written.
-                      if nodes.find_comparison_involving(authority_name).nodes:
+                      # Scope that escape to the handlers that actually take this
+                      # struct. Searched across the whole file, one instruction's
+                      # hand-written authority check excused every other struct
+                      # defined beside it - the file-scope suppression from #23,
+                      # one level down.
+                      struct_name = None
+                      for candidate in nodes.find_by_access_path(struct_path):
+                          if candidate.access_path == struct_path:
+                              struct_name = candidate.ident
+                              break
+
+                      scopes = [struct_path]
+                      if struct_name is not None:
+                          for handler in nodes.find_all_functions():
+                              if struct_name in handler.subtree_idents():
+                                  scopes.append(handler.access_path)
+
+                      checked_here = False
+                      for comparison in nodes.find_comparison_involving(authority_name):
+                          for scope in scopes:
+                              if comparison.access_path.startswith(scope + "."):
+                                  checked_here = True
+                                  break
+                          if checked_here:
+                              break
+                      if checked_here:
                           continue
 
                       for pubkey_node in pubkey_nodes:

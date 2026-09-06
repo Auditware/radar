@@ -25,10 +25,16 @@ jobs:
         run: poetry install --no-root
       - name: Install solc (Solidity mock fixtures)
         run: poetry run solc-select install 0.8.20 && poetry run solc-select use 0.8.20
-      - name: Generate mock AST fixtures
+      - name: Generate Solidity mock AST fixtures
         # tests/mocks/**/ast.json is gitignored, so without this the accuracy
-        # suite collects nothing and passes silently.
-        run: poetry run python scripts/generate_fixtures.py || true
+        # suite collects nothing and passes silently. This job has solc but no
+        # rust_syn, so it generates only what it can and says so: the previous
+        # `|| true` hid the Rust failures, and a Rust accuracy test that is
+        # never collected does not report as a skip - the job just goes green
+        # with less in it. The Rust half runs in `template-gate`, which has the
+        # parser, and `test_every_rust_mock_has_a_generated_fixture` fails there
+        # if it ever stops being generated.
+        run: poetry run python scripts/generate_fixtures.py --only solidity
       - name: Run pytest
         run: poetry run pytest -m "not active_runtime"
 
@@ -74,9 +80,45 @@ jobs:
       - name: Install dependencies
         working-directory: api/
         run: poetry install --no-root
+      - name: Generate mock AST fixtures
+        # This is the job with the Rust parser, so it is the job that owes the
+        # suite its Rust fixtures. No `|| true`: a fixture that cannot be built
+        # is a failure, not a quieter test run.
+        working-directory: api/
+        run: poetry run python scripts/generate_fixtures.py
+
       - name: Run template scoping gate
         working-directory: api/
         run: poetry run pytest tests/test_scoping.py -q
+
+      - name: Run the full accuracy suite
+        # Rust accuracy tests need the generated fixtures, so this is the only
+        # job where they are collected at all. Running them here is what makes
+        # the `|| true` removal above meaningful.
+        working-directory: api/
+        run: poetry run pytest tests/test_templates.py -q
+
+      - name: Run rule sweep (no rule may raise on any mock variant)
+        # Each rule against every mock, not just its own. Narrowing the bare
+        # `except:` to RuleSkip means a rule's own bug now propagates instead of
+        # being swallowed; this is what notices when one does.
+        working-directory: api/
+        run: poetry run pytest tests/test_rule_sweep.py -q
+
+      - name: Run class-example gate
+        # Independent examples per vulnerability class, several shapes each,
+        # written from the class definition rather than from a corpus case. A
+        # new rule has to satisfy these before the held-out corpus is spent on
+        # it - otherwise the only labelled instance is the one it was tuned on.
+        working-directory: api/
+        run: poetry run pytest tests/test_class_examples.py -q
+
+      - name: Run cross-file gate
+        # The only rules that walk every source before deciding. 250 of the 254
+        # mock variants hold one file, so without this their second pass - which
+        # is the whole rule - is never exercised.
+        working-directory: api/
+        run: poetry run pytest tests/test_cross_file.py -q
 
       - name: Run detection-regression gate
         working-directory: api/
