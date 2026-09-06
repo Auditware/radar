@@ -106,6 +106,33 @@ radar -p . --fail-on high     # only high/critical findings fail
 radar -p . --fail-on none     # report only, never fail on findings
 ```
 
+### Test code
+
+Tests are skipped by default. Test code is held to a different standard on
+purpose - it unwraps, hardcodes keys, reuses a PDA across two domains and skips
+the owner check, because doing any of that the production way would obscure what
+is being tested or make the case impossible to set up. Reporting it is a cost on
+every scan rather than a finding.
+
+```bash
+radar -p .                    # production code only (default)
+radar -p . --include-tests    # scan tests too
+```
+
+Skipped by path (`tests/`, `test/`, `testing/`, `__tests__` directories, and
+files named `tests.rs`, `test_*.rs`, `*_test.rs`, `*_tests.rs`, `*.test.rs`) and
+by attribute (items behind `#[cfg(test)]`, `#[test]`, `#[bench]`, and
+`#[tokio::test]`-style paths whose last segment is `test`). The attribute pass is
+what catches the usual Rust convention of a `#[cfg(test)] mod tests` inside the
+module it tests, which no path filter can see.
+
+Directory names are judged relative to the scanned root, so a checkout that
+itself lives under a `tests/` directory still scans normally. Whenever files are
+skipped, the run says how many.
+
+`benches/` and `examples/` are *not* skipped: a benchmark is not asserting
+correctness, and an example is code users are invited to copy.
+
 ### Baseline
 
 Accept everything present today and fail only on new findings:

@@ -1,6 +1,6 @@
-version: 0.1.0
+version: 0.2.0
 author: avigaildanesh
-accent: anchor
+accent: rust
 name: Unchecked Arithmetics
 description: Arithmetic operations without overflow checks can lead to unexpected behavior, incorrect calculations, or security vulnerabilities when values exceed their maximum limits.
 severity: Low
@@ -11,8 +11,128 @@ rule: |
     try:
       funcs = nodes.find_all_functions().exit_on_none()
       for func in funcs:
-        func.find_by_names("checked_add", "checked_sub", "checked_mul", "checked_div").exit_on_value()
-        for unchecked_comparison in func.find_binary_operations("*", "+", "-"):
-          print(unchecked_comparison.parent.to_result())
+        try:
+          # Rust's guarded forms, all of them. `saturating_*` is as deliberate
+          # as `checked_*` — it clamps rather than returning an Option — and
+          # some codebases mandate it in preference, which this rule then read
+          # as no overflow handling at all.
+          if func.find_by_names(
+              "checked_add", "checked_sub", "checked_mul", "checked_div",
+              "saturating_add", "saturating_sub", "saturating_mul", "saturating_div",
+              "wrapping_add", "wrapping_sub", "wrapping_mul",
+          ):
+            continue
+
+          # Floating point does not wrap. An f32/f64 overflow saturates to
+          # infinity, which is a precision problem and not the silent
+          # wraparound this rule is about. Asked per function because the types
+          # are not on the operation - the same reasoning, and the same
+          # exemption, as `integer_division_overflow`.
+          if func.find_by_names("f32", "f64"):
+            continue
+
+          # The method name sits on the `method_call` node itself, and the
+          # operation hangs off its `receiver`. Collect the names once so the
+          # fallible-operator check below can ask what was called on a result.
+          method_names = dict()
+          for candidate in func.find_by_access_path(".method_call"):
+            if candidate.ident is not None:
+              method_names[candidate.access_path] = candidate.ident
+
+          # One expression holds one operator per pair of operands, so
+          # `a + b + c + d` reported the same line three times over.
+          # Report the operation, not its parent. The parent of a top-level
+          # operation is the enclosing function, so findings pointed at `fn`
+          # signatures rather than at any arithmetic — and every operation in
+          # one expression resolved to that same spot, reporting `a + b + c`
+          # once per operator.
+          seen = set()
+          reported = set()
+          for unchecked_comparison in func.find_binary_operations("*", "+", "-"):
+            if unchecked_comparison.access_path in seen:
+              continue
+            seen.add(unchecked_comparison.access_path)
+            path = unchecked_comparison.access_path
+
+            # Arithmetic that computes an index or a slice bound cannot wrap
+            # silently. `data[index..index + 2]` that overflows produces an
+            # index no slice is long enough for, or a range whose end precedes
+            # its start, and both panic on the bounds check. This rule is about
+            # the wrap nobody notices, and indexing always notices.
+            if ".index.index." in path:
+              continue
+
+            # The operands are not primitive integers. `(a + b)?` does not
+            # compile for two u64s - the `?` needs an Option or a Result - so
+            # this shape is only reachable when the program has overloaded the
+            # operator to return one, which is checked arithmetic expressed
+            # through the type system rather than through `checked_add`.
+            if ".try.expr." in path:
+              continue
+
+            # Same argument, one step further: `(a - b).expect(...)` and
+            # `(a * b).map(...)` need a fallible result to call those on. The
+            # method has to be one that handles absence, or `(x + y).to_string()`
+            # on real integers would exempt itself.
+            if ".method_call.receiver.paren." in path:
+              consumer = method_names.get(path.split(".receiver.")[0])
+              if consumer in (
+                  "expect", "unwrap", "unwrap_or", "unwrap_or_default",
+                  "unwrap_or_else", "map", "map_err", "and_then",
+                  "ok_or", "ok_or_else",
+              ):
+                continue
+
+            # Deliberately not exempted, though both look tempting:
+            #
+            #   - arithmetic inside an `if` condition. `if balance - amount > 0`
+            #     wraps before the comparison ever runs, so the comparison is
+            #     not the check it appears to be.
+            #   - arithmetic on a `.len()`. `v.len() + 1` cannot overflow, but
+            #     `s.len() - SCALE` underflows whenever the string is shorter
+            #     than the scale, and that is a bug this rule should keep.
+
+            # An expression built only from literals and constants is
+            # evaluated at compile time, where an overflow is a compile error
+            # rather than a wrap — `8 + Self::INIT_SPACE` and
+            # `Vec::with_capacity(32 + 4 + 2 + 8 + 32)` cannot overflow at
+            # runtime and are not what this rule is for. Constants are
+            # recognised by Rust's SCREAMING_CASE convention; `Self` is a type
+            # path rather than a value and does not make an operand runtime.
+            runtime_operand = False
+            for child in unchecked_comparison.find_by_access_path(""):
+              if child.ident is None:
+                continue
+              if child.ident == "Self":
+                continue
+              if child.ident.upper() == child.ident:
+                continue
+              runtime_operand = True
+              break
+            if not runtime_operand:
+              continue
+
+            # Dedupe on the span, not on the node. `a + b + c` is two
+            # operations at two access paths that resolve to one source
+            # location, so keying on the path let the same line be reported
+            # twice - the very duplication the per-node `seen` set above was
+            # added to stop, just one level up.
+            #
+            # Keyed on the span's own fields. `to_result()` returns a dict and
+            # `str` is not in the sandbox's builtins, so neither can be put in
+            # a set: the attempt raises, the enclosing `except` swallows it,
+            # and every operation is skipped - which reads exactly like a rule
+            # that found nothing.
+            src = unchecked_comparison.src
+            if src is None:
+              continue
+            span = (src.get("file"), src.get("line"), src.get("start_col"), src.get("end_col"))
+            if span in reported:
+              continue
+            reported.add(span)
+
+            print(unchecked_comparison.to_result())
+        except:
+          continue
     except:
       continue

@@ -1,4 +1,4 @@
-version: 0.1.1
+version: 0.2.0
 author: forefy
 accent: anchor
 name: Account Data Matching
@@ -7,25 +7,141 @@ severity: Low
 certainty: Low
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/account_data_matching/bad/src/lib.rs#L13
 rule: |
+  # An identity check written as a named helper. Native Solana programs almost
+  # never write the comparison inline - SPL, Solend, Metaplex and stake-pool all
+  # hand the account to `check_account_owner`, `assert_owned_by`,
+  # `check_program_account` or a program-specific `check_mint`, and that call is
+  # the ownership verification this rule asks for. Matching only `require!` was
+  # matching Anchor's spelling of the idea and reporting every native program
+  # that expressed it any other way.
+  #
+  # Recognised by shape rather than by a list of names, so a program's own
+  # helper counts: a `check_`/`assert_`/`validate_`/`verify_` prefix, plus a
+  # word saying it is about an account's identity rather than, say, a slippage
+  # bound.
+  GUARD_PREFIXES = ("check_", "assert_", "validate_", "verify_")
+  GUARD_SUBJECTS = ("own", "account", "key", "mint", "program", "authority", "signer", "address")
+  REQUIRE_MACROS = ("require", "require_eq", "require_keys_eq", "require_keys_neq")
+  BORROWS = set(["borrow", "borrow_mut", "try_borrow_data", "try_borrow_mut_data", "data"])
+
+  def names_an_identity_guard(ident):
+      if ident is None:
+          return False
+      lowered = ident.lower()
+      prefixed = False
+      for prefix in GUARD_PREFIXES:
+          if lowered.startswith(prefix):
+              prefixed = True
+              break
+      if not prefixed:
+          return False
+      for subject in GUARD_SUBJECTS:
+          if subject in lowered:
+              return True
+      return False
+
+  def idents_under(all_nodes, prefix):
+      found = set()
+      for node in all_nodes:
+          if node.access_path.startswith(prefix) and node.ident is not None:
+              found.add(node.ident)
+      return found
+
   for source, nodes in ast:
       for function in nodes.find_all_functions():
           unpack_calls = function.find_chained_calls("unpack")
           if not unpack_calls:
               continue
 
-          # Validated when the unpacked account's stored key (`owner`) is
-          # compared against the expected signer. A plain `if authority.key !=
-          # token.owner` guard counts as much as a `require!` - the previous
-          # rule only recognised `require!`, so it false-positived on the
-          # if-guarded form.
-          owner_comparison = function.find_comparison_involving("owner").nodes
-          require_with_owner = (
-              function.find_by_names("require", "require_keys_eq", "require_eq").nodes
-              and function.find_member_accesses("owner").nodes
-          )
-
-          if owner_comparison or require_with_owner:
+          # A function handed a byte slice has no account to check the owner of.
+          # `fn unpack_mint(data: &[u8]) -> Result<Mint>` is a decoder: whoever
+          # owns the account proved it before reading the bytes out, and there is
+          # nothing here that could prove anything.
+          if not function.find_by_names("AccountInfo", "account_info", "accounts").nodes:
               continue
 
-          for unpack_call in unpack_calls:
-              print(unpack_call.to_result())
+          all_nodes = function.find_by_access_path("")
+
+          # `let mint_data = &mut mint_info.data.borrow_mut();` then
+          # `Mint::unpack(mint_data)`. The guard names `mint_info` and the
+          # unpack names `mint_data`, so without following the binding once the
+          # two never meet and every checked account still reports.
+          aliases = dict()
+          account_names = set()
+          for node in all_nodes:
+              path = node.access_path
+              if node.ident is None:
+                  continue
+              if path.endswith(".typed.pat.ident"):
+                  account_names.add(node.ident)
+              if not path.endswith(".let.pat.ident"):
+                  continue
+              account_names.add(node.ident)
+              aliases[node.ident] = idents_under(
+                  all_nodes, path.split(".pat.ident")[0] + ".init"
+              )
+
+          # Which accounts were actually proved, rather than whether the
+          # function proved anything. Asking per function lets a checked
+          # sibling excuse an unchecked account - `assert_owned_by(mint_info)`
+          # standing in for the `evil_info` right next to it - and that is the
+          # shape these bugs survive review in.
+          guarded = set()
+          for node in all_nodes:
+              path = node.access_path
+              if ".call.func." in path and names_an_identity_guard(node.ident):
+                  guarded = guarded | idents_under(all_nodes, path.split(".func.")[0] + ".args")
+              # `require_keys_eq!(token.owner, authority.key())` names its
+              # accounts in the macro's own tokens.
+              if node.ident in REQUIRE_MACROS:
+                  guarded = guarded | idents_under(all_nodes, path.split(".macro")[0])
+
+          # An inline `if authority.key != token.owner` proves the same thing a
+          # helper does, for whichever accounts the condition names. Collect the
+          # conditions first: every node inside one resolves to the same prefix,
+          # so scanning per node walked the function once per node in a
+          # condition rather than once per condition.
+          conditions = set()
+          for node in all_nodes:
+              if ".cond." in node.access_path:
+                  conditions.add(node.access_path.split(".cond.")[0] + ".cond.")
+          for condition in conditions:
+              named = idents_under(all_nodes, condition)
+              if "owner" in named or "key" in named:
+                  guarded = guarded | named
+
+          for group in unpack_calls:
+              for unpack_call in group:
+                  path = unpack_call.access_path
+                  if ".func." not in path:
+                      continue
+                  reads = idents_under(all_nodes, path.split(".func.")[0] + ".args")
+
+                  # Follow each binding once, and notice when that fails. The
+                  # enrichment keeps `borrow_mut` but drops the receiver chain
+                  # of `&mut mint_info.data.borrow_mut()`, so the binding
+                  # resolves to a borrow and to no account at all. A binding
+                  # that reads account data but names no account is one this
+                  # rule cannot attribute - which is not the same as one whose
+                  # account went unchecked.
+                  opaque = not reads
+                  for read in list(reads):
+                      hop = aliases.get(read)
+                      if hop is None:
+                          continue
+                      reads = reads | hop
+                      if hop & BORROWS and not (hop & account_names):
+                          opaque = True
+
+                  if reads & guarded:
+                      continue
+
+                  # Fall back to asking whether the function proved anything,
+                  # but only where the account genuinely cannot be identified.
+                  # An account named directly at the unpack - which is the
+                  # unchecked sibling this rule most needs to catch - never
+                  # reaches here.
+                  if opaque and guarded:
+                      continue
+
+                  print(unpack_call.to_result())

@@ -27,6 +27,9 @@ class GenerateASTView(APIView):
         source_type = request.data.get("source_type")
         source_path = request.data.get(f"{source_type}_path")
         framework = request.data.get("framework", "unknown")
+        # Tests are excluded unless asked for: they break production rules on
+        # purpose, so reporting them is a cost on every scan, not a finding.
+        include_tests = bool(request.data.get("include_tests", False))
 
         if not source_type or not source_path:
             return Response(
@@ -67,7 +70,7 @@ class GenerateASTView(APIView):
             if source_type == "file":
                 logger.info(f"Generating AST for {source_file_path}")
                 try:
-                    file_ast = generate_ast_for_rust_file(source_file_path)
+                    file_ast = generate_ast_for_rust_file(source_file_path, include_tests=include_tests)
                     ast_data = {"sources": {}, "metadata": {}}
                     ast_data["sources"][str(source_file_path)] = file_ast
                 except Exception as e:
@@ -124,7 +127,7 @@ class GenerateASTView(APIView):
                 # differentiated by the respective toml file present
                 elif (source_file_path / "Xargo.toml").exists():
                     try:
-                        ast_data = generate_ast_for_rust_program(source_file_path)
+                        ast_data = generate_ast_for_rust_program(source_file_path, include_tests)
                     except Exception as e:
                         logger.error(e)
                         return Response(
@@ -135,7 +138,7 @@ class GenerateASTView(APIView):
                         )
                 elif (source_file_path / "Anchor.toml").exists():
                     try:
-                        ast_data = generate_ast_for_anchor_project(source_file_path)
+                        ast_data = generate_ast_for_anchor_project(source_file_path, include_tests)
                     except Exception as e:
                         logger.error(e)
                         return Response(
@@ -148,7 +151,7 @@ class GenerateASTView(APIView):
                 # last check for multiple programs within a folder, or quit trying
                 else:
                     try:
-                        ast_data = generate_aggregate_program_ast(source_file_path)
+                        ast_data = generate_aggregate_program_ast(source_file_path, include_tests)
                         if ast_data is None:
                             raise ValueError(
                                 "No Cargo.toml files found in any subdirectories."

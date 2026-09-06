@@ -9,6 +9,8 @@ import logging
 
 import toml
 
+from utils.test_sources import is_test_path, strip_test_items
+
 logger = logging.getLogger(__name__)
 
 # A Rust lifetime (`'info`) vs a char literal (`'a'`): the lifetime's identifier
@@ -45,7 +47,10 @@ def parse_toml_keys(toml_path: Path, keys: list) -> list:
 
 
 def generate_ast_for_rust_file(
-    source_file_path: Path, package_name: str = None, package_version: str = None
+    source_file_path: Path,
+    package_name: str = None,
+    package_version: str = None,
+    include_tests: bool = False,
 ) -> dict:
     rust_code = source_file_path.read_text()
 
@@ -62,6 +67,17 @@ def generate_ast_for_rust_file(
         enriched_ast = enrich_ast_with_source_lines(
             ast_data.get("items"), rust_code, source_file_path
         )
+
+        if not include_tests:
+            # Pruned *after* enrichment, deliberately. Positions are handed out
+            # by scanning the source text and consuming the nth occurrence of
+            # each identifier, and the source still contains the test code
+            # either way. Pruning first would leave the surviving nodes to
+            # consume positions starting from the first occurrence - which for
+            # a `#[cfg(test)] mod tests` placed above the code it tests is the
+            # one inside the tests. Dropping nodes afterwards cannot move the
+            # span of any node that remains.
+            enriched_ast = strip_test_items(enriched_ast)
 
         source_sepcific_metadata = {}
         if package_name or package_version:
@@ -259,6 +275,30 @@ def enrich_ast_with_source_lines(
     return ast_items
 
 
+def collect_rust_sources(directory: Path, include_tests: bool = False) -> list:
+    """Every .rs file under `directory`, minus the ones that are tests.
+
+    Integration tests and fixtures live in files whose path says so. The unit
+    tests inside a production module are invisible here and are pruned from the
+    AST instead; see `utils.test_sources`.
+    """
+    sources = sorted(directory.rglob("*.rs"))
+    if include_tests:
+        return sources
+
+    kept = [s for s in sources if not is_test_path(s, relative_to=directory)]
+    skipped = len(sources) - len(kept)
+    if skipped:
+        # Say so. A scan that quietly drops files is indistinguishable from a
+        # scan that found nothing, which is a failure mode this tool has
+        # already been bitten by.
+        logger.info(
+            f"Skipped {skipped} test source(s) under {directory}; "
+            "pass --include-tests to scan them"
+        )
+    return kept
+
+
 def find_anchor_program_paths(source_file_path, workspace_members):
     program_paths = []
 
@@ -279,17 +319,19 @@ def find_anchor_program_paths(source_file_path, workspace_members):
     return program_paths
 
 
-def generate_ast_for_rust_program(source_file_path: Path) -> dict:
+def generate_ast_for_rust_program(source_file_path: Path, include_tests: bool = False) -> dict:
     cargo_toml_path = source_file_path / "Cargo.toml"
     package_name, package_version = parse_toml_keys(
         cargo_toml_path, ["package.name", "package.version"]
     )
     directory = cargo_toml_path.parent
-    rs_files = list(directory.rglob("*.rs"))
+    rs_files = collect_rust_sources(directory, include_tests)
 
     radar_ast = {"sources": {}, "metadata": {}}
     for rs_file in rs_files:
-        file_ast = generate_ast_for_rust_file(rs_file, package_name, package_version)
+        file_ast = generate_ast_for_rust_file(
+            rs_file, package_name, package_version, include_tests
+        )
         radar_ast["sources"][str(rs_file)] = file_ast
 
     sorted_sources = dict(sorted(radar_ast["sources"].items()))
@@ -298,17 +340,21 @@ def generate_ast_for_rust_program(source_file_path: Path) -> dict:
     return radar_ast
 
 
-def generate_anchor_project_derived_program_ast(program_path: Path) -> dict:
+def generate_anchor_project_derived_program_ast(
+    program_path: Path, include_tests: bool = False
+) -> dict:
     cargo_toml_path = program_path / "Cargo.toml"
     package_name, package_version = parse_toml_keys(
         cargo_toml_path, ["package.name", "package.version"]
     )
-    rs_files = list(program_path.rglob("*.rs"))
+    rs_files = collect_rust_sources(program_path, include_tests)
 
     program_ast = {"sources": {}, "metadata": {}}
 
     for rs_file in rs_files:
-        file_ast = generate_ast_for_rust_file(rs_file, package_name, package_version)
+        file_ast = generate_ast_for_rust_file(
+            rs_file, package_name, package_version, include_tests
+        )
         program_ast["sources"][str(rs_file)] = file_ast
         program_ast["metadata"][str(rs_file)] = {
             "package_name": package_name,
@@ -319,7 +365,7 @@ def generate_anchor_project_derived_program_ast(program_path: Path) -> dict:
     return program_ast
 
 
-def generate_ast_for_anchor_project(source_path: Path) -> dict:
+def generate_ast_for_anchor_project(source_path: Path, include_tests: bool = False) -> dict:
     anchor_toml_path = source_path / "Anchor.toml"
     anchor_version, solana_version = parse_toml_keys(
         anchor_toml_path, ["anchor_version", "solana_version"]
@@ -347,7 +393,7 @@ def generate_ast_for_anchor_project(source_path: Path) -> dict:
     }
 
     for program_path in programs:
-        program_ast = generate_anchor_project_derived_program_ast(program_path)
+        program_ast = generate_anchor_project_derived_program_ast(program_path, include_tests)
         project_ast["sources"].update(program_ast["sources"])
 
     sorted_sources = dict(sorted(project_ast["sources"].items()))
@@ -356,14 +402,14 @@ def generate_ast_for_anchor_project(source_path: Path) -> dict:
     return project_ast
 
 
-def generate_aggregate_program_ast(base_path: Path) -> dict | None:
+def generate_aggregate_program_ast(base_path: Path, include_tests: bool = False) -> dict | None:
     project_ast = {"sources": {}, "metadata": {}}
     found_cargo_toml = False
 
     def add_program(directory):
         nonlocal found_cargo_toml
         found_cargo_toml = True
-        program_ast = generate_ast_for_rust_program(directory)
+        program_ast = generate_ast_for_rust_program(directory, include_tests)
         for file_path, ast in program_ast["sources"].items():
             project_ast["sources"][file_path] = ast
 

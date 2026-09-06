@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.2.0
 author: forefy
 accent: anchor
 name: Invoke Signed Unvalidated Seeds
@@ -6,6 +6,32 @@ description: invoke_signed lends the program's PDA signature to a cross-program 
 severity: Medium
 certainty: Medium
 rule: |
+  # `require_keys_eq` is Anchor's spelling of "prove this is the account you
+  # think it is". A native Solana program - which is what an `accent: solana`
+  # rule is mostly pointed at - has no such macro and writes the same proof as
+  # a named helper: `check_account_owner`, `check_authority_withdraw`,
+  # `assert_derivation`, `check_validator_stake_address`. Accepting only the
+  # Anchor form meant every native `invoke_signed` reported, whether or not the
+  # keys had been pinned first.
+  #
+  # Recognised by shape so a program's own helper counts, and deliberately
+  # without a subject-word filter: unlike the ownership question, what needs
+  # proving before lending a signature varies per program (a derivation, a
+  # staker, a withdraw authority), and guessing which words count would just
+  # re-create the original mismatch in a new place. A named `check_`/`assert_`
+  # step is validation this rule cannot see through; reporting past it is
+  # asserting the program did nothing, which is not what the evidence says.
+  GUARD_PREFIXES = ("check_", "assert_", "validate_", "verify_")
+
+  def names_a_guard(ident):
+      if ident is None:
+          return False
+      lowered = ident.lower()
+      for prefix in GUARD_PREFIXES:
+          if lowered.startswith(prefix):
+              return True
+      return False
+
   for source, nodes in ast:
       try:
           funcs = nodes.find_all_functions().exit_on_none()
@@ -14,6 +40,28 @@ rule: |
                   invoke_calls = func.find_by_names("invoke_signed").exit_on_none()
                   # Safe pattern: an explicit key equality check before the signed CPI
                   func.find_by_names("require_keys_eq", "require_eq").exit_on_value()
+
+                  # The obligation to check an account belongs to whoever chose
+                  # it. A CPI wrapper - `fn create_stake_account(info:
+                  # AccountInfo, seeds: &[&[u8]], ..)` - chose nothing: every
+                  # account and every seed arrived as a parameter, and the
+                  # caller decided all of them. Reporting it says the program
+                  # validated nothing when what actually happened is that the
+                  # validation is one frame up, out of this rule's reach.
+                  #
+                  # A function that selects accounts says so: `next_account_info`
+                  # walks the instruction's account list in a native program,
+                  # and `Context` carries it in an Anchor one.
+                  func.find_by_names("next_account_info", "Context").exit_on_none()
+
+                  guarded = False
+                  for candidate in func.find_by_access_path(""):
+                      if names_a_guard(candidate.ident):
+                          guarded = True
+                          break
+                  if guarded:
+                      continue
+
                   print(invoke_calls.first().to_result())
               except:
                   continue
