@@ -7,10 +7,8 @@ from rest_framework import status
 from api.models import GeneratedAST
 from api.tasks import run_scan_task
 from utils.ast import (
-    generate_aggregate_program_ast,
-    generate_ast_for_anchor_project,
+    generate_program_ast_for_folder,
     generate_ast_for_rust_file,
-    generate_ast_for_rust_program,
 )
 from celery.result import AsyncResult
 
@@ -27,8 +25,10 @@ class GenerateASTView(APIView):
         source_type = request.data.get("source_type")
         source_path = request.data.get(f"{source_type}_path")
         framework = request.data.get("framework", "unknown")
-        # Tests are excluded unless asked for: they break production rules on
-        # purpose, so reporting them is a cost on every scan, not a finding.
+        # Test code is written unsafely on purpose, so it is out of scope by
+        # default; `radar --include-tests` puts it back. Absent field means
+        # exclude, so an older controller talking to a newer API gets the
+        # default rather than silently keeping the noise.
         include_tests = bool(request.data.get("include_tests", False))
 
         if not source_type or not source_path:
@@ -70,7 +70,13 @@ class GenerateASTView(APIView):
             if source_type == "file":
                 logger.info(f"Generating AST for {source_file_path}")
                 try:
-                    file_ast = generate_ast_for_rust_file(source_file_path, include_tests=include_tests)
+                    # A file named explicitly by the user is scanned as asked.
+                    # `is_test_path` is about walking a tree; pointing radar at
+                    # one file and getting nothing back would be the silent
+                    # empty scan this feature must not introduce.
+                    file_ast = generate_ast_for_rust_file(
+                        source_file_path, include_tests=True
+                    )
                     ast_data = {"sources": {}, "metadata": {}}
                     ast_data["sources"][str(source_file_path)] = file_ast
                 except Exception as e:
@@ -123,39 +129,15 @@ class GenerateASTView(APIView):
                             {"error": f"Failed to parse Solidity AST: {str(e)}"},
                             status=status.HTTP_400_BAD_REQUEST,
                         )
-                # User may provide a path to the root of the project, or to a specific prgoram,
-                # differentiated by the respective toml file present
-                elif (source_file_path / "Xargo.toml").exists():
-                    try:
-                        ast_data = generate_ast_for_rust_program(source_file_path, include_tests)
-                    except Exception as e:
-                        logger.error(e)
-                        return Response(
-                            {
-                                "error": f"Failed to parse AST from provided program source code: {str(e)}"
-                            },
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                elif (source_file_path / "Anchor.toml").exists():
-                    try:
-                        ast_data = generate_ast_for_anchor_project(source_file_path, include_tests)
-                    except Exception as e:
-                        logger.error(e)
-                        return Response(
-                            {
-                                "error": f"Failed to parse AST from provided program source code: {str(e)}"
-                            },
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-
-                # last check for multiple programs within a folder, or quit trying
+                # User may provide a path to the root of the project, to a
+                # specific program, or to a folder holding several - the shared
+                # dispatch in `ast.py` decides which, so the offline harnesses
+                # scan a folder exactly the way this endpoint does.
                 else:
                     try:
-                        ast_data = generate_aggregate_program_ast(source_file_path, include_tests)
-                        if ast_data is None:
-                            raise ValueError(
-                                "No Cargo.toml files found in any subdirectories."
-                            )
+                        ast_data = generate_program_ast_for_folder(
+                            source_file_path, include_tests
+                        )
                     except Exception as e:
                         logger.error(e)
                         return Response(

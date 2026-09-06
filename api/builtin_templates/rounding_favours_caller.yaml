@@ -1,0 +1,42 @@
+version: 0.1.0
+author: forefy
+accent: ""
+name: Rounding Favours The Caller
+description: Integer division whose rounding direction moves value toward the caller. A fee owed to the protocol computed with floor division is short by the remainder on every call, and shares issued with ceiling division hand out marginally more than was paid for. Neither loses much once; both are free to repeat. The direction is what matters - fees round up, issuance rounds down - so this keys on which quantity is being computed, and is therefore Low certainty by construction.
+severity: Medium
+certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/class_examples/arithmetic-rounding-drain/vulnerable/01_fee_floors_toward_user.rs
+rule: |
+  fee_words = ("fee", "commission", "penalty", "owed", "interest")
+  issue_words = ("share", "mint", "issue", "credit")
+
+  for source, nodes in ast:
+      for function in nodes.find_all_functions():
+          try:
+              divisions = function.find_by_names("checked_div", "saturating_div").exit_on_none()
+              names = function.subtree_idents()
+
+              # What a method computes is often stated by the type it hangs off
+              # rather than by anything inside it: `impl Fee { fn apply(..) }`
+              # says "fee" exactly once, on the impl. Walk the enclosing idents
+              # so the rule reads the name the author actually used.
+              context = set(names)
+              owner_type = function.enclosing_type_name()
+              if owner_type:
+                  context.add(owner_type)
+
+              # The ceiling idiom, spelled the way Rust integer maths spells it:
+              # add the denominator, take one away, then divide.
+              ceiling = bool(names & set(["checked_add"])) and bool(names & set(["checked_sub"]))
+
+              lowered = set([n.lower() for n in context])
+              computes_fee = any([w in n for n in lowered for w in fee_words])
+              computes_issue = any([w in n for n in lowered for w in issue_words])
+
+              # A fee owed to the protocol must not floor; issuance must not ceil.
+              if computes_fee and not computes_issue and not ceiling:
+                  print(divisions.first().to_result())
+              elif computes_issue and not computes_fee and ceiling:
+                  print(divisions.first().to_result())
+          except:
+              continue

@@ -1,0 +1,31 @@
+version: 0.1.0
+author: forefy
+accent: ""
+name: Unvalidated Instruction Introspection
+description: Reading a neighbouring instruction through the instructions sysvar and trusting its contents without checking which program it belongs to. Any account can put any instruction at any index of a transaction, so an introspected instruction proves nothing until its program id is established - making it look like the expected one is the attack, not an obstacle to it. The fix compares the loaded instruction's program_id against the program that is supposed to have produced it.
+severity: High
+certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/class_examples/instruction-introspection/vulnerable/01_sibling_ix_unverified.rs
+rule: |
+  for source, nodes in ast:
+      for function in nodes.find_all_functions():
+          try:
+              introspections = function.find_by_names(
+                  "load_instruction_at_checked",
+                  "load_instruction_at",
+                  "get_instruction_relative",
+              ).exit_on_none()
+
+              # The loaded instruction is only meaningful once its own program
+              # is established. Asking merely whether `program_id` appears in the
+              # handler is not that question: a comparison about some other
+              # account then excuses the instruction nobody checked. The guard
+              # has to name the binding the introspection result flowed into.
+              proved = function.guarded_idents(subjects=("program_id",))
+              for introspection in introspections:
+                  loaded = function.binding_of(introspection)
+                  if loaded is not None and loaded in proved:
+                      continue
+                  print(introspection.to_result())
+          except:
+              continue

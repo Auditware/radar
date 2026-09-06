@@ -1,101 +1,70 @@
-version: 0.1.2
+version: 0.4.0
 author: forefy
 accent: anchor
 name: Duplicate Mutable Accounts
-description: When there are two or more accounts with mutable data, a check must be in place to ensure mutation of each account is differentiated properly, to avoid unintended data modification of other accounts.
+description: When there are two or more accounts with mutable data, a check must be in place to ensure mutation
+  of each account is differentiated properly, to avoid unintended data modification of other accounts.
 severity: Medium
 certainty: Low
 vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/mocks/duplicate_mutable_accounts/bad/src/lib.rs#L18-L21
-rule: |
-  for source, nodes in ast:
-      try:
-          groups = nodes.find_chained_calls("derive", "Accounts").exit_on_none()
-          constraints = nodes.find_macro_attribute_by_names("constraint")
-          pins = nodes.find_macro_attribute_by_names("seeds", "address", "associated_token")
-
-          seen_structs = []
-          for group in groups:
-              for derive_node in group:
-                  struct_path = derive_node.access_path.split(".attrs")[0]
-                  if not struct_path.endswith(".struct"):
-                      continue
-                  if struct_path in seen_structs:
-                      continue
-                  seen_structs.append(struct_path)
-
-                  # Scope to this struct: a constraint on some other
-                  # instruction's accounts says nothing about this one.
-                  constrained = False
-                  for constraint in constraints:
-                      if constraint.access_path.startswith(struct_path + "."):
-                          constrained = True
-                          break
-                  if constrained:
-                      continue
-
-                  # Enumerate this struct's `Account<'info, T>` fields, keyed by
-                  # the inner type T. Two fields of the same T can be satisfied
-                  # by one account, so a same-typed pair with nothing to tell
-                  # them apart is the duplicate-mutable bug. Keying on the field
-                  # type (not `#[account(mut)]`) catches the case where the
-                  # accounts are mutated in the handler rather than the struct -
-                  # the shape the canonical example takes.
-                  by_type = {}
-                  for account in nodes.find_by_names("Account"):
-                      account_path = account.access_path
-                      if not account_path.startswith(struct_path + ".fields.named["):
-                          continue
-                      if account.parent is None:
-                          continue
-                      field_name = account.parent.ident
-                      field_path = account_path.split(".ty")[0]
-
-                      # The inner type T lives under the generic arguments; the
-                      # lifetime arg carries no `.type`, so this picks out T.
-                      inner_type = None
-                      for candidate in nodes.find_by_access_path(field_path + ".ty"):
-                          if ".arguments.angle_bracketed.args[" in candidate.access_path \
-                             and ".type.path.segments" in candidate.access_path:
-                              inner_type = candidate.ident
-                              break
-                      if inner_type is None:
-                          continue
-
-                      # SPL token/mint accounts legitimately appear as from/to
-                      # (source/destination) pairs; passing the same one is a
-                      # token-program concern, not the duplicate-mutable bug this
-                      # rule targets. Only a program's own account types are
-                      # duplicates here.
-                      if inner_type in ("TokenAccount", "Mint"):
-                          continue
-
-                      # A field pinned by seeds, address, or an associated token
-                      # derivation resolves to exactly one account, so it cannot
-                      # be the duplicate of anything beside it.
-                      #
-                      # `token::mint`/`token::authority` are deliberately not
-                      # here: they constrain what a token account holds, not
-                      # which one it is, and many token accounts share them.
-                      pinned = False
-                      for pin in pins:
-                          if pin.access_path.startswith(field_path + "."):
-                              pinned = True
-                              break
-                      if pinned:
-                          continue
-
-                      # A key comparison on the field (a `require`/`if` guard, or
-                      # an inline `constraint = a.key() != b.key()`) distinguishes
-                      # the accounts.
-                      if nodes.find_method_calls(field_name, "key"):
-                          continue
-
-                      by_type.setdefault(inner_type, []).append(account)
-
-                  for inner_type, accounts in by_type.items():
-                      if len(accounts) < 2:
-                          continue
-                      for account in accounts:
-                          print(account.to_result())
-      except:
-          continue
+rule: "for source, nodes in ast:\n    try:\n        groups = nodes.find_chained_calls(\"derive\", \"Accounts\").exit_on_none()\n\
+  \        constraints = nodes.find_macro_attribute_by_names(\"constraint\")\n        # `init` belongs here and\
+  \ is the strongest pin of the four: an account\n        # this instruction *creates* cannot be an account it was\
+  \ also handed,\n        # and two `init` fields cannot be the same account because creating one\n        # address\
+  \ twice fails. Without it, every Anchor program that initialises\n        # two accounts of the same type reports\
+  \ a duplicate that the runtime\n        # makes impossible - which was 168 of this rule's 210 findings on real\n\
+  \        # code, all from one program that initialises many.\n        #\n        # `init_if_needed` is deliberately\
+  \ not a pin. It does not guarantee\n        # creation - the account may already exist - so two such fields can\
+  \ be\n        # the same account, which is exactly the bug this rule is for.\n        pins = nodes.find_macro_attribute_by_names(\n\
+  \            \"seeds\", \"address\", \"associated_token\", \"init\"\n        )\n\n        seen_structs = []\n\
+  \        for group in groups:\n            for derive_node in group:\n                struct_path = derive_node.access_path.split(\"\
+  .attrs\")[0]\n                if not struct_path.endswith(\".struct\"):\n                    continue\n      \
+  \          if struct_path in seen_structs:\n                    continue\n                seen_structs.append(struct_path)\n\
+  \n                # Scope to this struct: a constraint on some other\n                # instruction's accounts\
+  \ says nothing about this one.\n                constrained = False\n                for constraint in constraints:\n\
+  \                    if constraint.access_path.startswith(struct_path + \".\"):\n                        constrained\
+  \ = True\n                        break\n                if constrained:\n                    continue\n\n   \
+  \             # Enumerate this struct's `Account<'info, T>` fields, keyed by\n                # the inner type\
+  \ T. Two fields of the same T can be satisfied\n                # by one account, so a same-typed pair with nothing\
+  \ to tell\n                # them apart is the duplicate-mutable bug. Keying on the field\n                # type\
+  \ (not `#[account(mut)]`) catches the case where the\n                # accounts are mutated in the handler rather\
+  \ than the struct -\n                # the shape the canonical example takes.\n                by_type = {}\n\
+  \                for account in nodes.find_by_names(\"Account\"):\n                    account_path = account.access_path\n\
+  \                    if not account_path.startswith(struct_path + \".fields.named[\"):\n                     \
+  \   continue\n                    if account.parent is None:\n                        continue\n             \
+  \       field_name = account.parent.ident\n                    field_path = account_path.split(\".ty\")[0]\n\n\
+  \                    # The inner type T lives under the generic arguments; the\n                    # lifetime\
+  \ arg carries no `.type`, so this picks out T.\n                    inner_type = None\n                    for\
+  \ candidate in nodes.find_by_access_path(field_path + \".ty\"):\n                        if \".arguments.angle_bracketed.args[\"\
+  \ in candidate.access_path \\\n                           and \".type.path.segments\" in candidate.access_path:\n\
+  \                            inner_type = candidate.ident\n                            break\n               \
+  \     if inner_type is None:\n                        continue\n\n                    # SPL token/mint accounts\
+  \ legitimately appear as from/to\n                    # (source/destination) pairs; passing the same one is a\n\
+  \                    # token-program concern, not the duplicate-mutable bug this\n                    # rule targets.\
+  \ Only a program's own account types are\n                    # duplicates here.\n                    if inner_type\
+  \ in (\"TokenAccount\", \"Mint\"):\n                        continue\n\n                    # A field pinned by\
+  \ seeds, address, or an associated token\n                    # derivation resolves to exactly one account, so\
+  \ it cannot\n                    # be the duplicate of anything beside it.\n                    #\n          \
+  \          # `token::mint`/`token::authority` are deliberately not\n                    # here: they constrain\
+  \ what a token account holds, not\n                    # which one it is, and many token accounts share them.\n\
+  \                    pinned = False\n                    for pin in pins:\n                        if pin.access_path.startswith(field_path\
+  \ + \".\"):\n                            pinned = True\n                            break\n                  \
+  \  if pinned:\n                        continue\n\n                    # A key comparison on the field (a `require`/`if`\
+  \ guard, or\n                    # an inline `constraint = a.key() != b.key()`) distinguishes\n              \
+  \      # the accounts.\n                    # Scoped to this struct and the handlers that take it. A\n       \
+  \             # `.key()` comparison searched across the whole file let one\n                    # instruction's\
+  \ guard excuse an identically-shaped struct\n                    # beside it, which is the file-scope suppression\
+  \ from #23\n                    # one level down.\n                    struct_name = None\n                  \
+  \  for candidate in nodes.find_by_access_path(struct_path):\n                        if candidate.access_path\
+  \ == struct_path:\n                            struct_name = candidate.ident\n                            break\n\
+  \n                    scopes = [struct_path]\n                    if struct_name is not None:\n              \
+  \          for handler in nodes.find_all_functions():\n                            if struct_name in handler.subtree_idents():\n\
+  \                                scopes.append(handler.access_path)\n\n                    distinguished = False\n\
+  \                    for comparison in nodes.find_method_calls(field_name, \"key\"):\n                       \
+  \ for scope in scopes:\n                            if comparison.access_path.startswith(scope + \".\"):\n   \
+  \                             distinguished = True\n                                break\n                  \
+  \      if distinguished:\n                            break\n                    if distinguished:\n         \
+  \               continue\n\n                    by_type.setdefault(inner_type, []).append(account)\n\n       \
+  \         for inner_type, accounts in by_type.items():\n                    if len(accounts) < 2:\n          \
+  \              continue\n                    for account in accounts:\n                        print(account.to_result())\n\
+  \    except:\n        continue\n"

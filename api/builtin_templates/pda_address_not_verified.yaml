@@ -1,0 +1,44 @@
+version: 0.1.0
+author: forefy
+accent: ""
+name: PDA Address Not Verified
+description: Deriving a program address and never comparing it against the account actually supplied. Deriving proves what the address ought to be; only the comparison makes that mean anything, and without it any account of the right type is accepted in the PDA's place. The fix requires the derived key to equal the account's key before the account is used.
+severity: High
+certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/class_examples/pda-derived-address-validation/vulnerable/01_derived_never_compared.rs
+rule: |
+  for source, nodes in ast:
+      for function in nodes.find_all_functions():
+          try:
+              derivations = function.find_by_names(
+                  "find_program_address", "create_program_address"
+              ).exit_on_none()
+
+              # The derivation has to end up compared with something. A key
+              # comparison, or a require_keys_* macro, both count; a derivation
+              # whose result is bound and then never mentioned again does not.
+              proved = function.guarded_idents(subjects=("key",))
+              for derivation in derivations:
+                  # `let (_, bump) = find_program_address(..)` keeps the bump and
+                  # throws the address away. There is no address to compare and
+                  # no supplied account to compare it to - the program is
+                  # computing a canonical address to record, which is what
+                  # correct initialisation code looks like.
+                  bound = function.bound_positions(derivation)
+                  if bound and 0 not in bound:
+                      continue
+
+                  # `let (addr, bump) = ..` binds through a tuple, which is how
+                  # `find_program_address` is always destructured. Reading only
+                  # the plain `let x = ..` form left the derived address nameless,
+                  # so a guard naming it could never be matched to it.
+                  derived = function.binding_of(derivation)
+                  if derived is None:
+                      derived = bound.get(0)
+                  if derived is not None and derived in proved:
+                      continue
+                  if "require_keys_eq" in function.subtree_idents():
+                      continue
+                  print(derivation.to_result())
+          except:
+              continue

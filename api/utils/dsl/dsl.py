@@ -22,7 +22,20 @@ def print_try_jsonify(*args, **kwargs):
     print(*new_args, **kwargs)
 
 
-allowed_builtins = {"print", "len", "range", "dict", "list", "tuple", "set", "type"}
+# Pure value builtins only: they compute over data a rule already holds and
+# reach nothing outside it. Ordering and aggregation are needed by any rule that
+# reasons about *sequence* - "was the owner re-checked after the CPI" - and
+# without them an author writes a manual loop, or more often gets a RuntimeError
+# that used to be swallowed by the rule's own `except:` and reported as a clean
+# scan. Deliberately absent: getattr/setattr, vars, globals, eval, compile,
+# open, __import__, isinstance - anything that reaches the interpreter rather
+# than the values.
+allowed_builtins = {
+    "print", "len", "range", "dict", "list", "tuple", "set", "type",
+    "min", "max", "sorted", "sum", "abs",
+    "any", "all", "enumerate", "zip", "reversed",
+    "int", "str", "bool", "float",
+}
 allowed_imports = {}
 sandbox_globals = {
     "__builtins__": {"__import__": __import__},
@@ -34,6 +47,20 @@ sandbox_globals = {
     "tuple": tuple,
     "set": set,
     "type": type,
+    "min": min,
+    "max": max,
+    "sorted": sorted,
+    "sum": sum,
+    "abs": abs,
+    "any": any,
+    "all": all,
+    "enumerate": enumerate,
+    "zip": zip,
+    "reversed": reversed,
+    "int": int,
+    "str": str,
+    "bool": bool,
+    "float": float,
     # Referenced by the handlers `SandboxTransformer` rewrites, so it has to
     # resolve at rule runtime even though no template names it directly.
     "RuleSkip": dsl_ast_iterator.RuleSkip,
@@ -71,20 +98,20 @@ class SandboxTransformer(NodeTransformer):
 
         Every rule guards its loop body with `except: continue`, because that is
         the only way to catch what `exit_on_none` / `exit_on_value` raise. The
-        cost was that the same handler caught the rule's own bugs: a template
-        that referenced a forbidden builtin, or put an unhashable value in a
-        set, skipped every item and reported nothing - which is indistinguishable
-        from a scan that found nothing wrong. Three rules shipped that way.
+        cost was that the same handler also caught the rule's own bugs: a
+        template that referenced a builtin the sandbox does not expose, or put
+        an unhashable value in a set, skipped every item and reported nothing -
+        which is indistinguishable from a scan that found nothing wrong.
 
         `run_scan_task` already does the right thing with a template that
         raises: it records the error and the controller exits non-zero. This
-        just stops the rule from eating the error first.
+        just stops the rule from eating the error before it can get there.
 
-        Only bare handlers are rewritten, so a deliberate catch is never
-        silently narrowed. In practice `RuleSkip` is the only type a rule can
-        name - the sandbox exposes no builtin exception classes, which is why
-        `except:` was the sole option available to template authors to begin
-        with, and why this had to be fixed here rather than in 124 templates.
+        Only bare handlers are rewritten, so a deliberate `except SomeType:` is
+        never silently narrowed. In practice `RuleSkip` is the only type a rule
+        can name - the sandbox exposes no builtin exception classes, which is
+        why `except:` was the sole option available to template authors to
+        begin with, and why this is fixed here rather than in 124 templates.
         """
         if node.type is None:
             node.type = Name(id="RuleSkip", ctx=Load())
@@ -114,8 +141,8 @@ def wrapped_exec(code: str) -> list:
         tree = parse(code)
         transformer = SandboxTransformer()
         transformer.visit(tree)
-        # The rewritten `except` handlers are synthesised nodes with no
-        # position, and compile() requires one on every node.
+        # The rewritten handlers are synthesised nodes with no position, and
+        # compile() requires one on every node.
         fix_missing_locations(tree)
         # Execute into a fresh copy of the base globals. Celery prefork workers
         # are long-lived and run many templates per process; a shared globals

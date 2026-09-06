@@ -1,0 +1,35 @@
+version: 0.1.0
+author: forefy
+accent: ""
+name: Owner Check After CPI
+description: Trusting an account's data after a cross-program invocation without re-establishing who owns it. A CPI can reassign an account to another program, and Anchor's reload() re-deserializes the bytes without re-checking the owner - so the data read afterwards can be entirely attacker-controlled. An ownership check made before the CPI proves nothing about the account after it. The fix re-checks the owner between the CPI and the next use of the account's data.
+severity: High
+certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/class_examples/owner-check-after-cpi/vulnerable/01_anchor_reload.rs
+rule: |
+  for source, nodes in ast:
+      for function in nodes.find_all_functions():
+          try:
+              cpis = function.find_by_names("invoke", "invoke_signed").exit_on_none()
+              reads = function.find_by_names("reload", "unpack", "try_deserialize").exit_on_none()
+
+              cpi_at = min([function.statement_index(c) for c in cpis])
+              if cpi_at < 0:
+                  continue
+
+              # Is the account's data read again at all once the CPI has run?
+              after = [r for r in reads if function.statement_index(r) > cpi_at]
+              if not after:
+                  continue
+
+              # Ownership re-established anywhere after the CPI. Deliberately not
+              # per-read: `reload()` *is* the re-read, and the correct spelling
+              # puts the check immediately after it, so demanding the proof
+              # before each read reports the very code that gets this right.
+              for owner in function.find_by_names("owner"):
+                  if function.statement_index(owner) > cpi_at:
+                      raise RuleSkip("ownership re-established after the CPI")
+
+              print(after[0].to_result())
+          except:
+              continue

@@ -136,6 +136,15 @@ def generate_ast_for_file_or_folder(path: Path, path_type: str, include_tests: b
                 "standalone": "Standalone"
             }.get(framework, framework)
             print(f"[i] Framework/Toolchain: {framework_label}")
+
+    # Say which one it is. A scan that quietly skipped half a repository is the
+    # thing this option must never be mistaken for.
+    if path_type == "folder":
+        print(
+            "[i] Test code: included"
+            if include_tests
+            else "[i] Test code: excluded (--include-tests to scan it)"
+        )
     
     try:
         response = requests.post(
@@ -150,6 +159,17 @@ def generate_ast_for_file_or_folder(path: Path, path_type: str, include_tests: b
         result = handle_response(response)
         if result is not None:
             print(f"[i] AST successfully generated for {path_type}")
+            # A file the parser could not read is skipped so one unsupported
+            # construct does not cost the findings from every other file - but
+            # it is said out loud, because a scan that read less than it was
+            # asked to must never look like a scan that found nothing.
+            unparsed = (result.get("ast") or {}).get("metadata", {}).get("unparsed_sources") or []
+            if unparsed:
+                print(f"[w] {len(unparsed)} source file(s) could not be parsed and were not scanned:")
+                for entry in unparsed[:10]:
+                    print(f"[w]   {entry['file']}: {entry['error']}")
+                if len(unparsed) > 10:
+                    print(f"[w]   ... and {len(unparsed) - 10} more")
             return result
         else:
             print(f"[e] Failed to generate AST for {path}")

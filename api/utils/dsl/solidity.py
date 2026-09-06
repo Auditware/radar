@@ -624,25 +624,40 @@ def parse_solidity_ast(ast: dict) -> dict:
     
     roots = {}
     for source, source_nodes in sources.items():
-        path_to_node = {node.access_path: node for node in source_nodes}
-        assigned_children = set()
+        # Same three corrections as `parse_rust_ast`, which had this exact
+        # assembly and lost whole subtrees with it. The Solidity serializer does
+        # not currently emit two nodes at one access path, so none of this is
+        # observable today - it is written this way so that if it ever does, the
+        # subtree survives instead of vanishing from the tree the rules walk.
+        #
+        # First node wins a path: indexing the later one points every descendant
+        # at a node that is not itself linked in, and the whole subtree drops.
+        path_to_node = {}
         for node in source_nodes:
-            if node.access_path in assigned_children:
-                continue
+            path_to_node.setdefault(node.access_path, node)
+
+        # Keyed by identity, not by path: two nodes sharing a path are still two
+        # nodes, and skipping the second strands it.
+        attached = set()
+        for node in source_nodes:
             parent_path = ".".join(node.access_path.split(".")[:-1])
             while parent_path:
                 parent_node = path_to_node.get(parent_path)
-                if parent_node:
+                if parent_node is not None and parent_node is not node:
                     parent_node.add_child(node)
-                    assigned_children.add(node.access_path)
+                    attached.add(id(node))
                     break
                 parent_path = ".".join(parent_path.split(".")[:-1])
-        
+
         root = SolidityASTNode()
         for node in source_nodes:
-            if not node.parent:
+            # A node that found no parent belongs to the root. Testing
+            # `node.parent` instead consults the pointer serialization already
+            # set, so an unlinked node was neither a child of anything nor a
+            # child of the root - present in the flat list, unreachable from it.
+            if id(node) not in attached:
                 root.add_child(node)
-        
+
         roots[source] = root
-    
+
     return roots

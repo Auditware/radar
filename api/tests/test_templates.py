@@ -49,7 +49,7 @@ EXPECTED_DETECTIONS = {
         "good": []
     },
     "Arbitrary Cross-Program Invocation": {
-        "bad": ["tests/mocks/arbitrary_cross_program_invocation/bad/src/lib.rs:10:12-24"],
+        "bad": ["tests/mocks/arbitrary_cpi/bad/src/lib.rs:10:12-24"],
         "good": []
     },
     "Arbitrary External Call": {
@@ -65,7 +65,7 @@ EXPECTED_DETECTIONS = {
         "good": []
     },
     "Closing Accounts Insecurely": {
-        "bad": ["tests/mocks/closing_accounts_insecurely/bad/src/lib.rs:11:64-74"],
+        "bad": ["tests/mocks/closing_accounts/bad/src/lib.rs:11:64-74"],
         "good": []
     },
     "Random Authority Generation": {
@@ -154,8 +154,11 @@ EXPECTED_DETECTIONS = {
         "bad": ["tests/mocks/type_cosplay/bad/src/lib.rs:14:26-40"],
         "good": []
     },
+    # v0.2.0 anchors the finding on the expression rather than on each operator,
+    # so the column moved along the same statement (`set` -> `get`): same line,
+    # same unchecked addition, reported once instead of three times.
     "Unchecked Arithmetics": {
-        "bad": ["tests/mocks/unchecked_arithmetics/bad/src/lib.rs:16:22-25"],
+        "bad": ["tests/mocks/unchecked_arithmetics/bad/src/lib.rs:16:39-42"],
         "good": []
     },
     "Immutable State Mutation": {
@@ -332,7 +335,11 @@ EXPECTED_DETECTIONS = {
         "good": []
     },
     "Unchecked CPI Program Invoke": {
-        "bad": ["tests/mocks/unchecked_cpi_program_invoke/bad/src/lib.rs:10:43-53"],
+        "bad": [# The rule reports the `program_id` field of the `Instruction` literal, and
+    # that node used to be one of the orphans the tree dropped - so the finding
+    # landed on the first reachable `program_id`, the fn parameter on line 10.
+    # With the node reachable it lands on the field itself.
+    "tests/mocks/unchecked_cpi_program_invoke/bad/src/lib.rs:12:13-23"],
         "good": []
     },
     "Unchecked Low-Level Call Return": {
@@ -378,7 +385,7 @@ EXPECTED_DETECTIONS = {
         "good": []
     },
     "State Updated Before External Call": {
-        "bad": ["tests/mocks/state_updated_before_external_call/bad/src/lib.rs:18:22-28"],
+        "bad": ["tests/mocks/state_before_external_call/bad/src/lib.rs:18:22-28"],
         "good": []
     },
     "Init If Needed Reinitialization": {
@@ -536,15 +543,13 @@ def run_template_on_rust_source(yaml_data, source_file: Path):
 # Templates that cannot fire under the current architecture, with the reason.
 # Kept explicit rather than left silently green: a rule that can never report is
 # worse than no rule, because it reads as coverage the scanner does not have.
-ARCHITECTURALLY_UNDETECTABLE = {
-    "Missing Security Documentation": (
-        "keys on Rust doc comments, which reach syn as a synthesized `doc` "
-        "attribute. Source spans are resolved by searching the file text for the "
-        "identifier, and the string 'doc' never appears in the source, so the "
-        "node is dropped before the DSL sees it. Needs real parser spans "
-        "(see the span discussion in PR #23) or removal."
-    ),
-}
+# Templates that cannot fire under the current architecture, with the reason.
+# Empty: `missing_security_documentation` was the only entry and has been removed
+# rather than left permanently xfailed. A rule that can never report is worse
+# than no rule, because it reads as coverage the scanner does not have - which is
+# what this dict was written to say, so keeping an entry in it forever contradicts
+# its own comment.
+ARCHITECTURALLY_UNDETECTABLE = {}
 
 
 @pytest.mark.parametrize("template_data", get_template_test_data(), ids=lambda x: x["template_name"])
@@ -746,3 +751,172 @@ def test_runtime_rust_template_accuracy(template_data):
 
     assert bad_locations == set(template_data["expected_bad_locations"])
     assert good_locations == []
+
+
+@pytest.mark.active_runtime
+def test_every_rust_mock_has_a_generated_fixture():
+    """The accuracy suite must not shrink to whatever the toolchain happened to build.
+
+    `get_template_test_data` only yields a case when both `ast.json` fixtures
+    exist, and a job without `rust_syn` produces none of the Rust ones - so
+    every Rust accuracy test vanishes from collection. Vanishing is not
+    skipping: pytest reports no skip, the job is green, and two drifted
+    expectations sat that way.
+
+    Marked `active_runtime`, so it asserts exactly where it can be satisfied:
+    in the job that builds the parser. A job that cannot build Rust fixtures
+    deselects this and must scope its generation with `--only solidity` rather
+    than ignore the generator's exit code.
+    """
+    mocks_path = Path("tests/mocks").absolute()
+    missing = []
+    for variant_dir in sorted(mocks_path.glob("*/*")):
+        if variant_dir.name not in ("bad", "good"):
+            continue
+        if not list(variant_dir.rglob("*.rs")):
+            continue
+        if not (variant_dir / "ast.json").exists():
+            missing.append(str(variant_dir.relative_to(mocks_path)))
+
+    assert not missing, (
+        f"{len(missing)} Rust mock variant(s) have no generated ast.json, so their "
+        f"accuracy tests are not collected at all: {', '.join(missing[:10])}"
+        + (" ..." if len(missing) > 10 else "")
+        + ". Run scripts/generate_fixtures.py."
+    )
+
+
+@pytest.mark.active_runtime
+def test_every_accented_template_is_selectable_on_its_own_mock():
+    """A rule must be one a real scan of its own mock would actually run.
+
+    `test_template_accuracy` executes the rule directly against a prebuilt AST,
+    which skips template selection entirely. A rule can therefore pass its mock
+    while being unselectable for the kind of project that mock represents: an
+    `accent: anchor` rule whose mock declares `stylus-sdk` is dropped by the
+    accent filter before it ever runs, and nothing in the suite notices.
+
+    Passing on a fixture the pipeline would never hand you is not evidence the
+    rule works. Either the accent is wrong for what the rule detects, or the
+    mock is written in the wrong framework - both are worth being told about.
+    """
+    import os
+    import sys as _sys
+
+    os.environ.setdefault("DJANGO_PORT", "8000")
+    os.environ.setdefault("DJANGO_HOST", "api")
+    os.environ.setdefault("DJANGO_HOST_LOCAL", "localhost")
+    # `controller.api` is imported as a package, so the directory *above*
+    # controller/ has to be importable - the same two entries corpus2_regression
+    # adds. In the image that is `/`; from a dev checkout it is the repo root.
+    repo_root = Path("..").resolve()
+    for candidate in (str(repo_root), str(repo_root / "controller")):
+        if candidate not in _sys.path:
+            _sys.path.insert(0, candidate)
+    try:
+        from controller.api import detect_language_from_path
+    except ImportError:  # pragma: no cover - controller not importable here
+        pytest.skip("controller not importable")
+
+    # Recorded rather than hidden, the same way ARCHITECTURALLY_UNDETECTABLE is.
+    # Both are language-level arithmetic rules carrying `accent: anchor` while
+    # their mocks are Stylus crates, so a real scan of either mock selects
+    # neither rule. Widening them to `accent: ""` would make them run on
+    # Arbitrum Stylus contracts as well, which is a decision about what the
+    # rules are for - and one no corpus here can settle, since none of the
+    # production repositories measured contain Stylus code. Left to the
+    # maintainer; listed so it is a known debt and not a silent one, and so any
+    # *new* mismatch still fails.
+    # Empty, and should stay that way: `division_before_multiplication` was the
+    # only entry and its accent has since been opened to every framework, which
+    # is what it should have been - the rule is about integer arithmetic, not
+    # about Anchor. An entry here means a rule a real scan of its own mock would
+    # never select, which is a rule passing on a fixture the pipeline would never
+    # hand it.
+    KNOWN_ACCENT_MISMATCH = set()
+
+    mismatched = []
+    for template_path in sorted(Path("builtin_templates").absolute().glob("*.yaml")):
+        if template_path.stem in KNOWN_ACCENT_MISMATCH:
+            continue
+        data = yaml.safe_load(template_path.read_text())
+        accent = (data or {}).get("accent") or ""
+        if not accent:
+            continue  # applies to every framework; nothing to disagree with
+        mock = Path("tests/mocks").absolute() / template_path.stem / "bad"
+        if not mock.is_dir() or not list(mock.rglob("*.rs")):
+            continue
+        framework = detect_language_from_path(mock)[1]
+        if framework != "unknown" and framework != accent:
+            mismatched.append(f"{template_path.stem}: accent={accent}, mock detects {framework}")
+
+    assert not mismatched, (
+        "template(s) that a real scan of their own mock would never select:\n  "
+        + "\n  ".join(mismatched)
+    )
+
+
+# Frameworks `detect_language_from_path` can actually report. An accent outside
+# this set matches nothing, and `select()` then drops the rule from every scan
+# whose framework is known - silently, since a rule that is never selected looks
+# exactly like a rule that found nothing.
+SELECTABLE_ACCENTS = {"", "anchor", "stylus"}
+
+
+def test_no_template_carries_an_unmatchable_accent():
+    """An accent the selector can never match disables the rule, quietly.
+
+    `select()` keeps a Rust template when its accent is empty, when the
+    framework is unknown, or when accent == framework. The detector only ever
+    reports `anchor`, `stylus` or `unknown`, so an accent of anything else -
+    `rust`, say, which reads as "any Rust program" - means the rule runs on
+    projects with *no* detected framework and is dropped from every Anchor and
+    Stylus scan. "Applies to all Rust" is spelled with an empty accent.
+
+    Not marked `active_runtime`: it reads YAML only, so the cheapest job catches
+    it.
+    """
+    offenders = []
+    for template_path in sorted(Path("builtin_templates").absolute().glob("*.yaml")):
+        data = yaml.safe_load(template_path.read_text())
+        if not data:
+            continue
+        accent = data.get("accent")
+        if accent is None:
+            continue  # the required-fields test owns absent keys
+        if accent not in SELECTABLE_ACCENTS:
+            offenders.append(f"{template_path.name}: accent={accent!r}")
+
+    assert not offenders, (
+        "accent value(s) no scan can match, so the rule is silently dropped:\n  "
+        + "\n  ".join(offenders)
+        + f"\nUse one of {sorted(SELECTABLE_ACCENTS)} (empty means every framework)."
+    )
+
+
+def test_no_template_resolves_to_two_mock_folders():
+    """One template, one mock folder.
+
+    `get_template_test_data` resolves the display name first and falls back to
+    the file stem, while `check_scoping` resolves the stem only. When both
+    folders existed the two gates tested *different copies of the same mock*:
+    `arbitrary_cpi/` and `arbitrary_cross_program_invocation/` held byte-identical
+    sources, and editing either left the other silently passing against a stale
+    copy. Reads YAML and the filesystem only, so the cheapest job catches it.
+    """
+    mocks_path = Path("tests/mocks").absolute()
+    duplicated = []
+
+    for template_path in sorted(Path("builtin_templates").absolute().glob("*.yaml")):
+        data = yaml.safe_load(template_path.read_text())
+        if not data or "name" not in data:
+            continue
+        by_name = mocks_path / normalize_template_name(data["name"])
+        by_stem = mocks_path / template_path.stem
+        if by_name != by_stem and by_name.is_dir() and by_stem.is_dir():
+            duplicated.append(f"{template_path.name}: {by_name.name} and {by_stem.name}")
+
+    assert not duplicated, (
+        "template(s) resolving to two mock folders, so different gates test "
+        "different copies:\n  " + "\n  ".join(duplicated)
+    )

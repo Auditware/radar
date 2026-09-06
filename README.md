@@ -147,12 +147,14 @@ radar -p . --fail-on high     # only high/critical findings fail the build
 radar -p . --fail-on none     # never fail on findings (report only)
 ```
 
-**Test code is skipped by default** — tests break production rules deliberately,
-so reporting them is a cost on every scan rather than a finding. Covers `tests/`
-directories, test-named files, and items behind `#[cfg(test)]` / `#[test]`:
+**Test code is out of scope by default.** Tests unwrap, hardcode keys and skip
+owner checks on purpose, so reporting them is a fixed cost on every scan - and it
+trains people to skim the report, which is how the real finding gets missed. This
+covers `tests/` directories, test-named files, and `#[cfg(test)]` / `#[test]`
+items inside production files. `benches/` and `examples/` are always scanned.
 
 ```bash
-radar -p . --include-tests    # scan tests too
+radar -p . --include-tests    # scan test code too
 ```
 
 **Adopting on an existing codebase.** Accept everything present today and gate

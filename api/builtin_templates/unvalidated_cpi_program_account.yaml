@@ -1,0 +1,34 @@
+version: 0.1.0
+author: forefy
+accent: ""
+name: Unvalidated CPI Program Account
+description: Dispatching a cross-program invocation to a program account that the caller supplied and the program never tied to a known address. Anchor's Program<'info, T> makes that check declarative; a raw UncheckedAccount or AccountInfo in the same slot means whoever builds the transaction chooses which program runs. Native programs need the equivalent comparison against the expected program id before invoking through the account.
+severity: High
+certainty: Low
+vulnerable_example: https://github.com/Auditware/radar/blob/main/api/tests/class_examples/program-account-validation/vulnerable/01_unchecked_cpi_target.rs
+rule: |
+  for source, nodes in ast:
+      for function in nodes.find_all_functions():
+          try:
+              function.find_by_names("invoke", "invoke_signed").exit_on_none()
+
+              names = function.subtree_idents()
+              # Only handlers that route through an account named as a program.
+              if not any([n for n in names if "program" in n.lower()]):
+                  continue
+
+              # A declared `Program<'info, T>` is checked by the framework before
+              # the handler runs, so a handler holding one has nothing to prove.
+              if "Program" in nodes.subtree_idents():
+                  continue
+
+              # Otherwise the program account must be compared to a known id.
+              proved = function.guarded_idents(subjects=("key", "program_id"))
+              if proved:
+                  continue
+              if "ID" in names or "id" in names:
+                  continue
+
+              print(function.find_by_names("invoke", "invoke_signed").first().to_result())
+          except:
+              continue

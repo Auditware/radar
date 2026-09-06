@@ -34,77 +34,79 @@ def test_wrapped_exec_benign_payloads(code):
     ), "Check that benign code executes without errors"
 
 
-# A rule that dies must not read as a rule that found nothing.
+# --- Handler narrowing -------------------------------------------------------
 #
-# Every template guards its loop with `except: continue`, which is the only way
-# to catch what `exit_on_none`/`exit_on_value` raise. While those raised the
-# builtin StopIteration, that handler swallowed the template's own bugs too, and
-# the rule skipped every item and reported zero findings with no error anywhere.
-# Three rules shipped broken that way. `SandboxTransformer` now rewrites bare
-# handlers to catch only `RuleSkip`, so real failures reach `run_scan_task`,
-# which records them and makes the controller exit non-zero.
+# Every template guards its loop body with `except: continue`, because that was
+# the only way to catch what `exit_on_none` / `exit_on_value` raise. That same
+# handler used to catch the rule's own bugs, so a broken rule reported zero
+# findings and the scan came back clean. `SandboxTransformer` now rewrites bare
+# handlers to `except RuleSkip:`; these pin both halves of that behaviour.
 
-CONTROL_FLOW_RULE = """
-ast = parse_ast([], language='rust').items()
-for source, nodes in ast:
+RULE_SKIP_IS_STILL_CAUGHT = """
+for i in [1, 2, 3]:
     try:
-        nodes.find_by_names("absent").exit_on_none()
-        print("unreachable")
+        raise RuleSkip("not interesting")
     except:
         continue
-print("survived")
+print('reached-end')
 """
 
-FORBIDDEN_BUILTIN_RULE = """
-ast = parse_ast([], language='rust').items()
-try:
-    print(str(1))
-except:
-    pass
-"""
+# Real bugs hit while writing rules: a builtin the sandbox does not expose, and
+# an unhashable value in a set. Each used to skip every item silently.
+#
+# The forbidden-builtin case was originally `str()`, which the sandbox has since
+# been widened to allow; `getattr` stands in for it because reaching the
+# interpreter rather than the values is what stays forbidden. The bug it stands
+# for is unchanged: a name the sandbox refuses raises at rule runtime, and that
+# error has to reach the caller instead of skipping the item.
+RULE_BUGS_THAT_MUST_PROPAGATE = [
+    "for i in [1]:\n    try:\n        x = getattr(i, 'real')\n    except:\n        continue\n",
+    "for i in [1]:\n    try:\n        s = set([dict()])\n    except:\n        continue\n",
+    "for i in [1]:\n    try:\n        y = 1 + 'a'\n    except:\n        continue\n",
+    "for i in [1]:\n    try:\n        y = undefined_name\n    except:\n        continue\n",
+]
 
-RUNTIME_ERROR_RULE = """
-ast = parse_ast([], language='rust').items()
-try:
-    seen = set()
-    seen.add(dict())
-    print("unreachable")
-except:
-    pass
-"""
-
-NAMED_HANDLER_RULE = """
-ast = parse_ast([], language='rust').items()
-for source, nodes in ast:
+# A handler that names a type is the author's decision and must be left alone.
+EXPLICIT_HANDLER_NOT_WIDENED = """
+for i in [1]:
     try:
-        nodes.find_by_names("absent").exit_on_none()
+        y = 1 + 'a'
     except RuleSkip:
-        print("caught deliberately")
-print("done")
+        continue
 """
 
 
-def test_bare_except_still_swallows_dsl_control_flow():
-    """exit_on_* must keep skipping items, or every rule stops working."""
-    assert '"survived"' in wrapped_exec(CONTROL_FLOW_RULE)
+def test_bare_handler_still_catches_the_control_flow_signal():
+    assert '"reached-end"' in wrapped_exec(RULE_SKIP_IS_STILL_CAUGHT)
 
 
-def test_bare_except_no_longer_hides_a_forbidden_builtin():
-    with pytest.raises(RuntimeError, match="built-in function is not allowed"):
-        wrapped_exec(FORBIDDEN_BUILTIN_RULE)
+@pytest.mark.parametrize("code", RULE_BUGS_THAT_MUST_PROPAGATE)
+def test_bare_handler_no_longer_swallows_rule_bugs(code):
+    with pytest.raises(Exception):
+        wrapped_exec(code)
 
 
-def test_bare_except_no_longer_hides_a_runtime_error():
-    """The `to_result()`-into-a-set bug, which shipped as a silently dead rule."""
-    with pytest.raises(TypeError, match="unhashable"):
-        wrapped_exec(RUNTIME_ERROR_RULE)
+def test_explicit_handler_is_not_widened():
+    with pytest.raises(TypeError):
+        wrapped_exec(EXPLICIT_HANDLER_NOT_WIDENED)
 
 
-def test_named_except_handler_is_left_alone():
-    """Only bare handlers are rewritten; a handler that names its type is kept.
+def test_exit_helpers_raise_the_skip_signal():
+    """`exit_on_none` / `exit_on_value` are control flow, not errors.
 
-    `RuleSkip` is the one exception a template can name: the sandbox exposes no
-    builtin exception classes, which is why a bare `except:` was the only
-    handler a rule could write in the first place.
+    They must not raise `StopIteration`: inside a generator that becomes a
+    `RuntimeError` (PEP 479), and it is indistinguishable from an exhausted
+    iterator anywhere else.
     """
-    assert '"done"' in wrapped_exec(NAMED_HANDLER_RULE)
+    from utils.dsl.dsl_ast_iterator import ASTNodeList, ASTNodeListGroup, RuleSkip
+
+    assert not issubclass(RuleSkip, StopIteration)
+
+    with pytest.raises(RuleSkip):
+        ASTNodeList([]).exit_on_none()
+    with pytest.raises(RuleSkip):
+        ASTNodeList([object()]).exit_on_value()
+    with pytest.raises(RuleSkip):
+        ASTNodeListGroup([]).exit_on_none()
+    with pytest.raises(RuleSkip):
+        ASTNodeList([]).first()

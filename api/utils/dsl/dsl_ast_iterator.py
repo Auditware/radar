@@ -4,23 +4,49 @@ from typing import List, Optional
 import json
 
 
+# Shapes that read as an identity check. Kept module level so a rule can extend
+# the judgement rather than restate it.
+GUARD_PREFIXES = ("check_", "assert_", "validate_", "verify_")
+GUARD_SUBJECTS = ("own", "account", "key", "mint", "program", "authority", "signer", "address")
+REQUIRE_MACROS = ("require", "require_eq", "require_keys_eq", "require_keys_neq")
+
+# Types that make a binding an account rather than an ordinary local.
+ACCOUNT_TYPES = {
+    "AccountInfo", "UncheckedAccount", "Account", "AccountLoader", "Signer",
+    "Program", "SystemAccount", "InterfaceAccount", "Sysvar",
+}
+
+
+def _guard_name_mentions(ident, against) -> bool:
+    """`check_account_owner` states its subject in the name, not the arguments."""
+    lowered = (ident or "").lower()
+    return any(word.lower().strip("_") in lowered for word in (against or ()))
+
+
+def _names_an_identity_guard(ident) -> bool:
+    """Does this function name read as "prove something about an account"?"""
+    if not ident:
+        return False
+    lowered = ident.lower()
+    if not any(lowered.startswith(prefix) for prefix in GUARD_PREFIXES):
+        return False
+    return any(subject in lowered for subject in GUARD_SUBJECTS)
+
+
 class RuleSkip(Exception):
-    """Raised by `exit_on_none` / `exit_on_value` to abandon the current item.
+    """Control-flow signal: abandon this item, not the rule.
 
-    This is control flow, not an error: it means "this node is not the shape I
-    am looking for, move on". It exists as its own type because the two used to
-    share a channel with real failures.
+    `exit_on_none` / `exit_on_value` raise this to tell a rule's loop body that
+    the item under inspection is not interesting. It is deliberately its own
+    type rather than a generic error, because every template guards its loop
+    with a handler, and a handler that catches everything also catches the
+    rule's own bugs - an unhashable value in a set, a builtin the sandbox does
+    not expose - which turns a broken rule into a scan that reports nothing.
+    A rule that dies then reads exactly like a rule that found nothing.
 
-    Every template guards its loop body with a bare `except: continue`, which is
-    the only way to catch an exit_on_* raise. When those raised `StopIteration`
-    - a builtin - that same handler also caught the template's own bugs, and a
-    rule that died read identically to a rule that found nothing: zero findings,
-    no error, a clean scan. Three separate rules shipped broken that way (`min`
-    and `str` not being in the sandbox, `to_result()` being an unhashable dict).
-
-    The sandbox now rewrites those bare handlers to catch this type only, so a
-    genuine error escapes to `run_scan_task`, which already records it and makes
-    the controller exit non-zero.
+    `SandboxTransformer.visit_ExceptHandler` narrows every bare `except:` in a
+    template to this type, so anything else propagates to `run_scan_task`,
+    which records the error and makes the controller exit non-zero.
     """
 
 
@@ -412,6 +438,382 @@ class RustASTNode(ASTNode):
 
         recurse(self, idents)
         return ASTNodeListGroup(matches)
+
+    # --- account-scope primitives --------------------------------------------
+    #
+    # Rules that ask "was *this* account checked" all need the same four things:
+    # the identifiers under a subtree, what a `let` binding refers to, which
+    # identifiers name accounts, and which of those a guard actually names.
+    # Every rule that needed them used to rebuild them in its own YAML, slightly
+    # differently, which is where both the false positives and the maintenance
+    # cost came from - and each copy had to be written against a tree that until
+    # recently dropped receiver chains, so most of them could only ask the
+    # question per function.
+    #
+    # Asking per function is the bug: it lets a validated account excuse an
+    # unvalidated sibling. These make asking per account the easy thing to write.
+
+    def subtree_idents(self, prefix: str = "") -> set:
+        """Identifiers anywhere beneath this node, optionally under an access path."""
+        found = set()
+
+        def walk(node):
+            if node.ident is not None and node.access_path.startswith(prefix):
+                found.add(node.ident)
+            for child in node.children:
+                walk(child)
+
+        walk(self)
+        return found
+
+    def let_bindings(self) -> dict:
+        """`let` name -> the identifiers its initialiser mentions.
+
+        `let mint_data = mint_info.data.borrow();` binds `mint_data` to
+        `{mint_info, data, borrow}`. A guard names `mint_info` and the unpack
+        names `mint_data`, so without this hop the two never meet and every
+        checked account still reports.
+        """
+        bindings = {}
+
+        def walk(node):
+            path = node.access_path
+            if node.ident is not None and path.endswith(".let.pat.ident"):
+                init_prefix = path.split(".pat.ident")[0] + ".init"
+                bindings[node.ident] = self.subtree_idents(init_prefix)
+            for child in node.children:
+                walk(child)
+
+        walk(self)
+        return bindings
+
+    def account_idents(self) -> set:
+        """Identifiers in this scope that name an account.
+
+        Anchor hands them over as `ctx.accounts.<name>` and as the fields of a
+        `#[derive(Accounts)]` struct; native programs pull them off an iterator
+        with `next_account_info`. Both spellings, because a rule that knows only
+        Anchor's reports every native program that did the right thing.
+        """
+        names = set()
+
+        def walk(node):
+            path = node.access_path
+            if node.ident is not None:
+                # `let x = next_account_info(iter)?` and `let x = &ctx.accounts.y`
+                if path.endswith(".let.pat.ident"):
+                    init = self.subtree_idents(path.split(".pat.ident")[0] + ".init")
+                    if init & {"next_account_info", "accounts"}:
+                        names.add(node.ident)
+                # A typed parameter, but only when its type says account.
+                # Every parameter counted as an account made "is this account
+                # checked" a question about arbitrary locals, which reports
+                # amounts and bump seeds as unvalidated accounts.
+                if path.endswith(".typed.pat.ident"):
+                    type_prefix = path.split(".pat.ident")[0] + ".ty"
+                    if self.subtree_idents(type_prefix) & ACCOUNT_TYPES:
+                        names.add(node.ident)
+            for child in node.children:
+                walk(child)
+
+        walk(self)
+
+        # The field name in `ctx.accounts.<name>` is the account itself. It is
+        # the node whose *child* is `accounts`, not its child: a field chain
+        # nests outermost-first, so `ctx.accounts.vault` is `vault` -> `accounts`
+        # -> `ctx`. Reading it the other way collects `ctx` as the account name
+        # and every real account goes unrecognised.
+        def walk_fields(node):
+            # Must actually be a field access. Testing only for a child named
+            # `accounts` also matched `fn process(accounts: &[AccountInfo])` -
+            # the commonest native Solana signature there is - and added the
+            # *function's own name* to the set of accounts in scope.
+            if (
+                node.ident
+                and (node.access_path or "").endswith(".field")
+                and any(child.ident == "accounts" for child in node.children)
+            ):
+                names.add(node.ident)
+            for child in node.children:
+                walk_fields(child)
+
+        walk_fields(self)
+        return names
+
+    def guarded_idents(self, subjects=None, against=None) -> set:
+        """Identifiers that some identity check in this scope actually names.
+
+        Three spellings, because programs use all three and a rule that accepts
+        one reports the other two:
+
+          `require_keys_eq!(token.owner, authority.key())`   Anchor's macro
+          `if account.owner != program_id { return Err(..) }` an inline guard
+          `check_account_owner(program_id, mint_info)?`      a named helper,
+              which is what SPL, Solend, Metaplex and stake-pool actually write
+
+        Helpers are recognised by shape rather than by a list of names, so a
+        program's own `check_mint` counts: a check/assert/validate/verify prefix
+        plus a word saying the check is about an account's identity rather than,
+        say, a slippage bound.
+
+        `against` narrows what the check has to be *about*. Program ownership is
+        `account.owner == program_id`, and a comparison of a deserialized
+        account's own `.owner` field against an authority is a different claim
+        that does not prove the program owns the account. Callers that need that
+        distinction pass `against=("ID", "program_id")`; callers that accept any
+        identity check leave it unset.
+        """
+        subjects = subjects or ("owner", "key")
+        guarded = set()
+
+        def satisfies(named):
+            if not (named & set(subjects)):
+                return False
+            return not against or bool(named & set(against))
+
+        def walk(node):
+            path, ident = node.access_path, node.ident
+            if ident is not None:
+                if ".call.func." in path and _names_an_identity_guard(ident):
+                    named = self.subtree_idents(path.split(".func.")[0] + ".args")
+                    # A helper states its subject in its name, not its arguments:
+                    # `check_account_owner(program_id, mint)` never writes
+                    # `owner` as an argument. Judge the name, filter the target.
+                    if not against or (named & set(against)) or _guard_name_mentions(ident, against):
+                        guarded.update(named)
+                if ident in REQUIRE_MACROS:
+                    named = self.subtree_idents(path.split(".macro")[0])
+                    if satisfies(named):
+                        guarded.update(named)
+            for child in node.children:
+                walk(child)
+
+        walk(self)
+
+        # An inline condition proves the same thing, for whatever it names.
+        # Collected per condition rather than per node: every node inside one
+        # resolves to the same prefix, so scanning per node walks the scope once
+        # per node instead of once per condition.
+        conditions = set()
+
+        def walk_conditions(node):
+            if ".cond." in node.access_path:
+                conditions.add(node.access_path.split(".cond.")[0] + ".cond.")
+            for child in node.children:
+                walk_conditions(child)
+
+        walk_conditions(self)
+        for condition in conditions:
+            named = self.subtree_idents(condition)
+            if satisfies(named):
+                guarded |= named
+        return guarded
+
+    def unguarded_accounts_at(self, call_node, subjects=None, against=None) -> set:
+        """Accounts a call reads that nothing in this scope proved.
+
+        The per-account question, in one call: which accounts do this call's
+        arguments reach once `let` bindings are followed, minus the ones a guard
+        names. Empty means this particular access is covered - not that the
+        function checked something, somewhere.
+        """
+        path = call_node.access_path
+        if ".func." not in path:
+            return set()
+
+        accounts = self.account_idents()
+        guarded = self.guarded_idents(subjects, against)
+
+        # Which accounts these arguments actually reach, following data aliases
+        # (`let d = info.data.borrow()` names `info`).
+        reads = set()
+        for ident in self.subtree_idents(path.split(".func.")[0] + ".args"):
+            reads |= self.alias_closure(ident) & accounts
+
+        # Expand only the account side, and only through aliases. Expanding the
+        # guard side too - or letting the closure run through
+        # `next_account_info` - collapses every account pulled off one iterator
+        # into the same thing, so proving one proves all of them. That is the
+        # sibling bug this rule exists to catch, reintroduced one level down.
+        return {a for a in reads if not (self.alias_closure(a) & guarded)}
+
+    def parameter_names(self) -> set:
+        """The names this function takes as parameters."""
+        found = set()
+
+        def walk(node):
+            path = node.access_path or ""
+            if node.ident and ".inputs[" in path and path.endswith(".typed.pat.ident"):
+                found.add(node.ident)
+            for child in node.children:
+                walk(child)
+
+        walk(self)
+        return found
+
+    def caller_supplied(self, ident, depth: int = 4) -> bool:
+        """Did this value arrive from the caller rather than get chosen here?
+
+        A parameter, or anything derived from one. The distinction matters
+        because "was this account validated" is the wrong question to ask of a
+        function that picked none of its accounts: `fn token_burn(mint:
+        AccountInfo, .., amount: u64)` validates nothing because it decides
+        nothing, and the caller is where the check belongs. Demanding one here
+        reports every thin CPI wrapper in the ecosystem - which is exactly what
+        `invoke_signed_unvalidated_seeds` was reporting until it learned to ask
+        this.
+        """
+        parameters = self.parameter_names()
+        if ident in parameters:
+            return True
+
+        bindings = self.let_bindings()
+
+        # Selecting an account out of the slice is a choice this function made,
+        # even though the slice itself came from the caller. That is the line
+        # between a handler and a wrapper: `next_account_info(iter)` decides
+        # *which* account this is, and the handler that decides is the one that
+        # owes the check. Without this every native Solana handler reads as
+        # having chosen nothing, since everything ultimately traces back to the
+        # `accounts` parameter.
+        if "next_account_info" in bindings.get(ident, set()):
+            return False
+        seen, frontier = {ident}, {ident}
+        for _ in range(depth):
+            following = set()
+            for current in frontier:
+                following |= bindings.get(current, set()) - seen
+            if not following:
+                return False
+            if following & parameters:
+                return True
+            seen |= following
+            frontier = following
+        return False
+
+    def chose_nothing(self, idents=None) -> bool:
+        """Were all of these values handed to this function?
+
+        With no arguments, asks it of the accounts the function touches. A
+        function that chose nothing is not where a missing check lives.
+        """
+        subject = set(idents) if idents is not None else self.account_idents()
+        if not subject:
+            return False
+        return all(self.caller_supplied(name) for name in subject)
+
+    def bound_positions(self, node) -> dict:
+        """Tuple positions a `let` destructuring actually binds, by index.
+
+        `let (_, bump) = find_program_address(..)` binds {1: "bump"} - position
+        0 is discarded. That is the difference between deriving an address to
+        check a supplied account against, and deriving one only to record its
+        bump: the second has no address to compare and no account to compare it
+        to, so demanding a comparison reports correct initialisation code.
+        """
+        path = getattr(node, "access_path", "") or ""
+        marker = ".let.init"
+        if marker not in path:
+            return {}
+        prefix = path.split(marker)[0] + ".let.pat.tuple.elems["
+
+        positions = {}
+        for candidate in (self._all_nodes if hasattr(self, "_all_nodes") else []):
+            candidate_path = candidate.access_path or ""
+            if not candidate_path.startswith(prefix) or not candidate.ident:
+                continue
+            index = candidate_path[len(prefix):].split("]")[0]
+            if index.isdigit() and candidate_path.endswith(".ident"):
+                positions[int(index)] = candidate.ident
+        return positions
+
+    def enclosing_type_name(self) -> str:
+        """The type this method hangs off, for a method in an `impl` block.
+
+        `impl Fee { fn apply(..) }` states what `apply` computes exactly once,
+        on the impl - and the type name is not an ancestor of the method in this
+        tree, it sits on a sibling branch (`impl.self_ty`). Walking parents
+        therefore never reaches it, which is why a rule keyed on what a function
+        is *about* reads nothing on the most ordinary Rust shape there is.
+
+        Returns None for a free function, or when the impl names no plain type.
+        """
+        path = self.access_path or ""
+        marker = ".impl."
+        if marker not in path:
+            return None
+        prefix = path.split(marker)[0] + ".impl.self_ty"
+        best = None
+        for node in (self._all_nodes if hasattr(self, "_all_nodes") else []):
+            if node.access_path.startswith(prefix) and node.ident:
+                # The outermost segment is the type; deeper ones are its generics.
+                if best is None or len(node.access_path) < len(best.access_path):
+                    best = node
+        return best.ident if best is not None else None
+
+    def statement_index(self, node) -> int:
+        """Which statement of the enclosing body this node sits in.
+
+        Several classes are about *order*, not presence: an owner check before a
+        CPI says nothing about the account after it, and a rule that only asks
+        whether a check exists somewhere in the handler calls that safe. Access
+        paths already carry the position - `...fn.stmts[7].let.init...` - so this
+        reads it out rather than adding a second traversal.
+
+        Returns -1 when the node is not inside a statement list, which sorts
+        before every real statement.
+        """
+        path = getattr(node, "access_path", "") or ""
+        marker = ".stmts["
+        if marker not in path:
+            return -1
+        tail = path.rsplit(marker, 1)[1]
+        digits = tail.split("]")[0]
+        return int(digits) if digits.isdigit() else -1
+
+    def binding_of(self, node) -> str:
+        """The `let` name this node's value flows into, if any.
+
+        `let ix = get_instruction_relative(0, sysvar)?` -> "ix". Rules need it to
+        ask whether a guard names *the thing that was just loaded*, rather than
+        whether the identifier appears somewhere in the handler. Three rules in
+        a row have been wrong the second way: a `program_id` comparison about
+        some other account excused the instruction that was never checked.
+        """
+        path = getattr(node, "access_path", "")
+        marker = ".let.init"
+        if marker not in path:
+            return None
+        prefix = path.split(marker)[0] + ".let.pat.ident"
+        for candidate in self._all_nodes if hasattr(self, "_all_nodes") else []:
+            if candidate.access_path == prefix:
+                return candidate.ident
+        return None
+
+    def alias_closure(self, ident, depth: int = 3) -> set:
+        """`ident` plus every account it is another name for.
+
+        Follows a binding to the account it names, and stops at
+        `next_account_info`: that call *mints* an account rather than aliasing
+        one, so two accounts taken off the same iterator are two accounts, not
+        two names for the iterator.
+        """
+        bindings = self.let_bindings()
+        accounts = self.account_idents()
+
+        reached, frontier = {ident}, {ident}
+        for _ in range(depth):
+            following = set()
+            for current in frontier:
+                initialiser = bindings.get(current, set())
+                if "next_account_info" in initialiser:
+                    continue
+                following |= (initialiser & accounts) - reached
+            if not following:
+                break
+            reached |= following
+            frontier = following
+        return reached
 
     @dsl_log
     def find_by_access_path(self, access_path_part: str) -> ASTNodeList:
@@ -944,6 +1346,27 @@ class RustASTNode(ASTNode):
         return ASTNodeList(matching_nodes)
 
 
+def _find_ident_src_path(data, access_path):
+    """Access path of the first ident-bearing node in `data`, in walk order.
+
+    Used to decide which node a wrapper's `mut` flag belongs to.
+    """
+    if isinstance(data, dict):
+        if "src" in data and "ident" in data:
+            return access_path
+        for key, value in data.items():
+            new_path = f"{access_path}.{key}" if access_path else key
+            found = _find_ident_src_path(value, new_path)
+            if found is not None:
+                return found
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            found = _find_ident_src_path(item, f"{access_path}[{i}]")
+            if found is not None:
+                return found
+    return None
+
+
 def serialize_rust_ast(ast, access_path="", parent=None) -> list:
     """Serialize a Rust AST into a list of RustASTNode objects.
 
@@ -957,6 +1380,7 @@ def serialize_rust_ast(ast, access_path="", parent=None) -> list:
     """
     nodes = []
     if isinstance(ast, dict):
+        mut_target_path = None
         # Match - include nodes that has src and ident keys
         if "src" in ast and "ident" in ast:
             metadata = {}
@@ -967,39 +1391,24 @@ def serialize_rust_ast(ast, access_path="", parent=None) -> list:
             nodes.append(node)
             parent = node
 
-        # Mutable but no ident edge case, corelate a mutable statement with the closest ident
+        # Mutable but no ident edge case, correlate a mutable statement with the
+        # closest ident.
+        #
+        # `&mut expr` puts the mutability on a wrapper dict that carries no ident
+        # of its own, so the flag has to be attached to a node further down. This
+        # used to emit a *second* node at that node's access path, and the twin
+        # was ruinous: `parse_rust_ast` indexes nodes by access path, so the twin
+        # displaced the real node in the index, and the whole subtree beneath it
+        # - the receiver chain of `&mut info.data.borrow_mut()`, every field of
+        # `&mut ctx.accounts.vault.amount` - was linked to a node that was itself
+        # unreachable from the root, and vanished from the tree the rules walk.
+        # A rule could see `borrow_mut` but never which account it borrowed.
+        #
+        # The flag is now merged onto the node the main walk builds, after that
+        # walk has run. One node per access path, and `mut` lands on a node the
+        # rules can actually reach - which `find_mutables` also depends on.
         elif "mut" in ast:
-            metadata = {"mut": ast["mut"]}
-
-            def find_ident_src_node(sub_data, sub_access_path):
-                if isinstance(sub_data, dict):
-                    # Match
-                    if "src" in sub_data and "ident" in sub_data:
-                        return RustASTNode(sub_data, sub_access_path, metadata)
-
-                    # Look deeper
-                    for key, value in sub_data.items():
-                        new_path = (
-                            f"{sub_access_path}.{key}" if sub_access_path else key
-                        )
-                        result = find_ident_src_node(value, new_path)
-                        if result:
-                            return result
-
-                # Look deeper
-                elif isinstance(sub_data, list):
-                    for i, item in enumerate(sub_data):
-                        new_path = f"{sub_access_path}[{i}]"
-                        result = find_ident_src_node(item, new_path)
-                        if result:
-                            return result
-                return None
-
-            node = find_ident_src_node(ast, access_path)
-            if node:
-                node.parent = parent
-                nodes.append(node)
-                parent = node
+            mut_target_path = _find_ident_src_path(ast, access_path)
 
         # Capture binary operator information
         if "op" in ast and parent:
@@ -1046,6 +1455,12 @@ def serialize_rust_ast(ast, access_path="", parent=None) -> list:
         for key, value in ast.items():
             new_path = f"{access_path}.{key}" if access_path else key
             nodes.extend(serialize_rust_ast(value, new_path, parent))
+
+        if mut_target_path is not None:
+            for candidate in nodes:
+                if candidate.access_path == mut_target_path:
+                    candidate.metadata["mut"] = ast["mut"]
+                    break
     
     # Look deeper
     elif isinstance(ast, list):
@@ -1093,24 +1508,37 @@ def parse_rust_ast(ast: dict) -> dict:
 
     roots = {}
     for source, nodes in sources.items():
-        path_to_node = {node.access_path: node for node in nodes}
-        assigned_children = set()
+        # First node wins an access path. Paths are meant to be unique; where a
+        # shape still produces two, indexing the later one would point every
+        # descendant at a node that is not itself linked into the tree, and the
+        # whole subtree would drop out silently.
+        path_to_node = {}
         for node in nodes:
-            if node.access_path in assigned_children:
-                continue
+            path_to_node.setdefault(node.access_path, node)
+
+        # Keyed by identity, not by access path: two nodes sharing a path are
+        # still two nodes, and skipping the second used to strand it.
+        attached = set()
+        for node in nodes:
             parent_path = ".".join(node.access_path.split(".")[:-1])
             while parent_path:
                 parent_node = path_to_node.get(parent_path)
-                if parent_node:
+                if parent_node is not None and parent_node is not node:
                     parent_node.add_child(node)
-                    assigned_children.add(node.access_path)
+                    attached.add(id(node))
                     break
                 parent_path = ".".join(parent_path.split(".")[:-1])
+
         root = RustASTNode()
         root._all_nodes = nodes
         for node in nodes:
             node._all_nodes = nodes
-            if not node.parent:
+            # A node that found no parent belongs to the root. Testing
+            # `node.parent` here instead would consult the pointer serialization
+            # already set, which is almost always non-empty, so an unlinked node
+            # was neither a child of anything nor a child of the root: it existed
+            # in the flat list and was unreachable from the tree every rule walks.
+            if id(node) not in attached:
                 root.add_child(node)
         roots[source] = root
 

@@ -10,6 +10,23 @@ It is deliberately not a merge gate: the cases are someone else's mapping over p
 crates, and a `missed` here is a coverage limit rather than a defect. It fails only on
 a *regression* against the committed baseline - a case that scored better before.
 
+Lowering a baseline entry needs a reason, and only one reason is legitimate: the rule
+was firing on the fixed variant too, so what it lost was never a detection. This
+scorer reads only the vulnerable side, so it ranks `unlocated` above `missed` even
+when the `unlocated` hit was carpet-bombing - `measure.py`'s paired `real` metric is
+what tells the two apart. Any other downgrade is a real regression and must be fixed
+rather than recorded.
+
+Downgraded on 2026-09-06, both under that reason and both for Account Data Matching
+v0.3.0: `metaplex-token-metadata` fired once on the bug and once on its fix, and
+`token-2022-confidential-approve-mint` fired eighteen times on each. Neither was a
+detection before and neither is a loss now; `real` stayed 1/17 across the change.
+
+Cases already read while debugging, which are no longer out-of-sample: solend-owner-checks,
+metaplex-candy-machine, anchor-account-reload-owner, solido-deposit-reserve-account,
+spl-stake-pool-mint-decimals, spl-stake-pool-fee-rounding, spl-token-lending-rounding,
+squads-recursive-execute. A pass on one of those is in-sample and should be reported as such.
+
 Usage:
     python tests/corpus2_regression.py                 # clone the pack, run, compare
     python tests/corpus2_regression.py --pack DIR      # use an existing checkout
@@ -40,7 +57,7 @@ os.environ.setdefault("DJANGO_HOST", "api")
 os.environ.setdefault("DJANGO_HOST_LOCAL", "localhost")
 
 from controller.api import detect_language_from_path  # noqa: E402
-from utils.ast import generate_ast_for_rust_program  # noqa: E402
+from utils.ast import generate_program_ast_for_folder  # noqa: E402
 from utils.dsl.dsl import (  # noqa: E402
     inject_code_lines,
     process_template_outputs,
@@ -96,9 +113,12 @@ def select(templates, language, framework):
 
 
 def scan_variant(vdir: Path, templates):
-    language, framework = detect_language_from_path(vdir)
-    ast_blob = generate_ast_for_rust_program(vdir)
-    findings = []
+    _, framework = detect_language_from_path(vdir)
+    # Language the way `views.py` decides it, so a crate with no Cargo.toml is
+    # still scanned as Rust rather than selecting no templates at all.
+    language = "solidity" if next(vdir.rglob("*.sol"), None) else "rust"
+    ast_blob = generate_program_ast_for_folder(vdir)
+    findings, errors = [], []
     for data in select(templates, language, framework):
         try:
             code = inject_code_lines(
@@ -107,11 +127,19 @@ def scan_variant(vdir: Path, templates):
             result = process_template_outputs(wrapped_exec(code), data)
             if result and result.get("locations"):
                 findings.append(result)
-        except Exception:
-            # A template that raises reports nothing, exactly as it does in a real
-            # scan; the template test suite is what holds templates to working.
-            pass
-    return findings, len(ast_blob["sources"])
+        except Exception as exc:
+            # A template that raises reports nothing. It used to do so silently
+            # here, which meant a rule that broke and a rule that found nothing
+            # produced the same corpus verdict - the exact confusion `RuleSkip`
+            # was introduced to end. Record it and let the run say so.
+            errors.append(f"{data['name']}: {type(exc).__name__}: {exc}")
+    return findings, len(ast_blob["sources"]), errors
+
+
+# Rules that raised during the run. A verdict computed while errors were
+# invisible would read "this rule does not detect this bug" when the truth is
+# "this rule crashed", and those call for opposite fixes.
+rule_errors = []
 
 
 def run(pack: Path, templates):
@@ -122,15 +150,50 @@ def run(pack: Path, templates):
             vdir = pack / "cases" / case / variant
             if not vdir.is_dir():
                 continue
-            findings, n_files = scan_variant(vdir, templates)
+            findings, n_files, errors = scan_variant(vdir, templates)
+            rule_errors.extend(f"{case}.{variant}: {e}" for e in errors)
             leaf = results / f"{case}.{variant}"
             leaf.mkdir(parents=True, exist_ok=True)
             json.dump(findings, open(leaf / "radar.json", "w"), indent=1)
             # The pack's loader treats a missing radar.json as evidence of nothing
             # only when stdout says a scan happened.
             (leaf / "stdout.log").write_text(f"Scanned {n_files} files\n")
-            print(f"  {case}.{variant:9} rules_fired={len(findings)}", flush=True)
+            suffix = f" errors={len(errors)}" if errors else ""
+            print(f"  {case}.{variant:9} rules_fired={len(findings)}{suffix}", flush=True)
     return results
+
+
+LOCAL_MAPPING = Path(__file__).resolve().parent / "corpus2_mapping_local.json"
+
+
+def _shadow_pack(pack: Path, tmp: Path) -> Path:
+    """A view of the pack whose `mapping.json` also knows our newer rules.
+
+    `check.py` reads `mapping.json` from its own directory and takes no override,
+    and the pack's copy predates every rule added since it was written - so those
+    classes score `no-rule` forever and the regression under-reports coverage
+    radar actually has. Everything is symlinked except the mapping, so the real
+    checkout is never written to and the scorer still runs unmodified.
+    """
+    if not LOCAL_MAPPING.is_file():
+        return pack
+
+    shadow = tmp / "pack"
+    shadow.mkdir(parents=True, exist_ok=True)
+    for entry in pack.iterdir():
+        if entry.name != "mapping.json":
+            link = shadow / entry.name
+            if not link.exists():
+                link.symlink_to(entry)
+
+    merged = json.load(open(pack / "mapping.json"))
+    additions = json.load(open(LOCAL_MAPPING)).get("map", {})
+    # The pack's own entries win: this file adds coverage, it never reinterprets
+    # a class the benchmark author has already mapped.
+    for klass, rules in additions.items():
+        merged["map"].setdefault(klass, rules)
+    (shadow / "mapping.json").write_text(json.dumps(merged, indent=1))
+    return shadow
 
 
 def score(pack: Path, results: Path):
@@ -173,7 +236,8 @@ def main():
 
         templates = load_templates()
         print(f"{len(templates)} templates, pack at {pack}", flush=True)
-        got = score(pack, run(pack, templates))
+        results = run(pack, templates)
+        got = score(_shadow_pack(pack, Path(tmp)), results)
 
     if args.update_baseline:
         BASELINE.write_text(json.dumps(got, indent=1, sort_keys=True) + "\n")
@@ -188,6 +252,15 @@ def main():
         tally[verdict] = tally.get(verdict, 0) + 1
     print("\n" + "  ".join(f"{k}={v}" for k, v in sorted(tally.items())))
 
+    if rule_errors:
+        # Printed before the verdicts, because a verdict computed while a rule
+        # was raising is not the verdict it looks like: "missed" here can mean
+        # "crashed", and those need opposite fixes.
+        print(f"\n{len(rule_errors)} rule error(s) during the run - verdicts for "
+              f"these rules are not measurements of detection:")
+        for entry in sorted(set(rule_errors)):
+            print(f"  {entry}")
+
     for case, want, have in improvements:
         print(f"IMPROVED   {case}: {want} -> {have}")
     for case, want, have in regressions:
@@ -195,6 +268,11 @@ def main():
 
     if regressions:
         print(f"\n{len(regressions)} case(s) scored worse than the baseline.")
+        return 1
+    if rule_errors:
+        print(f"\n{len(set(rule_errors))} rule(s) raised. No verdict regressed, but "
+              f"a raising rule reports nothing, so the score understates nothing "
+              f"and overstates the rules' health.")
         return 1
     if improvements:
         print("\nNo regressions. Re-run with --update-baseline to record the gains.")
