@@ -335,7 +335,11 @@ EXPECTED_DETECTIONS = {
         "good": []
     },
     "Unchecked CPI Program Invoke": {
-        "bad": ["tests/mocks/unchecked_cpi_program_invoke/bad/src/lib.rs:10:43-53"],
+        "bad": [# The rule reports the `program_id` field of the `Instruction` literal, and
+    # that node used to be one of the orphans the tree dropped - so the finding
+    # landed on the first reachable `program_id`, the fn parameter on line 10.
+    # With the node reachable it lands on the field itself.
+    "tests/mocks/unchecked_cpi_program_invoke/bad/src/lib.rs:12:13-23"],
         "good": []
     },
     "Unchecked Low-Level Call Return": {

@@ -11,6 +11,12 @@ output.md
 # The corpus-2 regression baseline is the gate's reference point; a run can
 # only mean something if the expected verdicts are in the tree.
 !api/tests/corpus2_baseline.json
+# The rotation manifest and the local class-to-rule mapping are inputs the test
+# suite reads, not build output. `*.json` above silently dropped both from the
+# first commit that added them: the manifest gate failed in CI, and the mapping
+# would have made the corpus regression fail against its own baseline.
+!api/tests/rotation/manifest.json
+!api/tests/corpus2_mapping_local.json
 *checksum*
 radar.wiki
 **/.DS_Store

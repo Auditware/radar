@@ -1,0 +1,12 @@
+{
+ "_why": "Radar's own view of which rule covers which corpus-2 class. The pack ships a mapping derived from radar's rule names at the time it was written, and it predates these rules - so without this every class below scores 'no-rule' forever and radar's internal regression under-reports its own coverage. Additions only: the pack's entries win where both name a class, and this file is never sent anywhere. The published ScannerTruth number is theirs and stays whatever their mapping says.",
+ "map": {
+  "owner-check-after-cpi": ["Owner Check After CPI"],
+  "program-account-validation": ["Unvalidated CPI Program Account"],
+  "instruction-introspection": ["Unvalidated Instruction Introspection"],
+  "pda-derived-address-validation": ["PDA Address Not Verified"],
+  "mint-configuration-validation": ["Mint Configuration Unvalidated"],
+  "cpi-recursion": ["CPI Self Recursion"],
+  "arithmetic-rounding-drain": ["Rounding Favours The Caller"]
+ }
+}

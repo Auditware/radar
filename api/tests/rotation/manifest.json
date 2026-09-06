@@ -1,0 +1,4 @@
+{
+ "_note": "Empty on purpose. Mining commit messages for security fixes was tried on stake-pool (1748 commits) and produced nothing usable - the one candidate's fix touched a CLI client, not the on-chain program. Filling this needs someone reading advisories and audit reports, and that person should not then write rules for the classes they add. fetch.py refuses a case whose fix touches none of its declared paths, so a bad entry cannot sit here looking like coverage.",
+ "cases": []
+}
