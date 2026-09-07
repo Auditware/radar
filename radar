@@ -246,6 +246,10 @@ development_mode=false
 store_sarif=false
 check_update=false
 
+# How old an image has to be before the header says so. Long enough not to nag,
+# short enough to catch a cache that has quietly gone stale.
+STALE_IMAGE_DAYS=7
+
 # Check if first argument is a command
 command=""
 if [[ $# -eq 0 ]]; then
@@ -353,6 +357,47 @@ arm_specific_flag=""
 if [[ "$(uname -m)" == "arm64" ]] || [[ "$(uname -m)" == "aarch64" ]]; then
     arm_specific_flag="--platform linux/amd64"
 fi
+
+print_version() {
+    # Which build is actually about to run. A cached image keeps working
+    # silently long after main has moved, and a scan from a stale one is
+    # indistinguishable from a current one - so the commit goes in the header,
+    # where it also ends up in any pasted bug report.
+    #
+    # Read from the OCI labels the publish workflow already sets, so this needs
+    # no build change. Deliberately no registry call: checking for a newer
+    # digest would put a network round trip, an offline failure mode and a rate
+    # limit in front of every scan, to answer a question the image's own age
+    # answers well enough.
+    local image="ghcr.io/auditware/radar-api:main"
+    local revision created
+
+    revision=$(docker inspect --format='{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image" 2>/dev/null)
+    created=$(docker inspect --format='{{index .Config.Labels "org.opencontainers.image.created"}}' "$image" 2>/dev/null)
+
+    # A locally built image (dev mode, or a source build) carries no labels.
+    # Say nothing rather than guess.
+    if [ -z "$revision" ] || [ -z "$created" ]; then
+        return 0
+    fi
+
+    local built_epoch now_epoch age_days
+    if date -j >/dev/null 2>&1; then
+        built_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S" "${created%%.*}" "+%s" 2>/dev/null)   # BSD/macOS
+    else
+        built_epoch=$(date -d "$created" "+%s" 2>/dev/null)                                # GNU
+    fi
+    [ -z "$built_epoch" ] && return 0
+
+    now_epoch=$(date "+%s")
+    age_days=$(( (now_epoch - built_epoch) / 86400 ))
+    [ "$age_days" -lt 0 ] && age_days=0
+
+    echo "[i] radar ${revision:0:7}, image built $(echo "$created" | cut -c1-10) (${age_days}d ago)"
+    if [ "$age_days" -ge "$STALE_IMAGE_DAYS" ]; then
+        echo "[w] This image is ${age_days} days old; \`radar --update\` pulls the latest"
+    fi
+}
 
 check_image_update() {
     local image="$1"
@@ -505,6 +550,8 @@ else
     compose_up --build
     echo "$current_checksum" > "$checksum_file"
 fi
+
+print_version
 
 container_path="/contract"
 if [ -n "$source_directory_or_file" ]; then
